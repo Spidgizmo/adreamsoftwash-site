@@ -4,7 +4,7 @@ export const SITE = {
   url: 'https://adreamsoftwash.com',
   phoneDisplay: '(567) 777-7638',
   phoneTel: '+15677777638',
-  email: 'servic@adreamsoftwash.com',
+  email: 'service@adreamsoftwash.com',
   serviceArea: 'Toledo • Perrysburg • Sylvania • Maumee • Monclova & nearby',
   owners: 'Owned & operated by James & Austin',
   addressLine: 'Toledo, Ohio',
