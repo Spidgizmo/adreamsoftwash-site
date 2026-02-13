@@ -7,12 +7,12 @@ export const metadata = {
 }
 
 const GALLERY = [
-  { src: '/images/before-after-drive-1.jpg', label: 'Driveway Cleaning' },
-  { src: '/images/before-after-house-1.jpg', label: 'House Washing' },
-  { src: '/images/before-after-house-2.jpg', label: 'House Washing' },
-  { src: '/images/before-after-roof-1.jpg', label: 'Roof Soft Wash' },
-  { src: '/images/before-after-roof-2.jpg', label: 'Roof Soft Wash' },
-  { src: '/images/before-after-roof-3.jpg', label: 'Roof Soft Wash' },
+  { src: '/gallery/before-after-drive-1.jpg', label: 'Driveway Cleaning' },
+  { src: '/gallery/before-after-house-1.jpg', label: 'House Washing' },
+  { src: '/gallery/before-after-house-2.jpg', label: 'House Washing' },
+  { src: '/gallery/before-after-roof-1.jpg', label: 'Roof Soft Wash' },
+  { src: '/gallery/before-after-roof-2.jpg', label: 'Roof Soft Wash' },
+  { src: '/gallery/before-after-roof-3.jpg', label: 'Roof Soft Wash' },
 ]
 
 export default function GalleryPage() {
