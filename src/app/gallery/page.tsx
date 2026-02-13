@@ -7,7 +7,7 @@ export const metadata = {
 }
 
 const GALLERY = [
-  { src: '/gallery/before-after-drive-1.JPG', label: 'Driveway Cleaning' },
+  { src: '/gallery/before-after-drive.JPG', label: 'Driveway Cleaning' },
   { src: '/gallery/before-after-house-1.JPG', label: 'House Washing' },
   { src: '/gallery/before-after-house-2.JPG', label: 'House Washing' },
   { src: '/gallery/before-after-roof-1.JPG', label: 'Roof Soft Wash' },
