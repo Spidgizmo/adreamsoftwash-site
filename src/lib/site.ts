@@ -1,10 +1,10 @@
 export const SITE = {
   name: 'American Dream Softwash',
   // TODO: replace with your real domain once you deploy (used for sitemap/canonical URLs)
-  url: 'https://example.com',
+  url: 'https://adreamsoftwash.com',
   phoneDisplay: '(567) 777-7638',
   phoneTel: '+15677777638',
-  email: 'americandreamsoftwash@gmail.com',
+  email: 'servic@adreamsoftwash.com',
   serviceArea: 'Toledo • Perrysburg • Sylvania • Maumee • Monclova & nearby',
   owners: 'Owned & operated by James & Austin',
   addressLine: 'Toledo, Ohio',
