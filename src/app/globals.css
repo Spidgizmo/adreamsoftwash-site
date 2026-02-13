@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base site defaults (clean + consistent) */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    body {
+  @apply bg-brand-50 text-zinc-900 antialiased;
+}
+  }
+
+  /* Headings: strong, readable, consistent */
+  h1, h2, h3, h4 {
+    @apply text-zinc-900;
+  }
+
+  /* Links: use brand color, not default blue */
+  a {
+    @apply text-brand-700;
+  }
+  a:hover {
+    @apply text-brand-800;
+  }
+
+  /* Selection color feels “branded” */
+  ::selection {
+    background: rgba(59, 130, 246, 0.25); /* brand-500 @ 25% */
+  }
+
+  /* Better keyboard focus (accessibility + pro feel) */
+  :focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.55); /* brand-600 */
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+}
+
+/* Reusable small utility classes (optional but helpful) */
+@layer components {
+  .link-muted {
+    @apply text-zinc-700 hover:text-brand-800 hover:underline;
+  }
+
+  .card {
+    @apply rounded-2xl border border-zinc-200 bg-white shadow-sm;
+  }
+
+  .card-muted {
+    @apply rounded-2xl border border-zinc-200 bg-zinc-50;
+  }
+}
