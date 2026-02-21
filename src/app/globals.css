@@ -9,13 +9,14 @@
   }
 
   body {
-    body {
-  @apply bg-brand-50 text-zinc-900 antialiased;
-}
+    @apply bg-brand-50 text-zinc-900 antialiased;
   }
 
   /* Headings: strong, readable, consistent */
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     @apply text-zinc-900;
   }
 
@@ -40,7 +41,7 @@
   }
 }
 
-/* Reusable small utility classes (optional but helpful) */
+/* Reusable small utility classes */
 @layer components {
   .link-muted {
     @apply text-zinc-700 hover:text-brand-800 hover:underline;
