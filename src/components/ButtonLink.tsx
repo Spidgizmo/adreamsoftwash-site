@@ -1,27 +1,48 @@
 import Link from "next/link";
-import clsx from "clsx";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
+
+type Variant = "primary" | "secondary";
 
 type Props = {
   href: string;
-  children: React.ReactNode;
+  children: ReactNode;
+  variant?: Variant;
   className?: string;
-  variant?: "primary" | "secondary" | "ghost";
-};
+} & Omit<ComponentPropsWithoutRef<"a">, "href" | "children" | "className">;
 
-export function ButtonLink({ href, children, className, variant = "primary" }: Props) {
+function cx(...parts: Array<string | undefined | false>) {
+  return parts.filter(Boolean).join(" ");
+}
+
+export function ButtonLink({
+  href,
+  children,
+  variant = "primary",
+  className,
+  ...anchorProps
+}: Props) {
+  const isExternal = /^https?:\/\//i.test(href);
+
   const base =
-    "inline-flex items-center justify-center rounded-md px-5 py-3 text-center text-sm font-semibold transition shadow-sm";
+    "inline-flex items-center justify-center rounded-md px-5 py-3 text-sm font-semibold shadow-sm transition";
+  const styles =
+    variant === "secondary"
+      ? "border border-zinc-200 bg-white text-zinc-900 hover:bg-brand-50"
+      : "bg-brand-700 text-white hover:bg-zinc-900";
 
-  const styles = {
-    primary:
-      "bg-brand-700 text-white hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-300",
-    secondary:
-      "border border-zinc-200 bg-white text-zinc-900 hover:bg-brand-50 hover:border-brand-200 focus:outline-none focus:ring-2 focus:ring-brand-200",
-    ghost: "text-brand-800 hover:text-brand-900 hover:underline",
-  };
+  const classes = cx(base, styles, className);
 
+  if (isExternal) {
+    return (
+      <a href={href} className={classes} {...anchorProps}>
+        {children}
+      </a>
+    );
+  }
+
+  // Internal route
   return (
-    <Link href={href} className={clsx(base, styles[variant], className)}>
+    <Link href={href} className={classes} {...(anchorProps as any)}>
       {children}
     </Link>
   );
