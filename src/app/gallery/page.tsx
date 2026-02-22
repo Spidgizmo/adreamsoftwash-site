@@ -1,6 +1,6 @@
 import { ButtonLink } from '@/components/ButtonLink'
 import { Container } from '@/components/Container'
-
+import { SITE } from "@/lib/site";
 export const metadata = {
   title: 'Gallery',
   description: 'Before and after photos of roof cleaning, house washing, and concrete cleaning.',
