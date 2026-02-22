@@ -1,13 +1,13 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
 
-import { MobileCTA } from '@/components/MobileCTA'
-import { SiteFooter } from '@/components/SiteFooter'
-import { SiteHeader } from '@/components/SiteHeader'
-import { SITE } from '@/lib/site'
+import { MobileCTA } from "@/components/MobileCTA";
+import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SITE } from "@/lib/site";
 
-const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' })
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: {
@@ -15,8 +15,12 @@ export const metadata: Metadata = {
     template: `%s | ${SITE.name}`,
   },
   description:
-    'Professional roof cleaning, house washing, and concrete cleaning in Toledo, Perrysburg, and Sylvania. Safe soft washing for shingles and siding.',
-}
+    "Professional roof cleaning, house washing, and concrete cleaning in Toledo, Perrysburg, and Sylvania. Safe soft washing for shingles and siding.",
+  icons: {
+    icon: "/favicon.ico?v=2",
+    apple: "/apple-touch-icon.png?v=2",
+  },
+};
 
 export default function RootLayout({
   children,
@@ -25,8 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-brand-700 text-zinc-900 antialiased">
-
+      <body className="min-h-screen bg-brand-50 text-zinc-900 antialiased">
         <SiteHeader />
         <div className="pb-24 md:pb-0">{children}</div>
         <SiteFooter />
@@ -35,4 +38,3 @@ export default function RootLayout({
     </html>
   );
 }
-

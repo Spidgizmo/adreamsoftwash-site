@@ -2,16 +2,15 @@ import Link from "next/link";
 import { Container } from "@/components/Container";
 import { NAV_LINKS, SITE } from "@/lib/site";
 
+const QUICK_QUOTE_URL = "https://www.lavocrm.com/quote/c2bbf662-b7dd-4a3e-818d-6736bdab49dc";
+
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur">
       <Container>
-        {/* Fixed bar height so the header never grows */}
         <div className="flex h-16 items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-3">
-            {/* Logo badge: keeps it readable on light backgrounds */}
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-200 bg-white shadow-sm">
-              {/* Scale the logo visually without affecting layout height */}
               <img
                 src="/brand/logo.svg"
                 alt={`${SITE.name} logo`}
@@ -45,11 +44,16 @@ export function SiteHeader() {
               Call {SITE.phoneDisplay}
             </a>
 
+            {/* QUICK QUOTE button (every page) */}
             <a
-              className="inline-flex rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-800"
-              href="/contact"
+              className="cta-wiggle inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-extrabold text-white shadow-sm ring-2 ring-sky-300/60 bg-sky-500 hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/70"
+              href={QUICK_QUOTE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Quick Quote"
+              title="Quick Quote"
             >
-              Free Quote
+              Quick Quote
             </a>
           </div>
         </div>
