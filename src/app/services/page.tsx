@@ -59,7 +59,7 @@ export default function ServicesPage() {
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
-              <ButtonLink href="/contact">Get a Free Quote</ButtonLink>
+              <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Get a Free Quote</ButtonLink>
               <a
                 className="rounded-md border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-brand-50"
                 href={`tel:${SITE.phoneTel}`}
@@ -112,7 +112,7 @@ export default function ServicesPage() {
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/contact">Request a quote</ButtonLink>
+              <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Request a quote</ButtonLink>
               <ButtonLink href="/gallery" variant="secondary">
                 See results
               </ButtonLink>

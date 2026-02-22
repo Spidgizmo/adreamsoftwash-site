@@ -1,4 +1,4 @@
-import { SITE } from '@/lib/site'
+import { SITE } from "@/lib/site";
 
 export function MobileCTA() {
   return (
@@ -10,13 +10,16 @@ export function MobileCTA() {
         >
           Call Now
         </a>
+
         <a
           className="flex-1 rounded-md bg-brand-700 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-zinc-900"
-          href="/contact"
+          href={SITE.quoteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
         >
           Free Quote
         </a>
       </div>
     </div>
-  )
+  );
 }

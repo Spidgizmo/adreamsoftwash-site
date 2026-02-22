@@ -13,14 +13,17 @@ export const SITE = {
     facebook: '',
     googleBusiness: '',
   },
-} as const;
-export const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/services", label: "Services" },
-  { href: "/gallery", label: "Gallery" },
-  { href: "/about", label: "About" },
-  { href: "/service-areas", label: "Service Area" },
-  { href: "/contact", label: "Contact" },
-  { href: "/faq", label: "FAQ" },
-] as const;
 
+  // ✅ Lavo “Quick Quote” link (source of truth)
+  quoteUrl: 'https://www.lavocrm.com/quote/c2bbf662-b7dd-4a3e-818d-6736bdab49dc',
+} as const;
+
+export const NAV_LINKS = [
+  { href: '/', label: 'Home' },
+  { href: '/services', label: 'Services' },
+  { href: '/gallery', label: 'Gallery' },
+  { href: '/about', label: 'About' },
+  { href: '/service-areas', label: 'Service Area' },
+  { href: '/contact', label: 'Contact' },
+  { href: '/faq', label: 'FAQ' },
+] as const;

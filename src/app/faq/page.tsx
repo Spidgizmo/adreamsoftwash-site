@@ -97,7 +97,7 @@ export default function FAQPage() {
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <a
-                    href="/contact"
+                    href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer"
                     className="inline-flex rounded-md bg-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-800"
                   >
                     Get a Free Quote

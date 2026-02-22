@@ -77,7 +77,7 @@ export default function HomePage() {
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
-                <ButtonLink href="/contact">Get a Free Quote</ButtonLink>
+                <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Get a Free Quote</ButtonLink>
                 <ButtonLink href="/services" variant="secondary">
                   View Services
                 </ButtonLink>
@@ -114,7 +114,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <ButtonLink href="/contact">Start a free quote</ButtonLink>
+                  <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Start a free quote</ButtonLink>
                   <Link
                     href="/gallery"
                     className="rounded-md border border-zinc-200 bg-white px-5 py-3 text-center text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
@@ -215,7 +215,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <ButtonLink href="/contact">Get a Free Quote</ButtonLink>
+              <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Get a Free Quote</ButtonLink>
               <a
                 className="rounded-md border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-900 hover:bg-zinc-100"
                 href={`tel:${SITE.phoneTel}`}

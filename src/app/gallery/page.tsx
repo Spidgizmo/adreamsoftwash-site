@@ -30,7 +30,7 @@ export default function GalleryPage() {
             </p>
 
             <div className="mt-7 flex gap-3">
-              <ButtonLink href="/contact">Get a Free Quote</ButtonLink>
+              <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Get a Free Quote</ButtonLink>
               <ButtonLink href="/services" variant="secondary">
                 View Services
               </ButtonLink>
@@ -79,7 +79,7 @@ export default function GalleryPage() {
               Request a free quote and we’ll tell you exactly what it would take to clean your property.
             </p>
             <div className="mt-6">
-              <ButtonLink href="/contact">Request a Quote</ButtonLink>
+              <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Request a Quote</ButtonLink>
             </div>
           </div>
         </Container>

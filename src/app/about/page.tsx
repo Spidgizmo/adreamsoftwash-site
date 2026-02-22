@@ -27,7 +27,7 @@ export default function AboutPage() {
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
-              <ButtonLink href="/contact">Get a Free Quote</ButtonLink>
+              <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Get a Free Quote</ButtonLink>
               <a
                 className="rounded-md border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-brand-50"
                 href={`tel:${SITE.phoneTel}`}
@@ -87,7 +87,7 @@ export default function AboutPage() {
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
-              <ButtonLink href="/contact">Contact us</ButtonLink>
+              <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Contact us</ButtonLink>
               <ButtonLink href="/service-areas" variant="secondary">
                 View service areas
               </ButtonLink>

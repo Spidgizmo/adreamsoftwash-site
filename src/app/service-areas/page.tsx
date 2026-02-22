@@ -40,7 +40,7 @@ export default function ServiceAreasPage() {
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <ButtonLink href="/contact">Get a Free Quote</ButtonLink>
+              <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer">Get a Free Quote</ButtonLink>
               <a
                 className="inline-flex rounded-md border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-900 hover:bg-brand-50"
                 href={`tel:${SITE.phoneTel}`}
@@ -121,7 +121,7 @@ export default function ServiceAreasPage() {
                 <ButtonLink href="/services" variant="secondary">
                   View Services
                 </ButtonLink>
-                <ButtonLink href="/contact" variant="secondary">
+                <ButtonLink href={SITE.quoteUrl} target="_blank" rel="noopener noreferrer" variant="secondary">
                   Request a Quote
                 </ButtonLink>
               </div>
