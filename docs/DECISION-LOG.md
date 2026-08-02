@@ -31,6 +31,8 @@ This log separates approved direction from decisions still requiring owner appro
 - Login, signup, payment, subscription, service, entitlement, and route statuses are independent. Failed payment never deletes or blocks portal/billing access.
 - Returning bins to the selected storage location is standard service; instructions appear in portal/CRM and future workers must return and photograph them or record an exception.
 - Pickup source values remain separate. Cleaning normally occurs the next calendar day after collection, including holiday-adjusted collection; mismatches create staff review rather than overwrite.
+- James Gibbs approved the launch standard service on 2026-08-02: interior and exterior bin cleaning; chemical pre-treatment when needed; hands-on brushing, especially during the manual-equipment launch phase; pressure washing; sanitizing and deodorizing; controlled wastewater capture and handling; before-and-after service photographs; and return to the customer's designated storage location. This approval does not authorize promises about a specific machine, hot-water cleaning, complete stain removal, sterilization, elimination of every odor, or another unapproved result.
+- James Gibbs confirmed on 2026-08-02 that the existing exterior-cleaning Lavo quote remains available in the global header. On ADS Bin Cleaning routes it is labeled **Exterior Cleaning Quote**, while the primary bin-cleaning action uses the separate signup preview and never routes through Lavo.
 
 ### Payments, tax, entitlements, and routes
 

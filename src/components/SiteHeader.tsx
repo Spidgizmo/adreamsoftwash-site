@@ -51,7 +51,7 @@ export function SiteHeader() {
 
             {/* MATCHES your existing blue button style */}
             <a
-              className={`${isBinCleaning ? "hidden sm:inline-flex" : "inline-flex"} quick-quote-shake rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-800`}
+              className="quick-quote-shake inline-flex rounded-md bg-brand-700 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-brand-800 sm:px-4"
               href={QUICK_QUOTE_URL}
               target="_blank"
               rel="noreferrer"

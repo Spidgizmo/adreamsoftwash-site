@@ -10,7 +10,7 @@ const STEPS = [
   ["2", "Prepare your bins", "Leave emptied bins accessible after collection, following the preparation guidance provided before service."],
   ["3", "We clean & return", "We clean, document, and return bins to your designated storage location."],
 ];
-const INCLUDED = ["Interior and exterior cleaning", "Pre-treatment and thorough brushing", "Pressure washing", "Deodorizing", "Controlled wastewater handling", "Before-and-after documentation", "Return to your designated storage location"];
+const INCLUDED = ["Interior and exterior bin cleaning", "Chemical pre-treatment when needed", "Hands-on brushing", "Pressure washing", "Sanitizing and deodorizing", "Controlled wastewater capture and handling", "Before-and-after service photographs", "Return to your designated storage location"];
 const FAQS = [
   ["Do you clean year-round?", "Yes. ADS Bin Cleaning is designed as a year-round service. Scheduling remains subject to safe operating conditions and future service confirmation."],
   ["When should I set out my bins?", "Bins should be emptied and accessible after collection. We will provide complete service-day instructions when online signup becomes available."],

@@ -71,3 +71,5 @@ Provider-specific identifiers belong in protected configuration or catalog recor
 ## Delivery constraints
 
 This proposal installs no packages, creates no Supabase project, creates no Stripe products/prices, supplies no credentials, and adds no application code. Stripe remains test-only. Live signup waits for connected account, portal, test billing, and minimum CRM behavior. See the roadmap for staged implementation and the decision log for approval gates.
+
+The public service description may use the owner-approved standard-service scope recorded in the MVP and decision log. The exterior-cleaning Lavo link remains a clearly labeled global-header option on bin-cleaning routes, but no bin-cleaning signup, account, billing, CRM, or scheduling flow uses Lavo.

@@ -112,6 +112,12 @@ When sources disagree, preserve both, create a protected staff-review item, and 
 
 Return to the customer's designated storage location is included. Signup captures preferred location, gate, driveway, access, safety/accessibility, and other return notes; portal and CRM show them. Future field work shows the location, requires return and an after photo, and records completion or exception.
 
+### Approved standard service
+
+James Gibbs approved the launch standard service on 2026-08-02. It includes interior and exterior bin cleaning, chemical pre-treatment when needed, hands-on brushing (especially during the manual-equipment launch phase), pressure washing, sanitizing and deodorizing, controlled wastewater capture and handling, before-and-after service photographs, and returning cleaned bins to the customer's designated storage location.
+
+Public and operational materials must describe these inclusions accurately without promising a specific machine, hot-water cleaning, complete stain removal, sterilization, elimination of every odor, or another unapproved result.
+
 ### Future field foundation
 
 The initial data model supports multiple zone runs, entitlements, assignment/capacity/stop order, before/after/return photos, skipped/refused evidence, contamination and surcharge approval, completion/customer messages, holiday shifts, staff logs, gratuities, municipal automation, and equipment/route reporting without replacing the customer core.

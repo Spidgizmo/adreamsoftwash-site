@@ -14,6 +14,7 @@ All phases extend one Next.js/Supabase application foundation and shared custome
 - Build the fully responsive ADS Bin Cleaning page and active-plan selector using the existing Tailwind system.
 - Show standard service, bin-return inclusion, referral eligibility, billing interval, calculated line items, dynamic tax placeholder/contract, and total.
 - Do not expose live signup yet and do not disturb Lavo.
+- Present the owner-approved standard-service scope accurately without adding unapproved equipment or result claims; retain the clearly labeled global **Exterior Cleaning Quote** while keeping every bin-cleaning action separate from Lavo.
 
 ## Phase 3 — Customer account and portal foundation
 
