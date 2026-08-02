@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      style={{ "--font-inter": "Inter, ui-sans-serif, system-ui, sans-serif" } as React.CSSProperties}
+      style={{ "--font-inter": 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' } as React.CSSProperties}
     >
       <body className="min-h-screen bg-brand-50 text-zinc-900 antialiased">
         <SiteHeader />

@@ -29,6 +29,27 @@ export const BIN_CLEANING_PLANS: readonly ServicePlan[] = [
 ] as const;
 
 export const PUBLIC_BIN_CLEANING_PLANS = BIN_CLEANING_PLANS.filter((plan) => plan.publiclyVisible);
+export const DEFAULT_BIN_CLEANING_PLAN_ID: PlanId = "monthly";
+export const MIN_BIN_COUNT = 1;
+export const MAX_BIN_COUNT = 20;
+export const TAX_ESTIMATE_MESSAGE = "Calculated from the validated service address during checkout";
+export const ESTIMATED_TOTAL_LABEL = "Estimated total before tax";
+
+export type BinCleaningSelection = Readonly<{ planId: PlanId; binCount: number }>;
+
+export function resolveBinCleaningSelection(
+  values: Readonly<{ plan?: string | string[]; bins?: string | string[] }>,
+): BinCleaningSelection {
+  const requestedPlan = Array.isArray(values.plan) ? values.plan[0] : values.plan;
+  const publicPlan = PUBLIC_BIN_CLEANING_PLANS.find((plan) => plan.id === requestedPlan);
+  const requestedBins = Array.isArray(values.bins) ? values.bins[0] : values.bins;
+  const parsedBins = requestedBins === undefined || !/^\d+$/.test(requestedBins) ? Number.NaN : Number(requestedBins);
+  const binCount = Number.isSafeInteger(parsedBins) && parsedBins >= MIN_BIN_COUNT && parsedBins <= MAX_BIN_COUNT
+    ? parsedBins
+    : MIN_BIN_COUNT;
+
+  return { planId: publicPlan?.id ?? DEFAULT_BIN_CLEANING_PLAN_ID, binCount };
+}
 
 export type PriceBreakdown = Readonly<{ basePriceCents: number; additionalBinCount: number; additionalBinChargesCents: number; subtotalCents: number }>;
 
