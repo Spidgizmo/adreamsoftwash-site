@@ -21,6 +21,7 @@ export const SITE = {
 export const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/services', label: 'Services' },
+  { href: '/bin-cleaning', label: 'Bin Cleaning' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/about', label: 'About' },
   { href: '/service-areas', label: 'Service Area' },

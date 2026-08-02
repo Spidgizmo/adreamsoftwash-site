@@ -18,11 +18,11 @@ Exactly four plans are active at launch:
 | Plan | Type and interval | Base price | Additional bins | Base includes | Referral eligible |
 | --- | --- | ---: | ---: | ---: | --- |
 | Monthly | Recurring each calendar month | $20 | $5 each | 1 bin | Yes, eligible residential subscriptions only |
-| Quarterly | Recurring every 3 calendar months | $40 | $10 each | 1 bin | No |
-| Twice a Year | Recurring every 6 calendar months; normally 2 paid cycles/year | **Owner decision required** | **Owner decision required** | **Owner decision required** | No |
+| Quarterly | Recurring every 3 calendar months | $35 | $5 each | 1 bin | No |
+| Twice a Year | Recurring every 6 calendar months; normally 2 paid cycles/year | $50 | $10 each after first 2 | Up to 2 bins | No |
 | One-Time Cleaning | One payment; no automatic subscription | $60 | $10 each after first 2 | Up to 2 bins | No |
 
-Examples: Monthly costs $20/$25/$30/$35 for 1/2/3/4 bins; Quarterly costs $40/$50/$60/$70; One-Time costs $60/$60/$70/$80. Do not guess Twice-a-Year pricing; it must be approved before live checkout implementation.
+Examples for 1/2/3/4 bins: Monthly costs $20/$25/$30/$35; Quarterly costs $35/$40/$45/$50; Twice a Year costs $50/$50/$60/$70; One-Time costs $60/$60/$70/$80.
 
 Every 2 Weeks is a future **inactive** catalog plan: it is not public, staff-selectable, priced, provisioned in Stripe, or referral eligible at launch. Every 4 Weeks, Every 8 Weeks, and Bi-monthly are not launch offerings. Future activation must be configuration-driven without rebuilding other system surfaces.
 
@@ -111,6 +111,12 @@ When sources disagree, preserve both, create a protected staff-review item, and 
 ### Standard bin return
 
 Return to the customer's designated storage location is included. Signup captures preferred location, gate, driveway, access, safety/accessibility, and other return notes; portal and CRM show them. Future field work shows the location, requires return and an after photo, and records completion or exception.
+
+### Approved standard service
+
+James Gibbs approved the launch standard service on 2026-08-02. It includes interior and exterior bin cleaning, chemical pre-treatment when needed, hands-on brushing (especially during the manual-equipment launch phase), pressure washing, sanitizing and deodorizing, controlled wastewater capture and handling, before-and-after service photographs, and returning cleaned bins to the customer's designated storage location.
+
+Public and operational materials must describe these inclusions accurately without promising a specific machine, hot-water cleaning, complete stain removal, sterilization, elimination of every odor, or another unapproved result.
 
 ### Future field foundation
 

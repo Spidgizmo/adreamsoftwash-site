@@ -20,7 +20,7 @@ Public signup first creates an Auth identity, provisional customer, signup snaps
 
 `service_plans` and immutable/effective-dated `service_plan_versions` are the only pricing/eligibility source for public pricing, both signup paths, Checkout/subscriptions, portal, CRM, tax, entitlements, routing, invoices, and reporting. A version stores internal ID, display name/description, active state, charge type, billing unit/quantity, service unit/quantity, first-bin/additional-bin prices, included bins, referral eligibility, tax classification, Stripe product/price references, and effective date.
 
-The launch configuration exposes Monthly, Quarterly, Twice a Year, and One-Time Cleaning. Twice-a-Year checkout cannot activate until its approved price/version exists. Every 2 Weeks may exist only as future/inactive with no price, Stripe Price, staff/public visibility, or referral eligibility. Activating a future approved version is a catalog/configuration change, not a website, portal, CRM, tax, entitlement, or routing rebuild.
+The launch configuration exposes Monthly, Quarterly, Twice a Year, and One-Time Cleaning with their approved catalog pricing. Every 2 Weeks may exist only as future/inactive with no price, Stripe Price, staff/public visibility, or referral eligibility. Activating a future approved version is a catalog/configuration change, not a website, portal, CRM, tax, entitlement, or routing rebuild.
 
 Pricing is calculated server-side from catalog version plus bin count; clients render the returned breakdown. Persist the selected version and base/additional/subtotal/tax/total snapshots on signup, invoice, payment, entitlement, and history records.
 
@@ -71,3 +71,5 @@ Provider-specific identifiers belong in protected configuration or catalog recor
 ## Delivery constraints
 
 This proposal installs no packages, creates no Supabase project, creates no Stripe products/prices, supplies no credentials, and adds no application code. Stripe remains test-only. Live signup waits for connected account, portal, test billing, and minimum CRM behavior. See the roadmap for staged implementation and the decision log for approval gates.
+
+The public service description may use the owner-approved standard-service scope recorded in the MVP and decision log. The exterior-cleaning Lavo link remains a clearly labeled global-header option on bin-cleaning routes, but no bin-cleaning signup, account, billing, CRM, or scheduling flow uses Lavo.
