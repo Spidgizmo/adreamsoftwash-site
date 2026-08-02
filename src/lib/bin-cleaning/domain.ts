@@ -21,9 +21,11 @@ export function makeReferralCode(randomBytes: Uint8Array): string {
   if (randomBytes.length < 8) throw new RangeError("At least eight random bytes are required.");
   return `ADS-${Array.from(randomBytes.slice(0, 8), (byte) => byte.toString(36).padStart(2, "0")).join("").toUpperCase()}`;
 }
-export function assertReferral(referrerCustomerId: string, referredCustomerId: string, referrerAddressHash: string, referredAddressHash: string) {
-  if (referrerCustomerId === referredCustomerId) throw new Error("Self-referrals are not allowed.");
-  if (referrerAddressHash === referredAddressHash) throw new Error("A service address may receive only one new-customer referral benefit in the lookback window.");
+export function referralRejection(input: Readonly<{ referrerCustomerId: string; referredCustomerId: string; addressClaimedAt?: Date; now: Date; duplicateActiveClaim: boolean }>): "self_referral" | "duplicate_active_claim" | "address_lookback" | null {
+  if (input.referrerCustomerId === input.referredCustomerId) return "self_referral";
+  if (input.duplicateActiveClaim) return "duplicate_active_claim";
+  if (input.addressClaimedAt && input.addressClaimedAt > new Date(input.now.getTime() - 365 * 24 * 60 * 60 * 1000)) return "address_lookback";
+  return null;
 }
 export function referralCreditCents(planId: PlanId): number {
   const plan = BIN_CLEANING_PLANS.find((item) => item.id === planId);

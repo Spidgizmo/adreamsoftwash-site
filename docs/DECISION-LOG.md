@@ -85,3 +85,7 @@ No implementation may invent an answer. Record the owner decision, effective dat
 ## Agent 2 implementation record — 2026-08-02 (no new owner decisions)
 
 The approved Supabase/Auth/RLS direction is represented by a test-only migration and fictional seed. The four requested implementation roles are enforced as the current test permission baseline; because the earlier log still requires final owner approval of staff permissions, these permissions are not authorized for production activation. No service area, tax conclusion, live communication, plan-change economics, payment behavior, or production policy was inferred. Production credentials, signup, Stripe, tax, scheduling, customer storage, messaging, and deployment remain inactive.
+
+## Agent 2 correction record — no new owner decision
+
+The correction implements secure test-session routing, database-backed test operations, auditable pending route-change requests, and the approved referral address lookback without permanently reserving an address. These are test controls, not authorization for production roles, credentials, signup, billing, tax, communications, routing, or deployment.

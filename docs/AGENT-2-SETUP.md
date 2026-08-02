@@ -1,23 +1,17 @@
-# Agent 2 local and test setup
+# Agent 2 local and disposable-test setup
 
-## Requirements and environment
-
-Install Node.js 20+, npm, Docker, and the Supabase CLI. Copy `.env.example` to `.env.local`; populate only a disposable local/test project's URL and anon key. `SUPABASE_SERVICE_ROLE_KEY` is optional for server test tooling and must never use the `NEXT_PUBLIC_` prefix.
-
-## Local workflow
+Install Node.js 20+, npm, Docker, and Supabase CLI. Copy `.env.example` to `.env.local` and use only a disposable local/test project. Never expose `SUPABASE_SERVICE_ROLE_KEY` through `NEXT_PUBLIC_*`.
 
 1. `npm ci`
 2. `supabase start`
-3. `supabase db reset` (applies `supabase/migrations` then `supabase/seed.sql`)
-4. Copy local values printed by `supabase status` into `.env.local`.
-5. `npm run dev`
+3. `supabase db reset`
+4. Copy local URL, anon key, and server-only service key from `supabase status`.
+5. Generate a unique 16+ character disposable password in your shell as `ADS_TEST_USER_PASSWORD`; do not write it to a file, chat, commit, or shared production-like secret.
+6. `npm run test:auth:provision` updates only the six fictional local Auth identities created with random unusable seed hashes.
+7. `npm run dev`
 
-For a hosted **test** project, link only its test project ref, run `supabase db push --dry-run`, review, then `supabase db push`. Reset/seed only disposable test databases. Production must use a distinct Supabase organization/project, deployment environment, secret store, restricted keys, and explicit owner approval; production credentials must never exist in local test files.
+Verify customer (`avery@example.test`), second isolation customer (`jordan@example.test`), administrator, dispatcher, assigned technician, and unassigned technician using the locally supplied disposable password. Delete the local database and unset the password afterward.
 
-## Test procedure
+Run `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `supabase db reset`, `supabase db lint --local`, and `supabase test db`. Database security is verified only when the final three commands execute against PostgreSQL; Node source-contract tests are not a substitute.
 
-Run `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `supabase db lint --local`, and database policy tests after `supabase db reset`. The Node security contract checks policy presence without replacing live PostgreSQL RLS tests. Test the portal, CRM, and field navigation at 375, 768, 1024, and 1440 CSS pixels.
-
-## Limits
-
-Agent 2 does not configure live signup, real password recovery, Stripe, tax, GIS/address verification, email/SMS, production scheduling/deployment/data, real storage uploads, or real customer records. UI form submissions are inert test foundations; server mutations and authenticated data adapters are Agent 3 work.
+Production must use a separate project, secret store, credentials, and explicit approval. Stripe, tax, GIS, email/SMS, real photo objects, entitlements, production scheduling, production data, and deployment remain inactive/deferred.

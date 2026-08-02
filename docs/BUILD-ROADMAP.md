@@ -65,5 +65,9 @@ All phases extend one Next.js/Supabase application foundation and shared custome
 ## Agent 2 delivery checkpoint (test-only)
 
 - Phase 1 database/Auth/RLS, catalog snapshot, role, audit, schedule, referral, and field-completion foundations are implemented as migrations and automated contracts.
-- Phase 3 responsive portal foundation and Phase 5 CRM/field previews are implemented against fictional test fixtures.
+- Phase 3 responsive portal foundation and Phase 5 CRM/field pages are implemented against session-scoped fictional Supabase test records.
 - Live signup remains gated. Agent 3 must connect server-rendered authenticated queries/mutations, Stripe test billing/webhooks, address/tax provider test adapters, notification fakes, entitlement automation, photo-storage signed URLs, and full route scheduling before release consideration.
+
+### Agent 2 correction checkpoint
+
+Private route middleware, session-scoped database pages, functional test mutations, pending route-change review, referral address history/lookback, and runtime PostgreSQL role tests are now implemented. Agent 3 deferrals and every live-activation gate remain unchanged.

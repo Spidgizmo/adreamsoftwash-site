@@ -1,14 +1,16 @@
 -- FICTIONAL TEST DATA ONLY. Safe for local/test projects; never run against production.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
 values
-('00000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','avery@example.test',crypt('Test-only-password-1',gen_salt('bf')),now(),now(),now(),'{}','{}'),
-('00000000-0000-4000-8000-000000000010','00000000-0000-0000-0000-000000000000','authenticated','authenticated','admin@example.test',crypt('Test-only-password-1',gen_salt('bf')),now(),now(),now(),'{}','{}'),
-('00000000-0000-4000-8000-000000000011','00000000-0000-0000-0000-000000000000','authenticated','authenticated','dispatcher@example.test',crypt('Test-only-password-1',gen_salt('bf')),now(),now(),now(),'{}','{}'),
-('00000000-0000-4000-8000-000000000012','00000000-0000-0000-0000-000000000000','authenticated','authenticated','technician@example.test',crypt('Test-only-password-1',gen_salt('bf')),now(),now(),now(),'{}','{}') on conflict do nothing;
+('00000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','avery@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
+('00000000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','jordan@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
+('00000000-0000-4000-8000-000000000010','00000000-0000-0000-0000-000000000000','authenticated','authenticated','admin@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
+('00000000-0000-4000-8000-000000000011','00000000-0000-0000-0000-000000000000','authenticated','authenticated','dispatcher@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
+('00000000-0000-4000-8000-000000000012','00000000-0000-0000-0000-000000000000','authenticated','authenticated','technician@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
+('00000000-0000-4000-8000-000000000013','00000000-0000-0000-0000-000000000000','authenticated','authenticated','unassigned-tech@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}') on conflict do nothing;
 insert into public.user_profiles(id,display_name) values
-('00000000-0000-4000-8000-000000000001','Avery Sample — FICTIONAL'),('00000000-0000-4000-8000-000000000010','Test Administrator — FICTIONAL'),('00000000-0000-4000-8000-000000000011','Test Dispatcher — FICTIONAL'),('00000000-0000-4000-8000-000000000012','Test Technician — FICTIONAL');
+('00000000-0000-4000-8000-000000000001','Avery Sample — FICTIONAL'),('00000000-0000-4000-8000-000000000002','Jordan Example — FICTIONAL'),('00000000-0000-4000-8000-000000000010','Test Administrator — FICTIONAL'),('00000000-0000-4000-8000-000000000011','Test Dispatcher — FICTIONAL'),('00000000-0000-4000-8000-000000000012','Test Technician — FICTIONAL'),('00000000-0000-4000-8000-000000000013','Unassigned Test Technician — FICTIONAL');
 insert into public.staff_roles(user_id,role,granted_by) values
-('00000000-0000-4000-8000-000000000010','administrator','00000000-0000-4000-8000-000000000010'),('00000000-0000-4000-8000-000000000011','dispatcher','00000000-0000-4000-8000-000000000010'),('00000000-0000-4000-8000-000000000012','field_technician','00000000-0000-4000-8000-000000000010');
+('00000000-0000-4000-8000-000000000010','administrator','00000000-0000-4000-8000-000000000010'),('00000000-0000-4000-8000-000000000011','dispatcher','00000000-0000-4000-8000-000000000010'),('00000000-0000-4000-8000-000000000012','field_technician','00000000-0000-4000-8000-000000000010'),('00000000-0000-4000-8000-000000000013','field_technician','00000000-0000-4000-8000-000000000010');
 -- Generated synchronization snapshot of src/lib/bin-cleaning-plans.ts version 2026-08-02-approved-pricing.
 insert into public.service_plans values ('monthly','Monthly','2026-08-02-approved-pricing','active',true,true),('quarterly','Quarterly','2026-08-02-approved-pricing','active',true,false),('twice-yearly','Twice a Year','2026-08-02-approved-pricing','active',true,false),('one-time','One-Time Cleaning','2026-08-02-approved-pricing','active',true,false),('every-two-weeks','Every 2 Weeks','2026-08-02-approved-pricing','future',false,false);
 insert into public.service_plan_versions(plan_id,catalog_version,charge_type,interval_months,base_price_cents,additional_bin_price_cents,bins_included,effective_at) values
@@ -16,7 +18,7 @@ insert into public.service_plan_versions(plan_id,catalog_version,charge_type,int
 insert into public.municipalities(id,name) values ('10000000-0000-4000-8000-000000000001','Test Township'),('10000000-0000-4000-8000-000000000002','Demo Village');
 insert into public.customers(id,user_id,full_name,email,phone,account_status) values
 ('20000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','Avery Sample — FICTIONAL','avery@example.test','555-010-1001','active'),
-('20000000-0000-4000-8000-000000000002',null,'Jordan Example — FICTIONAL','jordan@example.test','555-010-1002','active'),
+('20000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000002','Jordan Example — FICTIONAL','jordan@example.test','555-010-1002','active'),
 ('20000000-0000-4000-8000-000000000003',null,'Morgan Fiction — FICTIONAL','morgan@example.test','555-010-1003','pending_review'),
 ('20000000-0000-4000-8000-000000000004',null,'Riley Placeholder — FICTIONAL','riley@example.test','555-010-1004','active');
 insert into public.service_addresses(id,customer_id,municipality_id,line1,city,region,postal_code,normalized_address_hash,preferred_return_location,access_instructions,animal_warning) values
@@ -27,6 +29,12 @@ insert into public.service_addresses(id,customer_id,municipality_id,line1,city,r
 insert into public.bins(service_address_id,identifier,description,dirty_this_visit) values
 ('30000000-0000-4000-8000-000000000001','SAMPLE-1','Gray city cart',true),
 ('30000000-0000-4000-8000-000000000002','DEMO-1','Gray trash cart',true),('30000000-0000-4000-8000-000000000002','DEMO-2','Blue recycling cart',true),('30000000-0000-4000-8000-000000000002','DEMO-3','Optional cart',false),('30000000-0000-4000-8000-000000000002','DEMO-4','Optional cart',true);
+insert into public.customer_contact_preferences(customer_id) select id from public.customers;
+insert into public.subscriptions(customer_id,service_plan_version_id,started_at) values
+('20000000-0000-4000-8000-000000000001',(select id from service_plan_versions where plan_id='monthly'),'2026-08-01'),
+('20000000-0000-4000-8000-000000000002',(select id from service_plan_versions where plan_id='quarterly'),'2026-08-01'),
+('20000000-0000-4000-8000-000000000003',(select id from service_plan_versions where plan_id='twice-yearly'),'2026-08-01'),
+('20000000-0000-4000-8000-000000000004',(select id from service_plan_versions where plan_id='one-time'),'2026-08-01');
 insert into public.trash_pickup_schedules(id,service_address_id,weekday,source,verification_status,effective_from,holiday_shift_days,holiday_shift_status) values
 ('40000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',1,'staff_verified','verified','2026-08-01',0,'none'),
 ('40000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000002',5,'customer_confirmed','customer_confirmed','2026-08-01',1,'test_holiday_shift'),

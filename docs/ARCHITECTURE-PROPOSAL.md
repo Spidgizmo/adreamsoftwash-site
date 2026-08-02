@@ -76,6 +76,10 @@ The public service description may use the owner-approved standard-service scope
 
 ## Agent 2 test foundation (2026-08-02)
 
-The committed Supabase CLI configuration, migration, seed, RLS helpers/policies, and database completion trigger implement the test foundation without dashboard dependencies. Responsive test surfaces now exist at `/bin-cleaning/login`, `/bin-cleaning/portal`, `/bin-cleaning/crm`, `/bin-cleaning/crm/customers/[id]`, `/bin-cleaning/crm/visits`, and `/bin-cleaning/field/visits/[id]`. They use fictional display fixtures while local Supabase setup is completed; they do not activate production signup, billing, messaging, scheduling, storage delivery, or deployment.
+The committed Supabase CLI configuration, migration, seed, RLS helpers/policies, and database completion trigger implement the test foundation without dashboard dependencies. Responsive test surfaces now exist at `/bin-cleaning/login`, `/bin-cleaning/portal`, `/bin-cleaning/crm`, `/bin-cleaning/crm/customers/[id]`, `/bin-cleaning/crm/visits`, and `/bin-cleaning/field/visits/[id]`. They are now session-scoped to fictional records in the disposable Supabase database; they do not activate production signup, billing, messaging, scheduling, storage delivery, or deployment.
 
 Local/test and future production projects must be separate Supabase projects with separately scoped credentials. `.env.local` contains only local/test values; deployment-secret storage will later contain production values after explicit approval. Never copy test service-role keys into browser variables or reuse a production project for tests.
+
+### Agent 2 correction: authenticated runtime
+
+Private routes are guarded by Next.js middleware which validates the HTTP-only Supabase access-token cookie against Auth, resolves the role through session-scoped PostgREST/RLS, and redirects missing/expired/wrong-role sessions. Server components and route handlers use the same access token and anon key; the service-role key is never sent to the browser. Runtime portal, CRM, customer, visit, and field data now come from PostgREST rather than fixtures. Customer route-affecting edits create `customer_change_requests`; field mutations and protected-table triggers persist audit history.

@@ -1,0 +1,10 @@
+import { areaForPath, mayAccess } from "./lib/bin-cleaning/access.ts";
+import { NextRequest, NextResponse } from "next/server.js";
+const LOGIN="/bin-cleaning/login";
+const protectedPrefix=["/bin-cleaning/portal","/bin-cleaning/crm","/bin-cleaning/field"];
+export async function middleware(request:NextRequest){const path=request.nextUrl.pathname;if(!protectedPrefix.some(x=>path.startsWith(x)))return NextResponse.next();const token=request.cookies.get("ads-test-access")?.value;const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;if(!token||!url||!key)return redirectLogin(request);
+ try{const auth=await fetch(`${url}/auth/v1/user`,{headers:{apikey:key,Authorization:`Bearer ${token}`},cache:"no-store"});if(!auth.ok)return expired(request);const user=await auth.json() as {id:string};const roles=await fetch(`${url}/rest/v1/staff_roles?user_id=eq.${user.id}&revoked_at=is.null&select=role`,{headers:{apikey:key,Authorization:`Bearer ${token}`},cache:"no-store"});if(!roles.ok)return expired(request);const role=((await roles.json()) as {role:string}[])[0]?.role??"customer";
+ const area=areaForPath(path);const allowed=area?mayAccess(role as never,area):false;if(!allowed){const target=role==="customer"?"/bin-cleaning/portal":role==="field_technician"?"/bin-cleaning/field/visits/assigned":"/bin-cleaning/crm";return NextResponse.redirect(new URL(`${target}?denied=1`,request.url));}return NextResponse.next();}catch{return expired(request);}}
+function redirectLogin(request:NextRequest){const url=new URL(LOGIN,request.url);url.searchParams.set("next",request.nextUrl.pathname);return NextResponse.redirect(url);}
+function expired(request:NextRequest){const response=NextResponse.redirect(new URL(`${LOGIN}?expired=1`,request.url));response.cookies.delete("ads-test-access");response.cookies.delete("ads-test-refresh");return response;}
+export const config={matcher:["/bin-cleaning/portal/:path*","/bin-cleaning/crm/:path*","/bin-cleaning/field/:path*"]};
