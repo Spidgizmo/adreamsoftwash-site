@@ -6,7 +6,7 @@ All phases extend one Next.js/Supabase application foundation and shared custome
 
 - Design the shared data model, Supabase Auth, RLS, protected staff/admin authorization, security/audit controls, and distinct login/signup/payment/subscription/service/entitlement/route states.
 - Establish the central versioned plan catalog and one pricing engine used everywhere.
-- Seed/specify four active launch plans; leave Twice-a-Year price gated; represent Every 2 Weeks only as future/inactive.
+- Seed/specify the four active launch plans with their approved pricing; represent Every 2 Weeks only as future/inactive.
 - Establish cleaning-entitlement idempotency and future route/field-ready data structures, including multiple zone runs.
 
 ## Phase 2 — Responsive public page and pricing
@@ -59,4 +59,4 @@ All phases extend one Next.js/Supabase application foundation and shared custome
 - No raw payment-card data or committed secrets.
 - No mobile-only surface.
 - No active Every 2 Weeks, Every 4 Weeks, Every 8 Weeks, or Bi-monthly launch offering.
-- No invented Twice-a-Year price, tax conclusion, proration/refund behavior, or other unresolved policy.
+- No invented tax conclusion, proration/refund behavior, or other unresolved policy.

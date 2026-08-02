@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Container } from "@/components/Container";
 import { NAV_LINKS, SITE } from "@/lib/site";
 
@@ -6,6 +9,7 @@ const QUICK_QUOTE_URL =
   "https://www.lavocrm.com/quote/c2bbf662-b7dd-4a3e-818d-6736bdab49dc";
 
 export function SiteHeader() {
+  const isBinCleaning = usePathname().startsWith("/bin-cleaning");
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur">
       <Container>
@@ -19,7 +23,7 @@ export function SiteHeader() {
               />
             </div>
 
-            <div className="leading-tight">
+            <div className="hidden leading-tight sm:block">
               <div className="text-lg font-bold text-zinc-900">{SITE.name}</div>
               <div className="text-xs font-medium text-zinc-600">{SITE.serviceArea}</div>
             </div>
@@ -47,12 +51,12 @@ export function SiteHeader() {
 
             {/* MATCHES your existing blue button style */}
             <a
-              className="quick-quote-shake inline-flex rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-800"
+              className={`${isBinCleaning ? "hidden sm:inline-flex" : "inline-flex"} quick-quote-shake rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-800`}
               href={QUICK_QUOTE_URL}
               target="_blank"
               rel="noreferrer"
             >
-              Quick Quote
+              {isBinCleaning ? "Exterior Cleaning Quote" : "Quick Quote"}
             </a>
           </div>
         </div>

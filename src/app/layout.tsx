@@ -25,7 +25,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      style={{ "--font-inter": "Inter, ui-sans-serif, system-ui, sans-serif" } as React.CSSProperties}
+    >
       <body className="min-h-screen bg-brand-50 text-zinc-900 antialiased">
         <SiteHeader />
         <div className="pb-24 md:pb-0">{children}</div>

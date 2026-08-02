@@ -15,10 +15,12 @@ This log separates approved direction from decisions still requiring owner appro
 
 ### Catalog and pricing
 
+- James Gibbs approved the updated launch pricing on 2026-08-02; it is represented by the effective catalog version for that pricing decision.
+
 - Active launch plans are Monthly, Quarterly, Twice a Year, and One-Time Cleaning.
 - Monthly is calendar-month recurring: $20 first bin plus $5 each additional bin.
-- Quarterly is three-calendar-month recurring: $40 first bin plus $10 each additional bin.
-- Twice a Year is six-calendar-month recurring, normally two cycles/year; its price is not approved.
+- Quarterly is three-calendar-month recurring: $35 first bin plus $5 each additional bin.
+- Twice a Year is six-calendar-month recurring, normally two cycles/year: $50 includes up to two bins, then $10 each additional bin.
 - One-Time is $60 including up to two bins, then $10 each additional bin, with no recurring subscription.
 - Every 2 Weeks is future/inactive without price, Stripe Price, public/staff selection, or referral eligibility. Every 4 Weeks, Every 8 Weeks, and Bi-monthly are not launch plans.
 - One central effective-dated/versioned service-plan catalog supplies all website, signup, Stripe, portal, CRM, tax, entitlement, route, invoice, and reporting functions.
@@ -47,7 +49,7 @@ This log separates approved direction from decisions still requiring owner appro
 ## Decisions moved from unresolved to approved by the current directive
 
 - The four-plan launch menu and removal of Every 2 Weeks/Every 4 Weeks/Every 8 Weeks/Bi-monthly from launch.
-- Monthly, Quarterly, and One-Time pricing and billing forms; six-month cadence/name for Twice a Year (price remains open).
+- Monthly, Quarterly, Twice-a-Year, and One-Time pricing and billing forms, including the six-month cadence for Twice a Year.
 - Central active/inactive, versioned catalog and shared pricing engine.
 - Connected architecture, technology direction, responsive scope, build order, and separation from Lavo.
 - Customer and staff-assisted signup behavior, lead/source retention, separate statuses, portal/CRM scope, and card-data prohibition.
@@ -62,19 +64,18 @@ This log separates approved direction from decisions still requiring owner appro
 
 Only these genuinely unresolved items remain:
 
-1. Final Twice-a-Year first-bin price, included-bin count, and additional-bin price.
-2. Supported launch service territory.
-3. Exact outside-service-area behavior.
-4. Final official schedule-registry source.
-5. Final staff workflow for schedule mismatches.
-6. Final holiday-delay data-entry workflow before municipal automation.
-7. Final plan-change rules: mid-cycle upgrades/downgrades, proration, credits, refunds, immediate charges, and unused entitlements.
-8. Final cancellation and refund rules.
-9. Final same-calendar-date behavior for billing anniversaries originating on the 29th, 30th, or 31st.
-10. Final portal authentication and account-recovery choices.
-11. Final staff roles and permissions.
-12. Final customer communication and consent wording, including payment and reactivation notices.
-13. Final Ohio taxability classification and approval for live tax collection, subject to owner/accountant/legal confirmation.
-14. Final policy for preserving, expiring, or otherwise resolving an unpaid cleaning entitlement after seven-day suspension.
+1. Supported launch service territory.
+2. Exact outside-service-area behavior.
+3. Final official schedule-registry source.
+4. Final staff workflow for schedule mismatches.
+5. Final holiday-delay data-entry workflow before municipal automation.
+6. Final plan-change rules: mid-cycle upgrades/downgrades, proration, credits, refunds, immediate charges, and unused entitlements.
+7. Final cancellation and refund rules.
+8. Final same-calendar-date behavior for billing anniversaries originating on the 29th, 30th, or 31st.
+9. Final portal authentication and account-recovery choices.
+10. Final staff roles and permissions.
+11. Final customer communication and consent wording, including payment and reactivation notices.
+12. Final Ohio taxability classification and approval for live tax collection, subject to owner/accountant/legal confirmation.
+13. Final policy for preserving, expiring, or otherwise resolving an unpaid cleaning entitlement after seven-day suspension.
 
 No implementation may invent an answer. Record the owner decision, effective date, approver, and affected plan/version before automation or live activation.

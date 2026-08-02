@@ -4,7 +4,8 @@ import { BIN_CLEANING_PLANS, PUBLIC_BIN_CLEANING_PLANS, calculateBinCleaningPric
 
 const examples = {
   monthly: [2000, 2500, 3000, 3500],
-  quarterly: [4000, 5000, 6000, 7000],
+  quarterly: [3500, 4000, 4500, 5000],
+  "twice-yearly": [5000, 5000, 6000, 7000],
   "one-time": [6000, 6000, 7000, 8000],
 } as const;
 
@@ -16,10 +17,10 @@ for (const [planId, expected] of Object.entries(examples)) {
   });
 }
 
-test("unapproved and inactive plans remain gated", () => {
+test("all four launch plans are priced and the inactive plan remains hidden", () => {
   const twiceYearly = BIN_CLEANING_PLANS.find((item) => item.id === "twice-yearly")!;
-  assert.equal(calculateBinCleaningPrice(twiceYearly, 2), null);
-  assert.equal(twiceYearly.checkoutEnabled, false);
+  assert.equal(calculateBinCleaningPrice(twiceYearly, 2)?.subtotalCents, 5000);
+  assert.equal(twiceYearly.checkoutEnabled, true);
   assert.equal(PUBLIC_BIN_CLEANING_PLANS.some((item) => item.id === "every-two-weeks"), false);
 });
 

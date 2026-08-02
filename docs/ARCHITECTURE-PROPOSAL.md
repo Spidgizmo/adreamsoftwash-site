@@ -20,7 +20,7 @@ Public signup first creates an Auth identity, provisional customer, signup snaps
 
 `service_plans` and immutable/effective-dated `service_plan_versions` are the only pricing/eligibility source for public pricing, both signup paths, Checkout/subscriptions, portal, CRM, tax, entitlements, routing, invoices, and reporting. A version stores internal ID, display name/description, active state, charge type, billing unit/quantity, service unit/quantity, first-bin/additional-bin prices, included bins, referral eligibility, tax classification, Stripe product/price references, and effective date.
 
-The launch configuration exposes Monthly, Quarterly, Twice a Year, and One-Time Cleaning. Twice-a-Year checkout cannot activate until its approved price/version exists. Every 2 Weeks may exist only as future/inactive with no price, Stripe Price, staff/public visibility, or referral eligibility. Activating a future approved version is a catalog/configuration change, not a website, portal, CRM, tax, entitlement, or routing rebuild.
+The launch configuration exposes Monthly, Quarterly, Twice a Year, and One-Time Cleaning with their approved catalog pricing. Every 2 Weeks may exist only as future/inactive with no price, Stripe Price, staff/public visibility, or referral eligibility. Activating a future approved version is a catalog/configuration change, not a website, portal, CRM, tax, entitlement, or routing rebuild.
 
 Pricing is calculated server-side from catalog version plus bin count; clients render the returned breakdown. Persist the selected version and base/additional/subtotal/tax/total snapshots on signup, invoice, payment, entitlement, and history records.
 

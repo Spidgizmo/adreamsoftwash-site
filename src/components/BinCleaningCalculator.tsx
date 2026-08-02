@@ -17,8 +17,9 @@ export function BinCleaningCalculator({ showAction = true }: { showAction?: bool
         {PUBLIC_BIN_CLEANING_PLANS.map((item) => <label key={item.id} className={`cursor-pointer rounded-2xl border p-4 transition ${planId === item.id ? "border-brand-700 bg-brand-50 ring-2 ring-brand-200" : "border-zinc-200 bg-white hover:border-brand-300"}`}>
           <input className="mr-2 accent-blue-700" type="radio" name="plan" value={item.id} checked={planId === item.id} onChange={() => setPlanId(item.id)} />
           <span className="font-bold">{item.name}</span>
-          <span className="mt-2 block text-sm text-zinc-600">{item.description}</span>
-          <span className="mt-2 block text-sm font-semibold text-brand-800">{item.basePriceCents === null ? "Pricing awaiting approval" : `${formatCurrency(item.basePriceCents)} base`}</span>
+          <span className="mt-2 block text-xs font-bold uppercase tracking-wide text-zinc-500">{item.billingLabel}</span>
+          <span className="mt-3 block text-sm font-bold text-brand-800">{item.priceLines[0]}</span>
+          <span className="mt-1 block text-sm font-semibold text-zinc-700">{item.priceLines[1]}</span>
         </label>)}
       </div>
       <label htmlFor="bin-count" className="mt-6 block text-sm font-bold">Number of bins</label>
@@ -31,10 +32,10 @@ export function BinCleaningCalculator({ showAction = true }: { showAction?: bool
     <aside aria-live="polite" className="rounded-2xl bg-zinc-950 p-6 text-white shadow-xl">
       <p className="text-sm font-semibold uppercase tracking-wider text-brand-300">Your estimate</p>
       <h3 className="mt-2 text-2xl font-bold text-white">{plan.name}</h3>
-      <p className="mt-1 text-sm text-zinc-300">{binCount} {binCount === 1 ? "bin" : "bins"} · {plan.chargeType === "one-time" ? "One payment" : `Every ${plan.intervalMonths === 1 ? "calendar month" : `${plan.intervalMonths} calendar months`}`}</p>
-      {price ? <dl className="mt-6 space-y-3 text-sm"><div className="flex justify-between"><dt>Base price ({plan.binsIncluded} included)</dt><dd>{formatCurrency(price.basePriceCents)}</dd></div><div className="flex justify-between"><dt>Additional bins ({price.additionalBinCount})</dt><dd>{formatCurrency(price.additionalBinChargesCents)}</dd></div><div className="flex justify-between border-t border-zinc-700 pt-4 text-lg font-bold"><dt>Subtotal</dt><dd>{formatCurrency(price.subtotalCents)}</dd></div></dl> : <div className="mt-6 rounded-xl border border-amber-400/50 bg-amber-300/10 p-4"><p className="font-bold text-amber-200">Final pricing is not yet available.</p><p className="mt-1 text-sm text-zinc-200">This plan is supported, but checkout will remain unavailable until pricing is approved.</p></div>}
+      <p className="mt-1 text-sm text-zinc-300">{binCount} {binCount === 1 ? "bin" : "bins"} · {plan.billingLabel}</p>
+      {price ? <dl className="mt-6 space-y-3 text-sm"><div className="flex justify-between gap-4"><dt>Base price ({plan.binsIncluded} included)</dt><dd>{formatCurrency(price.basePriceCents)}</dd></div><div className="flex justify-between gap-4"><dt>Additional bins ({price.additionalBinCount})</dt><dd>{formatCurrency(price.additionalBinChargesCents)}</dd></div><div className="flex justify-between gap-4 border-t border-zinc-700 pt-4 text-lg font-bold"><dt>Subtotal</dt><dd>{formatCurrency(price.subtotalCents)}</dd></div></dl> : <p className="mt-6 rounded-xl bg-zinc-800 p-4 font-bold">This plan is not available.</p>}
       <p className="mt-5 text-xs leading-relaxed text-zinc-300">Applicable tax will be calculated from the validated service address during checkout.</p>
-      {showAction && (price ? <Link href={`/bin-cleaning/signup?plan=${plan.id}&bins=${binCount}`} className="mt-5 inline-flex w-full justify-center rounded-lg bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-500">Preview signup</Link> : <button disabled className="mt-5 w-full cursor-not-allowed rounded-lg bg-zinc-700 px-5 py-3 font-bold text-zinc-400">Pricing approval required</button>)}
+      {showAction && (price ? <Link href={`/bin-cleaning/signup?plan=${plan.id}&bins=${binCount}`} className="mt-5 inline-flex w-full justify-center rounded-lg bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-500">Preview signup</Link> : <button disabled className="mt-5 w-full cursor-not-allowed rounded-lg bg-zinc-700 px-5 py-3 font-bold text-zinc-400">Plan unavailable</button>)}
     </aside>
   </div>;
 }
