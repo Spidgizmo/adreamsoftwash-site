@@ -18,7 +18,7 @@ Public signup first creates an Auth identity, provisional customer, signup snaps
 
 ## Central versioned service-plan catalog
 
-`service_plans` and immutable/effective-dated `service_plan_versions` are the only pricing/eligibility source for public pricing, both signup paths, Checkout/subscriptions, portal, CRM, tax, entitlements, routing, invoices, and reporting. A version stores internal ID, display name/description, active state, charge type, billing unit/quantity, service unit/quantity, first-bin/additional-bin prices, included bins, referral eligibility, tax classification, Stripe product/price references, and effective date.
+`src/lib/bin-cleaning-catalog.json` is the single reviewed catalog definition. It supplies the typed application catalog and generates the immutable/effective-dated `service_plans` and `service_plan_versions` seed snapshot; an automated check rejects divergence. The resulting versioned database records are referenced by signup, subscriptions, portal, CRM, tax, entitlements, routing, invoices, and reporting. A version stores internal ID, display name/description, active state, charge type, billing unit/quantity, service unit/quantity, first-bin/additional-bin prices, included bins, referral eligibility, tax classification, Stripe product/price references, and effective date.
 
 The launch configuration exposes Monthly, Quarterly, Twice a Year, and One-Time Cleaning with their approved catalog pricing. Every 2 Weeks may exist only as future/inactive with no price, Stripe Price, staff/public visibility, or referral eligibility. Activating a future approved version is a catalog/configuration change, not a website, portal, CRM, tax, entitlement, or routing rebuild.
 
@@ -83,3 +83,8 @@ Local/test and future production projects must be separate Supabase projects wit
 ### Agent 2 correction: authenticated runtime
 
 Private routes are guarded by Next.js middleware which validates the HTTP-only Supabase access-token cookie against Auth, resolves the role through session-scoped PostgREST/RLS, and redirects missing/expired/wrong-role sessions. Server components and route handlers use the same access token and anon key; the service-role key is never sent to the browser. Runtime portal, CRM, customer, visit, and field data now come from PostgREST rather than fixtures. Customer route-affecting edits create `customer_change_requests`; field mutations and protected-table triggers persist audit history.
+
+
+### Paid-cycle entitlement foundation
+
+`paid_service_cycles` represents a subscription/plan-version cycle and carries a unique idempotency key. Each cycle can create at most one `cleaning_entitlement`, which has its own unique idempotency key and approved lifecycle status. Visits reference the entitlement, and a partial unique index prevents more than one completed visit per entitlement. Stripe/webhook creation remains deferred, but it must use these keys rather than creating duplicate service rights. Audit events store both a UUID `entity_id` when applicable and a text-safe `entity_key` for catalog IDs such as `monthly`.

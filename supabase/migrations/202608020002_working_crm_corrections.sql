@@ -18,7 +18,14 @@ create or replace function public.validate_referral_claim() returns trigger lang
  new.referred_address_hash=ref_address;return new;end $$;
 create trigger validate_referral_before_insert before insert on public.referral_relationships for each row execute function public.validate_referral_claim();
 
-create or replace function public.audit_protected_mutation() returns trigger language plpgsql security definer set search_path=public as $$ begin insert into audit_events(actor_id,action,entity_table,entity_id,before_data,after_data) values(auth.uid(),tg_op,tg_table_name,coalesce(to_jsonb(new)->>'id',to_jsonb(old)->>'id',to_jsonb(new)->>'user_id',to_jsonb(old)->>'user_id')::uuid,case when tg_op='INSERT' then null else to_jsonb(old) end,case when tg_op='DELETE' then null else to_jsonb(new) end);return coalesce(new,old);end $$;
+create or replace function public.audit_protected_mutation() returns trigger language plpgsql security definer set search_path=public as $$
+declare key_text text; key_uuid uuid;
+begin
+ key_text:=coalesce(to_jsonb(new)->>'id',to_jsonb(old)->>'id',to_jsonb(new)->>'user_id',to_jsonb(old)->>'user_id');
+ if key_text ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' then key_uuid:=key_text::uuid; end if;
+ insert into audit_events(actor_id,action,entity_table,entity_id,before_data,after_data) values(auth.uid(),tg_op,tg_table_name,key_uuid,case when tg_op='INSERT' then null else to_jsonb(old) end,case when tg_op='DELETE' then null else to_jsonb(new) end);
+ if tg_op='DELETE' then return old; else return new; end if;
+end $$;
 do $$ declare t text;begin foreach t in array array['staff_roles','customers','service_addresses','service_plans','service_plan_versions','subscriptions','routes','route_stops','service_visits','service_exceptions','referral_relationships','referral_credits','customer_change_requests'] loop execute format('create trigger audit_%I after insert or update or delete on public.%I for each row execute function public.audit_protected_mutation()',t,t);end loop;end $$;
 create policy subscriptions_dispatcher_read on public.subscriptions for select using(public.has_role('dispatcher'));
 create policy staff_role_self_read on public.staff_roles for select using(user_id=auth.uid());

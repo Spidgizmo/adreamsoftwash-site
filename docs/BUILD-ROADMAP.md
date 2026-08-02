@@ -71,3 +71,8 @@ All phases extend one Next.js/Supabase application foundation and shared custome
 ### Agent 2 correction checkpoint
 
 Private route middleware, session-scoped database pages, functional test mutations, pending route-change review, referral address history/lookback, and runtime PostgreSQL role tests are now implemented. Agent 3 deferrals and every live-activation gate remain unchanged.
+
+
+### Entitlement correction checkpoint
+
+Paid-cycle and cleaning-entitlement tables, lifecycle state, idempotency constraints, visit linkage, and one-completion enforcement now satisfy the Phase 1 database foundation. Stripe-driven creation and later payment automation remain in their approved later phases.

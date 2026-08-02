@@ -89,3 +89,8 @@ The approved Supabase/Auth/RLS direction is represented by a test-only migration
 ## Agent 2 correction record — no new owner decision
 
 The correction implements secure test-session routing, database-backed test operations, auditable pending route-change requests, and the approved referral address lookback without permanently reserving an address. These are test controls, not authorization for production roles, credentials, signup, billing, tax, communications, routing, or deployment.
+
+
+## Entitlement foundation record — no new owner decision
+
+The correction implements the already approved exactly-one entitlement per paid cycle and exactly-one completed cleaning per entitlement as test database constraints. It does not decide or activate unresolved expiry, failed-payment preservation, Stripe, or live billing behavior.

@@ -11,10 +11,20 @@ insert into public.user_profiles(id,display_name) values
 ('00000000-0000-4000-8000-000000000001','Avery Sample — FICTIONAL'),('00000000-0000-4000-8000-000000000002','Jordan Example — FICTIONAL'),('00000000-0000-4000-8000-000000000010','Test Administrator — FICTIONAL'),('00000000-0000-4000-8000-000000000011','Test Dispatcher — FICTIONAL'),('00000000-0000-4000-8000-000000000012','Test Technician — FICTIONAL'),('00000000-0000-4000-8000-000000000013','Unassigned Test Technician — FICTIONAL');
 insert into public.staff_roles(user_id,role,granted_by) values
 ('00000000-0000-4000-8000-000000000010','administrator','00000000-0000-4000-8000-000000000010'),('00000000-0000-4000-8000-000000000011','dispatcher','00000000-0000-4000-8000-000000000010'),('00000000-0000-4000-8000-000000000012','field_technician','00000000-0000-4000-8000-000000000010'),('00000000-0000-4000-8000-000000000013','field_technician','00000000-0000-4000-8000-000000000010');
--- Generated synchronization snapshot of src/lib/bin-cleaning-plans.ts version 2026-08-02-approved-pricing.
-insert into public.service_plans values ('monthly','Monthly','2026-08-02-approved-pricing','active',true,true),('quarterly','Quarterly','2026-08-02-approved-pricing','active',true,false),('twice-yearly','Twice a Year','2026-08-02-approved-pricing','active',true,false),('one-time','One-Time Cleaning','2026-08-02-approved-pricing','active',true,false),('every-two-weeks','Every 2 Weeks','2026-08-02-approved-pricing','future',false,false);
+-- BEGIN GENERATED CATALOG: do not edit; run npm run catalog:generate
+insert into public.service_plans(id,display_name,current_version,status,public_visible,referral_eligible) values
+('monthly','Monthly','2026-08-02-approved-pricing','active',true,true),
+('quarterly','Quarterly','2026-08-02-approved-pricing','active',true,false),
+('twice-yearly','Twice a Year','2026-08-02-approved-pricing','active',true,false),
+('one-time','One-Time Cleaning','2026-08-02-approved-pricing','active',true,false),
+('every-two-weeks','Every 2 Weeks','2026-08-02-approved-pricing','future',false,false);
 insert into public.service_plan_versions(plan_id,catalog_version,charge_type,interval_months,base_price_cents,additional_bin_price_cents,bins_included,effective_at) values
-('monthly','2026-08-02-approved-pricing','recurring',1,2000,500,1,'2026-08-02'),('quarterly','2026-08-02-approved-pricing','recurring',3,3500,500,1,'2026-08-02'),('twice-yearly','2026-08-02-approved-pricing','recurring',6,5000,1000,2,'2026-08-02'),('one-time','2026-08-02-approved-pricing','one_time',null,6000,1000,2,'2026-08-02'),('every-two-weeks','2026-08-02-approved-pricing','recurring',null,null,null,null,'2026-08-02');
+('monthly','2026-08-02-approved-pricing','recurring',1,2000,500,1,'2026-08-02'),
+('quarterly','2026-08-02-approved-pricing','recurring',3,3500,500,1,'2026-08-02'),
+('twice-yearly','2026-08-02-approved-pricing','recurring',6,5000,1000,2,'2026-08-02'),
+('one-time','2026-08-02-approved-pricing','one-time',null,6000,1000,2,'2026-08-02'),
+('every-two-weeks','2026-08-02-approved-pricing','recurring',null,null,null,null,'2026-08-02');
+-- END GENERATED CATALOG
 insert into public.municipalities(id,name) values ('10000000-0000-4000-8000-000000000001','Test Township'),('10000000-0000-4000-8000-000000000002','Demo Village');
 insert into public.customers(id,user_id,full_name,email,phone,account_status) values
 ('20000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','Avery Sample — FICTIONAL','avery@example.test','555-010-1001','active'),
@@ -35,6 +45,16 @@ insert into public.subscriptions(customer_id,service_plan_version_id,started_at)
 ('20000000-0000-4000-8000-000000000002',(select id from service_plan_versions where plan_id='quarterly'),'2026-08-01'),
 ('20000000-0000-4000-8000-000000000003',(select id from service_plan_versions where plan_id='twice-yearly'),'2026-08-01'),
 ('20000000-0000-4000-8000-000000000004',(select id from service_plan_versions where plan_id='one-time'),'2026-08-01');
+insert into public.paid_service_cycles(id,customer_id,subscription_id,service_plan_version_id,cycle_start,cycle_end,payment_status,idempotency_key) values
+('a0000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000001'),(select id from service_plan_versions where plan_id='monthly'),'2026-08-01','2026-08-31','test_paid','test-cycle-monthly-2026-08'),
+('a0000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000002'),(select id from service_plan_versions where plan_id='quarterly'),'2026-08-01','2026-10-31','test_paid','test-cycle-quarterly-2026-08'),
+('a0000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000003',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000003'),(select id from service_plan_versions where plan_id='twice-yearly'),'2026-08-01','2027-01-31','test_pending','test-cycle-twice-2026-08'),
+('a0000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000004',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000004'),(select id from service_plan_versions where plan_id='one-time'),'2026-08-01',null,'test_paid','test-cycle-one-time-2026-08');
+insert into public.cleaning_entitlements(id,customer_id,paid_service_cycle_id,status,idempotency_key,eligible_from) values
+('b0000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','a0000000-0000-4000-8000-000000000001','scheduled','test-entitlement-monthly-2026-08','2026-08-01'),
+('b0000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002','a0000000-0000-4000-8000-000000000002','due','test-entitlement-quarterly-2026-08','2026-08-01'),
+('b0000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000003','a0000000-0000-4000-8000-000000000003','pending_payment','test-entitlement-twice-2026-08','2026-08-01'),
+('b0000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000004','a0000000-0000-4000-8000-000000000004','due','test-entitlement-one-time-2026-08','2026-08-01');
 insert into public.trash_pickup_schedules(id,service_address_id,weekday,source,verification_status,effective_from,holiday_shift_days,holiday_shift_status) values
 ('40000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',1,'staff_verified','verified','2026-08-01',0,'none'),
 ('40000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000002',5,'customer_confirmed','customer_confirmed','2026-08-01',1,'test_holiday_shift'),
@@ -44,10 +64,10 @@ insert into public.cleaning_day_assignments(pickup_schedule_id,normal_weekday,pi
 insert into public.service_zones(id,municipality_id,name) values ('50000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Fictional Zone A');
 insert into public.routes(id,service_zone_id,route_date,status,dispatcher_id,technician_id) values ('60000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000001','2026-08-11','test_assigned','00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000012');
 insert into public.route_stops(id,route_id,service_address_id,stop_order) values ('70000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',1);
-insert into public.service_visits(id,customer_id,route_stop_id,assigned_technician_id,scheduled_for,status,cleaning_confirmed,bins_returned) values
-('80000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000012','2026-08-11 09:00Z','after_photo_complete',true,true),
-('80000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002',null,null,'2026-08-08 09:00Z','weather_delayed',false,false),
-('80000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000003',null,null,'2026-08-06 09:00Z','customer_not_ready',false,false);
+insert into public.service_visits(id,customer_id,route_stop_id,assigned_technician_id,scheduled_for,status,cleaning_confirmed,bins_returned,entitlement_id) values
+('80000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000012','2026-08-11 09:00Z','after_photo_complete',true,true,'b0000000-0000-4000-8000-000000000001'),
+('80000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002',null,null,'2026-08-08 09:00Z','weather_delayed',false,false,'b0000000-0000-4000-8000-000000000002'),
+('80000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000003',null,null,'2026-08-06 09:00Z','customer_not_ready',false,false,'b0000000-0000-4000-8000-000000000003');
 insert into public.visit_photographs(service_visit_id,kind,storage_path,uploaded_by) values ('80000000-0000-4000-8000-000000000001','before','test-only/visit-1-before-placeholder.jpg','00000000-0000-4000-8000-000000000012'),('80000000-0000-4000-8000-000000000001','after','test-only/visit-1-after-placeholder.jpg','00000000-0000-4000-8000-000000000012');
 insert into public.service_exceptions(service_visit_id,exception_type,details,status,recorded_by) values ('80000000-0000-4000-8000-000000000003','inaccessible_bins','FICTIONAL: gate inaccessible','open','00000000-0000-4000-8000-000000000011'),('80000000-0000-4000-8000-000000000003','contamination_refusal','FICTIONAL: prohibited contamination documented','open','00000000-0000-4000-8000-000000000011');
 insert into public.referral_codes(id,customer_id,code) values ('90000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','ADS-7K9M2Q4X');

@@ -9,16 +9,17 @@ Migration `supabase/migrations/202608020001_ads_bin_cleaning_foundation.sql` is 
 | Identity | `user_profiles`, `staff_roles` |
 | Customer | `customers`, `service_addresses`, `customer_contact_preferences`, `customer_change_requests`, `bins`, `municipalities` |
 | Catalog | `service_plans`, `service_plan_versions`, `subscriptions` |
+| Paid service | `paid_service_cycles`, `cleaning_entitlements` |
 | Schedule/routing | `trash_pickup_schedules`, `cleaning_day_assignments`, `service_zones`, `routes`, `route_stops` |
 | Field work | `service_visits`, `visit_status_history`, `visit_photographs`, `service_exceptions` |
 | Referrals | `referral_codes`, `referral_relationships`, `referral_status_history`, `referral_credits` |
 | Governance | `customer_notes`, `audit_events` |
 
-The address hash has a uniqueness constraint for duplicate-household defense. Pickup source, verification, holiday shift, adjusted pickup, and cleaning date remain separate. A deferred database trigger prevents completion without cleaning, both photo kinds, and bin return or an authorized exception.
+The address hash has a non-unique history index; the referral trigger applies duplicate-benefit protection only within the approved 12-month lookback. Pickup source, verification, holiday shift, adjusted pickup, and cleaning date remain separate. A deferred database trigger prevents completion without cleaning, both photo kinds, and bin return or an authorized exception.
 
 ## Catalog synchronization
 
-`src/lib/bin-cleaning-plans.ts` remains the reviewed, typed catalog consumed by application pricing. The database version rows are a generated synchronization snapshot labeled with the identical `2026-08-02-approved-pricing` version; they must not be hand-edited. A catalog change requires one owner-approved version, updates to the typed catalog and migration snapshot in the same commit, and pricing/consistency tests. Historical subscription rows retain the selected immutable version.
+`src/lib/bin-cleaning-catalog.json` is the canonical approved catalog. `src/lib/bin-cleaning-plans.ts` imports that file for typed application pricing, while `scripts/generate-bin-cleaning-catalog.mjs` generates the marked database seed block. `npm test` first runs `catalog:check` and fails if the generated database snapshot diverges. A catalog change requires one owner-approved JSON version followed by `npm run catalog:generate`; the SQL block must not be hand-edited. Historical subscription rows retain the selected immutable version.
 
 ## Correction migration
 
