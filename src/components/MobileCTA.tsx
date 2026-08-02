@@ -1,6 +1,22 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SITE } from "@/lib/site";
 
 export function MobileCTA() {
+  const isBinCleaning = usePathname().startsWith("/bin-cleaning");
+
+  if (isBinCleaning) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-brand-200 bg-white p-3 md:hidden">
+        <Link className="mx-auto flex max-w-6xl justify-center rounded-md bg-brand-700 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-brand-800" href="/bin-cleaning/signup">
+          Preview Bin Cleaning Signup
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200 bg-white p-3 md:hidden">
       <div className="mx-auto flex max-w-6xl gap-3 px-2">

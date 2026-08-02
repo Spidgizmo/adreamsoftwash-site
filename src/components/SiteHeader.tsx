@@ -25,7 +25,7 @@ export function SiteHeader() {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-6 md:flex">
+          <nav className="hidden items-center gap-5 lg:flex">
             {NAV_LINKS.map((l) => (
               <Link
                 key={l.href}
@@ -39,7 +39,7 @@ export function SiteHeader() {
 
           <div className="flex items-center gap-3">
             <a
-              className="hidden rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-brand-50 md:inline-flex"
+              className="hidden rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-brand-50 lg:inline-flex"
               href={`tel:${SITE.phoneTel}`}
             >
               Call {SITE.phoneDisplay}
@@ -57,7 +57,7 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <div className="-mx-1 flex flex-wrap items-center gap-x-4 gap-y-2 pb-3 text-sm font-semibold">
             {NAV_LINKS.map((l) => (
               <Link key={l.href} href={l.href} className="px-1 text-zinc-800 hover:text-brand-800">
