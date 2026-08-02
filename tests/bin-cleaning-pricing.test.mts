@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BIN_CLEANING_PLANS, ESTIMATED_TOTAL_LABEL, PUBLIC_BIN_CLEANING_PLANS, TAX_ESTIMATE_MESSAGE, calculateBinCleaningPrice, resolveBinCleaningSelection } from "../src/lib/bin-cleaning-plans.ts";
+import { BIN_CLEANING_PLANS, BIN_CLEANING_STANDARD_SERVICE, ESTIMATED_TOTAL_LABEL, PUBLIC_BIN_CLEANING_PLANS, TAX_ESTIMATE_MESSAGE, calculateBinCleaningPrice, resolveBinCleaningSelection } from "../src/lib/bin-cleaning-plans.ts";
 
 const examples = {
   monthly: [2000, 2500, 3000, 3500],
@@ -56,4 +56,17 @@ test("invalid bin values fall back to one bin", () => {
 test("estimate wording states how tax is calculated and labels the pre-tax total", () => {
   assert.equal(TAX_ESTIMATE_MESSAGE, "Calculated from the validated service address during checkout");
   assert.equal(ESTIMATED_TOTAL_LABEL, "Estimated total before tax");
+});
+
+test("public standard-service copy matches the owner-approved scope", () => {
+  assert.deepEqual(BIN_CLEANING_STANDARD_SERVICE, [
+    "Interior and exterior bin cleaning",
+    "Chemical pre-treatment when needed",
+    "Hands-on brushing",
+    "Pressure washing",
+    "Sanitizing and deodorizing",
+    "Controlled wastewater capture and handling",
+    "Before-and-after service photographs",
+    "Return to your designated storage location",
+  ]);
 });

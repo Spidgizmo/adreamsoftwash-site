@@ -34,6 +34,16 @@ export const MIN_BIN_COUNT = 1;
 export const MAX_BIN_COUNT = 20;
 export const TAX_ESTIMATE_MESSAGE = "Calculated from the validated service address during checkout";
 export const ESTIMATED_TOTAL_LABEL = "Estimated total before tax";
+export const BIN_CLEANING_STANDARD_SERVICE = [
+  "Interior and exterior bin cleaning",
+  "Chemical pre-treatment when needed",
+  "Hands-on brushing",
+  "Pressure washing",
+  "Sanitizing and deodorizing",
+  "Controlled wastewater capture and handling",
+  "Before-and-after service photographs",
+  "Return to your designated storage location",
+] as const;
 
 export type BinCleaningSelection = Readonly<{ planId: PlanId; binCount: number }>;
 
