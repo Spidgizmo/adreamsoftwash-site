@@ -1,0 +1,15 @@
+import assert from "node:assert/strict"; import test from "node:test";
+import { APP_ROLES, REFERRAL_STATUSES, applyReferralCredits, assertReferral, canCompleteVisit, cleaningDate, makeReferralCode, nextCleaningDay, referralCreditCents } from "../src/lib/bin-cleaning/domain.ts";
+
+test("all four application roles are explicit",()=>assert.deepEqual(APP_ROLES,["customer","administrator","dispatcher","field_technician"]));
+test("pickup is followed by next-day cleaning including Friday to Saturday",()=>{assert.equal(nextCleaningDay("monday"),"tuesday");assert.equal(nextCleaningDay("friday"),"saturday")});
+test("holiday shift changes pickup then cleaning date",()=>assert.equal(cleaningDate("2026-09-07",1),"2026-09-09"));
+test("invalid date input is rejected",()=>assert.throws(()=>cleaningDate("not-a-date"),RangeError));
+test("referral codes are opaque and deterministic from random bytes",()=>{const a=makeReferralCode(Uint8Array.from([1,2,3,4,5,6,7,8]));const b=makeReferralCode(Uint8Array.from([8,7,6,5,4,3,2,1]));assert.match(a,/^ADS-[A-Z0-9]+$/);assert.notEqual(a,b)});
+test("self referral is rejected",()=>assert.throws(()=>assertReferral("a","a","one","two"),/Self-referrals/));
+test("duplicate household address is rejected",()=>assert.throws(()=>assertReferral("a","b","same","same"),/service address/));
+test("referral lifecycle retains every auditable state",()=>assert.deepEqual(REFERRAL_STATUSES,["code_entered","pending_signup","pending_first_service","pending_successful_payment","seven_day_hold","qualified","credit_issued","credit_applied","rejected","reversed"]));
+test("monthly referral credit is half of eligible base",()=>assert.equal(referralCreditCents("monthly"),1000));
+test("credit stacking cannot exceed one eligible base charge",()=>assert.deepEqual(applyReferralCredits(2000,3000),{appliedCents:2000,remainingCents:1000}));
+test("inactive plan cannot earn referral credit",()=>assert.throws(()=>referralCreditCents("every-two-weeks"),/not referral eligible/));
+test("visit completion requires photos, cleaning, and return",()=>{assert.equal(canCompleteVisit({beforePhoto:true,cleaningConfirmed:true,afterPhoto:true,binsReturned:true,authorizedException:false}),true);assert.equal(canCompleteVisit({beforePhoto:false,cleaningConfirmed:true,afterPhoto:true,binsReturned:true,authorizedException:false}),false);assert.equal(canCompleteVisit({beforePhoto:true,cleaningConfirmed:true,afterPhoto:true,binsReturned:false,authorizedException:false}),false);assert.equal(canCompleteVisit({beforePhoto:true,cleaningConfirmed:true,afterPhoto:true,binsReturned:false,authorizedException:true}),true)});

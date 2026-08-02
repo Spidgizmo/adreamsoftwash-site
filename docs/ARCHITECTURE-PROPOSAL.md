@@ -73,3 +73,9 @@ Provider-specific identifiers belong in protected configuration or catalog recor
 This proposal installs no packages, creates no Supabase project, creates no Stripe products/prices, supplies no credentials, and adds no application code. Stripe remains test-only. Live signup waits for connected account, portal, test billing, and minimum CRM behavior. See the roadmap for staged implementation and the decision log for approval gates.
 
 The public service description may use the owner-approved standard-service scope recorded in the MVP and decision log. The exterior-cleaning Lavo link remains a clearly labeled global-header option on bin-cleaning routes, but no bin-cleaning signup, account, billing, CRM, or scheduling flow uses Lavo.
+
+## Agent 2 test foundation (2026-08-02)
+
+The committed Supabase CLI configuration, migration, seed, RLS helpers/policies, and database completion trigger implement the test foundation without dashboard dependencies. Responsive test surfaces now exist at `/bin-cleaning/login`, `/bin-cleaning/portal`, `/bin-cleaning/crm`, `/bin-cleaning/crm/customers/[id]`, `/bin-cleaning/crm/visits`, and `/bin-cleaning/field/visits/[id]`. They use fictional display fixtures while local Supabase setup is completed; they do not activate production signup, billing, messaging, scheduling, storage delivery, or deployment.
+
+Local/test and future production projects must be separate Supabase projects with separately scoped credentials. `.env.local` contains only local/test values; deployment-secret storage will later contain production values after explicit approval. Never copy test service-role keys into browser variables or reuse a production project for tests.

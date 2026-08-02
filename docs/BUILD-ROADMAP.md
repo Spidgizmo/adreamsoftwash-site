@@ -61,3 +61,9 @@ All phases extend one Next.js/Supabase application foundation and shared custome
 - No mobile-only surface.
 - No active Every 2 Weeks, Every 4 Weeks, Every 8 Weeks, or Bi-monthly launch offering.
 - No invented tax conclusion, proration/refund behavior, or other unresolved policy.
+
+## Agent 2 delivery checkpoint (test-only)
+
+- Phase 1 database/Auth/RLS, catalog snapshot, role, audit, schedule, referral, and field-completion foundations are implemented as migrations and automated contracts.
+- Phase 3 responsive portal foundation and Phase 5 CRM/field previews are implemented against fictional test fixtures.
+- Live signup remains gated. Agent 3 must connect server-rendered authenticated queries/mutations, Stripe test billing/webhooks, address/tax provider test adapters, notification fakes, entitlement automation, photo-storage signed URLs, and full route scheduling before release consideration.

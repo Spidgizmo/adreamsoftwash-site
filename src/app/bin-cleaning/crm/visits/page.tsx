@@ -1,0 +1,2 @@
+import { AppShell } from "@/components/bin-cleaning/AppShell"; import { TEST_VISITS } from "@/lib/bin-cleaning/test-data";
+export default function Visits(){return <AppShell area="Internal CRM"><h2 className="text-2xl font-black">Visits</h2><div className="mt-5 grid gap-4">{TEST_VISITS.map(v=><article className="card p-5" key={v.id}><div className="flex flex-wrap justify-between gap-2"><strong>{v.customer}</strong><span>{v.status}</span></div><p>{v.address}</p><p className="text-sm text-zinc-500">{v.date}</p></article>)}</div></AppShell>}
