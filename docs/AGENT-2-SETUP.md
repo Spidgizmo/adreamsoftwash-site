@@ -15,3 +15,7 @@ Verify customer (`avery@example.test`), second isolation customer (`jordan@examp
 Run `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `supabase db reset`, `supabase db lint --local`, and `supabase test db`. Database security is verified only when the final three commands execute against PostgreSQL; Node source-contract tests are not a substitute.
 
 Production must use a separate project, secret store, credentials, and explicit approval. Stripe, tax, GIS, email/SMS, real photo objects, entitlements, production scheduling, production data, and deployment remain inactive/deferred.
+
+## Verification status — 2026-08-02
+
+The application checks executed in this environment: `npm test` passed 42/42, `npm run typecheck` passed, `npm run lint` passed with two pre-existing image warnings, and `npm run build` passed. Database verification remains outstanding: `supabase db reset`, `supabase db lint --local`, and `supabase test db` each exited 127 because the Supabase CLI is absent. Safe CLI/PostgreSQL installation attempts were blocked by the environment proxy with HTTP 403, and Docker/Podman/PostgreSQL are not preinstalled. Do not describe the migrations, seed, RLS, or pgTAP tests as executed until those commands pass in a disposable Supabase environment.
