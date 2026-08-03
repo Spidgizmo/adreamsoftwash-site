@@ -1,4 +1,9 @@
-import { areaForPath, mayAccess } from "./lib/bin-cleaning/access.ts";
+import {
+  areaForPath,
+  mayAccess,
+  roleForIdentity,
+} from "./lib/bin-cleaning/access.ts";
+import type { AppRole } from "./lib/bin-cleaning/domain.ts";
 import { NextRequest, NextResponse } from "next/server.js";
 
 const LOGIN = "/bin-cleaning/login";
@@ -75,9 +80,25 @@ export async function middleware(request: NextRequest) {
   ).catch(() => null);
   if (!roles?.ok) return expired(request);
 
-  const role = ((await roles.json()) as { role: string }[])[0]?.role ?? "customer";
+  const staffRole = ((await roles.json()) as { role: AppRole }[])[0]?.role;
+  let hasCustomer = false;
+  if (!staffRole) {
+    const customers = await fetch(
+      `${url}/rest/v1/customers?user_id=eq.${user.id}&select=id&limit=1`,
+      {
+        headers: { apikey: key, Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      },
+    ).catch(() => null);
+    if (!customers?.ok) return expired(request);
+    hasCustomer = ((await customers.json()) as { id: string }[]).length > 0;
+  }
+
+  const role = roleForIdentity(staffRole, hasCustomer);
+  if (!role) return unauthorizedIdentity(request);
+
   const area = areaForPath(path);
-  const allowed = area ? mayAccess(role as never, area) : false;
+  const allowed = area ? mayAccess(role, area) : false;
 
   let response: NextResponse;
   if (!allowed) {
@@ -134,8 +155,16 @@ function redirectLogin(request: NextRequest) {
 }
 
 function expired(request: NextRequest) {
+  return clearAndRedirect(request, "expired");
+}
+
+function unauthorizedIdentity(request: NextRequest) {
+  return clearAndRedirect(request, "unauthorized");
+}
+
+function clearAndRedirect(request: NextRequest, reason: string) {
   const response = NextResponse.redirect(
-    new URL(`${LOGIN}?expired=1`, request.url),
+    new URL(`${LOGIN}?${reason}=1`, request.url),
   );
   response.cookies.delete(ACCESS_COOKIE);
   response.cookies.delete(REFRESH_COOKIE);
