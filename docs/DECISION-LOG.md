@@ -31,7 +31,8 @@ This log separates approved direction from decisions still requiring owner appro
 - NEW25 is available only to new Monthly subscribers.
 - NEW25 gives 25% off the first month's selected Monthly subscription subtotal before tax. It applies to that first charge only; later Monthly renewals return to the regular selected-plan price before tax.
 - NEW25 is not valid for Quarterly, Twice a Year, One-Time Cleaning, or the inactive Every 2 Weeks plan.
-- The signup page must accept the code directly and may also receive it through a marketing link parameter. Eligibility and the final discount must be revalidated server-side during checkout rather than trusted from the browser.
+- NEW25 does **not** stack with the **Share 50%. Get 50%.** new-customer referral discount or another discount. A checkout containing both must not apply both; the customer must proceed with only one eligible discount.
+- The signup page must accept the code directly and may also receive it through a marketing link parameter. Eligibility, exclusivity, and the final discount must be revalidated server-side during checkout rather than trusted from the browser.
 
 ### Signup, accounts, and operations
 
@@ -54,7 +55,8 @@ This log separates approved direction from decisions still requiring owner appro
 
 - **Share 50%. Get 50%.** is approved for eligible Monthly residential subscriptions only at launch.
 - The new customer receives 50% off the eligible first monthly base cleaning. The referrer receives 50% of their own next eligible monthly base cleaning after completed/paid/good-standing service and a seven-day review hold.
-- Permanent unique code, one code per new account/address, stacking two credits to 100%, rollover, 12-month expiry, exclusions, anti-fraud/reversal rules, and portal visibility described in the MVP are approved.
+- Permanent unique code, one code per new account/address, stacking two earned referral credits to 100%, rollover, 12-month expiry, exclusions, anti-fraud/reversal rules, and portal visibility described in the MVP are approved.
+- Referral-credit stacking within the referral program does not authorize stacking NEW25 with the new-customer referral discount.
 
 ## Decisions moved from unresolved to approved by the current directive
 
@@ -70,6 +72,7 @@ This log separates approved direction from decisions still requiring owner appro
 - Core **Share 50%. Get 50%.** structure and eligibility rules; it is no longer unresolved.
 - Future route/field data foundation and plan-change audit requirements (specific change economics remain open).
 - NEW25 as a 25%-off-first-month promotion for new Monthly subscribers only.
+- NEW25 is exclusive and cannot stack with the new-customer referral discount or another discount.
 
 ## Owner decisions required
 
@@ -88,7 +91,6 @@ Only these genuinely unresolved items remain:
 11. Final customer communication and consent wording, including payment and reactivation notices.
 12. Final Ohio taxability classification and approval for live tax collection, subject to owner/accountant/legal confirmation.
 13. Final policy for preserving, expiring, or otherwise resolving an unpaid cleaning entitlement after seven-day suspension.
-14. Whether NEW25 may stack with the **Share 50%. Get 50%.** new-customer discount or any other promotion.
 
 No implementation may invent an answer. Record the owner decision, effective date, approver, and affected plan/version before automation or live activation.
 
@@ -106,4 +108,4 @@ The correction implements the already approved exactly-one entitlement per paid 
 
 ## NEW25 website-preview implementation record — 2026-08-03
 
-The responsive signup preview now accepts and validates NEW25 against one centralized promotion rule, shows the 25% first-Monthly-charge estimate, rejects non-Monthly use, and accepts a normalized marketing-link parameter. This does not activate live signup or Stripe redemption. Phase 4 must revalidate new-subscriber eligibility, persist an idempotent redemption record, and enforce any later-approved stacking rule at the trusted checkout boundary.
+The responsive signup preview now accepts and validates NEW25 against one centralized promotion rule, shows the 25% first-Monthly-charge estimate, rejects non-Monthly use, accepts a normalized marketing-link parameter, and clearly states that NEW25 cannot be combined with the referral offer. The centralized rule marks NEW25 as non-stackable with referral discounts, and the shared combination check blocks a checkout state containing both until one discount is selected. This does not activate live signup or Stripe redemption. Phase 4 must revalidate new-subscriber eligibility, persist an idempotent redemption record, and enforce the approved non-stacking rule at the trusted checkout boundary.
