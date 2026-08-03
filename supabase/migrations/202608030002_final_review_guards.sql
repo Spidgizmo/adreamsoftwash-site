@@ -1,5 +1,23 @@
 -- Close the final entitlement, referral, catalog, and login-audit gaps.
 
+create or replace function public.stamp_visit_completion()
+returns trigger
+language plpgsql
+set search_path=public
+as $$
+begin
+  if new.status = 'completed' and new.completed_at is null then
+    new.completed_at := now();
+  end if;
+  return new;
+end
+$$;
+
+drop trigger if exists stamp_visit_completion on public.service_visits;
+create trigger stamp_visit_completion
+before insert or update of status on public.service_visits
+for each row execute function public.stamp_visit_completion();
+
 create or replace function public.validate_visit_completion()
 returns trigger
 language plpgsql
@@ -37,7 +55,7 @@ begin
     end if;
 
     update public.cleaning_entitlements
-    set status='completed', completed_at=coalesce(new.completed_at,now())
+    set status='completed', completed_at=new.completed_at
     where id=new.entitlement_id;
   end if;
   return new;
@@ -45,22 +63,56 @@ end
 $$;
 
 create or replace function public.enforce_referral_credit_owner()
-returns trigger language plpgsql set search_path=public as $$
+returns trigger
+language plpgsql
+set search_path=public
+as $$
+declare
+  relationship_record public.referral_relationships%rowtype;
 begin
-  if not exists (
-    select 1 from public.referral_relationships relationship
-    where relationship.id = new.referral_relationship_id
-      and relationship.referrer_customer_id = new.customer_id
-  ) then
+  select * into relationship_record
+  from public.referral_relationships relationship
+  where relationship.id = new.referral_relationship_id;
+
+  if relationship_record.id is null
+     or relationship_record.referrer_customer_id <> new.customer_id
+  then
     raise exception 'Referral credit customer must match the relationship referrer';
   end if;
-  if not exists (
-    select 1 from public.referral_relationships relationship
-    where relationship.id = new.referral_relationship_id
-      and relationship.status in ('qualified','credit_issued','credit_applied')
-  ) then
+
+  if relationship_record.status not in ('qualified','credit_issued','credit_applied') then
     raise exception 'Referral credit requires a qualified relationship';
   end if;
+
+  if relationship_record.hold_until is null
+     or relationship_record.hold_until > now()
+     or not exists (
+       select 1
+       from public.customers referred
+       join public.cleaning_entitlements entitlement
+         on entitlement.customer_id = referred.id
+        and entitlement.status = 'completed'
+       join public.paid_service_cycles cycle
+         on cycle.id = entitlement.paid_service_cycle_id
+        and cycle.customer_id = referred.id
+        and cycle.payment_status = 'test_paid'
+       join public.service_plan_versions version
+         on version.id = cycle.service_plan_version_id
+       join public.service_plans plan
+         on plan.id = version.plan_id
+        and plan.referral_eligible
+       join public.service_visits visit
+         on visit.entitlement_id = entitlement.id
+        and visit.customer_id = referred.id
+        and visit.status = 'completed'
+        and visit.completed_at is not null
+       where referred.id = relationship_record.referred_customer_id
+         and referred.is_residential
+     )
+  then
+    raise exception 'Referral credit requires an eligible completed paid monthly service after the hold';
+  end if;
+
   return new;
 end
 $$;
