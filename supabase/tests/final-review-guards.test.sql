@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(8);
+select plan(12);
 
 select throws_like(
   $$insert into service_visits(customer_id,status,cleaning_confirmed,bins_returned)
@@ -11,7 +11,7 @@ select throws_like(
 );
 
 update service_visits
-set status='completed',completed_at=now()
+set status='completed'
 where id='80000000-0000-4000-8000-000000000001';
 set constraints enforce_visit_completion immediate;
 
@@ -21,11 +21,39 @@ select is(
   'completing a visit atomically completes its entitlement'
 );
 
+select ok(
+  (select completed_at is not null from service_visits where id='80000000-0000-4000-8000-000000000001'),
+  'the database stamps completed visits even when the caller omits completed_at'
+);
+
+select throws_like(
+  $$insert into visit_photographs(service_visit_id,kind,storage_path,uploaded_by)
+    values(
+      '80000000-0000-4000-8000-000000000001',
+      'after',
+      'test-only/late-photo.jpg',
+      '00000000-0000-4000-8000-000000000010'
+    )$$,
+  '%Evidence for completed visits is immutable%',
+  'new photographs cannot be attached after visit completion'
+);
+
 select throws_like(
   $$insert into referral_credits(customer_id,referral_relationship_id,amount_cents,remaining_cents,status,earned_at,expires_at)
     values('20000000-0000-4000-8000-000000000001','91000000-0000-4000-8000-000000000002',1000,1000,'issued','2026-08-01','2027-08-01')$$,
   '%Referral credit requires a qualified relationship%',
   'credit issuance requires a qualified referral'
+);
+
+update referral_relationships
+set status='qualified', hold_until=now()-interval '1 day'
+where id='91000000-0000-4000-8000-000000000002';
+
+select throws_like(
+  $$insert into referral_credits(customer_id,referral_relationship_id,amount_cents,remaining_cents,status,earned_at,expires_at)
+    values('20000000-0000-4000-8000-000000000001','91000000-0000-4000-8000-000000000002',1000,1000,'issued','2026-08-01','2027-08-01')$$,
+  '%Referral credit requires an eligible completed paid monthly service after the hold%',
+  'credit issuance verifies plan eligibility, completed service, payment, and hold records'
 );
 
 select throws_like(
