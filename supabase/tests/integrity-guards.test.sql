@@ -28,7 +28,7 @@ where id='80000000-0000-4000-8000-000000000001';
 set constraints enforce_visit_completion immediate;
 select throws_like(
   $$update service_visits set status='assigned' where id='80000000-0000-4000-8000-000000000001'$$,
-  '%Completed visits cannot return to an earlier status%',
+  '%Completed visits are immutable%',
   'completed visits cannot be reopened'
 );
 
@@ -61,7 +61,7 @@ select throws_like(
 select throws_like(
   $$insert into service_visits(customer_id,route_stop_id)
     values('20000000-0000-4000-8000-000000000002','70000000-0000-4000-8000-000000000001')$$,
-  '%Visit customer must match its route stop address%',
+  '%Visit customer and technician must match its route stop%',
   'visits match their route-stop customer'
 );
 
