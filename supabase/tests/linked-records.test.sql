@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(5);
+select plan(7);
 
 select throws_like(
   $$update route_stops
@@ -39,11 +39,29 @@ select throws_like(
 );
 
 select throws_like(
+  $$update visit_photographs
+    set service_visit_id='80000000-0000-4000-8000-000000000002'
+    where service_visit_id='80000000-0000-4000-8000-000000000001'
+      and kind='before'$$,
+  '%Evidence for completed visits is immutable%',
+  'completed visit photographs cannot move to another visit'
+);
+
+select throws_like(
   $$delete from service_exceptions
     where service_visit_id='80000000-0000-4000-8000-000000000001'
       and details='COMPLETION EVIDENCE'$$,
   '%Exceptions for completed visits are immutable%',
   'completed visit exceptions cannot be deleted'
+);
+
+select throws_like(
+  $$update service_exceptions
+    set service_visit_id='80000000-0000-4000-8000-000000000002'
+    where service_visit_id='80000000-0000-4000-8000-000000000001'
+      and details='COMPLETION EVIDENCE'$$,
+  '%Exceptions for completed visits are immutable%',
+  'completed visit exceptions cannot move to another visit'
 );
 
 select throws_like(
