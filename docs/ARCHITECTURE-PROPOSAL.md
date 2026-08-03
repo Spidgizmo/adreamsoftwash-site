@@ -9,12 +9,12 @@ The public page, self-signup, staff-assisted signup, customer portal, CRM, billi
 ## Logical layers and flows
 
 1. **Responsive Next.js surfaces:** public pricing/signup, customer portal, staff/admin CRM, and future field views reuse the existing Tailwind design system and work across phone, tablet, laptop, desktop, portrait, and landscape.
-2. **Server application services:** catalog/pricing, promotion eligibility/redemption, identity onboarding, customer/lead, address validation, tax-provider adapter, checkout, billing webhook, referral ledger, entitlement, scheduling, route, notification, and audit services enforce shared rules.
+2. **Server application services:** catalog/pricing, promotion eligibility/redemption, discount exclusivity, identity onboarding, customer/lead, address validation, tax-provider adapter, checkout, billing webhook, referral ledger, entitlement, scheduling, route, notification, and audit services enforce shared rules.
 3. **Supabase:** Postgres holds canonical records; Auth supplies identity; RLS restricts customers to their rows while staff/admin access is role-scoped. Privileged actions also check authorization server-side.
 4. **Stripe test integrations:** server-created Checkout/payment links and subscriptions reference catalog-approved Stripe IDs and trusted promotion decisions. Signed, idempotent webhooks update local billing/status records and create entitlements. The billing portal handles payment methods without exposing card data.
-5. **Tax provider abstraction:** a narrow interface accepts validated address, product classification, line items, discounts, and transaction context and returns jurisdictions/rate/totals/provider ID. Stripe Tax is the initial adapter, but domain/CRM code consumes only the interface.
+5. **Tax provider abstraction:** a narrow interface accepts validated address, product classification, line items, one eligible discount, and transaction context and returns jurisdictions/rate/totals/provider ID. Stripe Tax is the initial adapter, but domain/CRM code consumes only the interface.
 
-Public signup first creates an Auth identity, provisional customer, signup snapshot, unique customer ID, and pending-payment CRM record in the shared store, then requests promotion validation, tax, and Stripe Checkout. Staff signup calls the same services and sends a secure payment link. Webhooks, not browser redirects, authoritatively transition payment and service state.
+Public signup first creates an Auth identity, provisional customer, signup snapshot, unique customer ID, and pending-payment CRM record in the shared store, then requests promotion/referral validation, exclusive-discount resolution, tax, and Stripe Checkout. Staff signup calls the same services and sends a secure payment link. Webhooks, not browser redirects, authoritatively transition payment and service state.
 
 ## Central versioned service-plan catalog
 
@@ -26,19 +26,19 @@ Pricing is calculated server-side from catalog version plus bin count; clients r
 
 ## Central promotion policy
 
-NEW25 is represented once as an active promotion rule rather than duplicated in signup copy, Stripe configuration, CRM, invoices, or reporting. Its current approved rule is: new Monthly subscriber only, 25% off the first paid Monthly cycle, and no discount on later cycles. The browser may normalize and preview the code, but it cannot establish eligibility or author the final cents.
+NEW25 is represented once as an active promotion rule rather than duplicated in signup copy, Stripe configuration, CRM, invoices, or reporting. Its current approved rule is: new Monthly subscriber only, 25% off the first paid Monthly cycle, no discount on later cycles, and no stacking with the **Share 50%. Get 50%.** new-customer referral discount or another discount. The browser may normalize and preview the code, but it cannot establish eligibility, exclusivity, or author the final cents.
 
 The trusted checkout service must normalize the submitted code, load the active promotion policy, confirm the selected plan/version is Monthly, confirm the customer/account has no disqualifying prior Monthly subscription under the final approved new-subscriber definition, calculate the discount from the trusted first-cycle subtotal, and create Stripe Checkout with the matching test-mode coupon/promotion configuration. It must persist an idempotent redemption/attempt record tied to customer, signup, subscription, plan version, invoice/payment cycle, normalized code, discount basis, discount cents, status, and timestamps.
 
-Marketing links may carry `promo=NEW25`, but the server always revalidates the value. Unknown, inactive, expired, or ineligible codes fail closed. The unresolved stacking rule with **Share 50%. Get 50%.** must be stored as a release-blocking owner decision rather than inferred by client or Stripe configuration.
+Marketing links may carry `promo=NEW25`, but the server always revalidates the value. Unknown, inactive, expired, or ineligible codes fail closed. If both a valid NEW25 code and an eligible new-customer referral discount are present, the discount-combination service returns a conflict and checkout cannot apply both. The customer must proceed using only one eligible discount, and the chosen and declined discount states are recorded for audit.
 
 ## Proposed data domains
 
 - **Identity/access:** auth user mapping, customer/staff/admin profile, roles/permissions, login status, recovery/audit events.
 - **Customer/lead:** customer ID, contact/address validation, source, signup status, trash/recycling declarations, return/access instructions, consent and activity.
 - **Catalog/history:** plans, versions, Stripe references, tax class, referral eligibility, plan-change requests and audit.
-- **Promotions:** normalized codes, active/effective state, eligible plan/version scope, first-cycle/new-subscriber rules, percentage/fixed discount basis, stacking policy reference, Stripe test references, redemption attempts, successful applications, reversals, and audit history.
-- **Billing/tax:** Stripe customer/subscription/checkout/invoice/payment references; separate payment/subscription states; calculation snapshots containing validated address/status, jurisdictions, rate, pre-discount subtotal, discount lines, taxable subtotal, tax, total, classification, provider ID, timestamp.
+- **Promotions:** normalized codes, active/effective state, eligible plan/version scope, first-cycle/new-subscriber rules, percentage/fixed discount basis, non-stacking policy, Stripe test references, redemption attempts, successful applications, reversals, declined-conflict records, and audit history.
+- **Billing/tax:** Stripe customer/subscription/checkout/invoice/payment references; separate payment/subscription states; calculation snapshots containing validated address/status, jurisdictions, rate, pre-discount subtotal, the single applied discount line, taxable subtotal, tax, total, classification, provider ID, timestamp.
 - **Service:** separate service status; pickup source values, holiday dates, calculated cleaning date, verification/review; service history.
 - **Entitlements:** one idempotently created entitlement per successful paid cycle, lifecycle status, source invoice/payment, cycle boundaries, and a uniqueness rule preventing more than one completion.
 - **Routing/field:** zones, multiple zone runs, capacity, stops/order, route status, evidence/photos, return confirmation/exceptions, surcharge review, notifications, staff/equipment logs.
@@ -50,7 +50,7 @@ Keep login, signup, payment, subscription, service, entitlement, and route state
 
 - Default-deny RLS: customers read/update only permitted fields on their own records; staff/admin policies are role-specific. Service-role access stays server-side.
 - Recheck staff/admin roles on every privileged server operation. Log sensitive actions and status changes.
-- Verify Stripe webhook signatures, enforce idempotency, and reject client-authored price, promotion, discount, tax, or status values.
+- Verify Stripe webhook signatures, enforce idempotency, and reject client-authored price, promotion, discount, stacking, tax, or status values.
 - Store Stripe references/tokens only—never full card number, CVC/security code, or raw card data in database, notes, repository, or logs.
 - Validate and normalize addresses while preserving original/customer, official, holiday, and staff-approved values separately.
 - Keep secrets out of source control and expose only intentionally public browser configuration.
@@ -99,4 +99,4 @@ Private routes are guarded by Next.js middleware which validates the HTTP-only S
 
 ### NEW25 signup-preview foundation
 
-The signup preview consumes the centralized NEW25 policy, accepts typed or marketing-link input, and calculates the first-month estimate without trusting the browser for future checkout. No Stripe coupon, live redemption, customer-history eligibility check, or stacking decision is activated by this preview work.
+The signup preview consumes the centralized NEW25 policy, accepts typed or marketing-link input, calculates the first-month estimate, states that referral discounts cannot be added, and exposes a shared combination rule that blocks simultaneous NEW25/referral application. No Stripe coupon, live redemption, or customer-history eligibility check is activated by this preview work.
