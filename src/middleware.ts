@@ -54,6 +54,18 @@ export async function middleware(request: NextRequest) {
     if (!user) return expired(request);
   }
 
+  const profile = await fetch(
+    `${url}/rest/v1/user_profiles?id=eq.${user.id}&select=login_status`,
+    {
+      headers: { apikey: key, Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    },
+  ).catch(() => null);
+  if (!profile?.ok) return expired(request);
+  const loginStatus = ((await profile.json()) as { login_status: string }[])[0]
+    ?.login_status;
+  if (loginStatus !== "active") return expired(request);
+
   const roles = await fetch(
     `${url}/rest/v1/staff_roles?user_id=eq.${user.id}&revoked_at=is.null&select=role`,
     {
