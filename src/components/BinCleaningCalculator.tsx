@@ -170,8 +170,9 @@ export function BinCleaningCalculator({
             </div>
             <p className="mt-2 text-xs leading-relaxed text-zinc-600">
               New Monthly subscribers can use {NEW25_PROMO_CODE} for 25% off
-              the first month. Final account eligibility is verified during
-              checkout.
+              the first month. It cannot be combined with the Share 50%. Get
+              50%. referral offer or another discount. Final account
+              eligibility is verified during checkout.
             </p>
             {promotion?.status === "applied" && (
               <p
@@ -179,6 +180,7 @@ export function BinCleaningCalculator({
                 className="mt-3 rounded-lg bg-emerald-100 p-3 text-sm font-bold text-emerald-900"
               >
                 {NEW25_PROMO_CODE} applied: 25% off your first Monthly charge.
+                Referral discounts cannot be added to this offer.
               </p>
             )}
             {promotion?.status === "ineligible" && (
