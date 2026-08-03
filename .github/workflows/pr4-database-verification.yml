@@ -21,7 +21,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci
@@ -124,4 +124,4 @@ jobs:
 
       - name: Stop disposable Supabase stack
         if: always()
-        run: supabase stop --no-backup
+        run: command -v supabase >/dev/null && supabase stop --no-backup || true
