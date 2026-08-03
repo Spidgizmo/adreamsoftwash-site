@@ -55,19 +55,34 @@ jobs:
           set +a
           test -n "$API_URL"
           test -n "$ANON_KEY"
-          test -n "$SERVICE_ROLE_KEY"
           TEST_PASSWORD="$(openssl rand -hex 24)"
           echo "::add-mask::$ANON_KEY"
-          echo "::add-mask::$SERVICE_ROLE_KEY"
           echo "::add-mask::$TEST_PASSWORD"
+          DB_CONTAINER="$(docker ps --filter name=supabase_db --format '{{.Names}}' | head -n 1)"
+          test -n "$DB_CONTAINER"
+          UPDATED_COUNT="$(
+            docker exec "$DB_CONTAINER" psql -U postgres -d postgres -At \
+              -v test_password="$TEST_PASSWORD" \
+              -c "with updated as (
+                    update auth.users
+                    set encrypted_password=crypt(:'test_password',gen_salt('bf')),
+                        email_confirmed_at=coalesce(email_confirmed_at,now()),
+                        confirmation_token=''
+                    where id in (
+                      '00000000-0000-4000-8000-000000000001',
+                      '00000000-0000-4000-8000-000000000002',
+                      '00000000-0000-4000-8000-000000000010',
+                      '00000000-0000-4000-8000-000000000011',
+                      '00000000-0000-4000-8000-000000000012',
+                      '00000000-0000-4000-8000-000000000013'
+                    )
+                    returning 1
+                  ) select count(*) from updated;"
+          )"
+          test "$UPDATED_COUNT" = "6"
           echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
-          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
           echo "ADS_TEST_USER_PASSWORD=$TEST_PASSWORD" >> "$GITHUB_ENV"
-          NEXT_PUBLIC_SUPABASE_URL="$API_URL" \
-          SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
-          ADS_TEST_USER_PASSWORD="$TEST_PASSWORD" \
-          npm run test:auth:provision
 
       - name: Verify seeded sign-ins and runtime RLS isolation
         run: |
