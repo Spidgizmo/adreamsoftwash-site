@@ -1,0 +1,127 @@
+name: PR 4 database and security verification
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "scripts/provision-test-auth.mjs"
+      - ".github/workflows/pr4-database-verification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start disposable Supabase stack
+        run: supabase start
+
+      - name: Reset database from migrations and seed
+        run: supabase db reset
+
+      - name: Lint local database
+        run: supabase db lint --local
+
+      - name: Run pgTAP database and RLS tests
+        run: supabase test db
+
+      - name: Provision fictional Auth users
+        shell: bash
+        run: |
+          supabase status -o env > /tmp/ads-supabase-status.env
+          set -a
+          source /tmp/ads-supabase-status.env
+          set +a
+          test -n "$API_URL"
+          test -n "$ANON_KEY"
+          test -n "$SERVICE_ROLE_KEY"
+          TEST_PASSWORD="$(openssl rand -hex 24)"
+          echo "::add-mask::$ANON_KEY"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "::add-mask::$TEST_PASSWORD"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "ADS_TEST_USER_PASSWORD=$TEST_PASSWORD" >> "$GITHUB_ENV"
+          NEXT_PUBLIC_SUPABASE_URL="$API_URL" \
+          SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+          ADS_TEST_USER_PASSWORD="$TEST_PASSWORD" \
+          npm run test:auth:provision
+
+      - name: Verify seeded sign-ins and runtime RLS isolation
+        run: |
+          node <<'NODE'
+          const users = [
+            ["avery@example.test", 1],
+            ["jordan@example.test", 1],
+            ["admin@example.test", 4],
+            ["dispatcher@example.test", 4],
+            ["technician@example.test", 1],
+            ["unassigned-tech@example.test", 0],
+          ];
+
+          for (const [email, expectedCustomers] of users) {
+            const signIn = await fetch(
+              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`,
+              {
+                method: "POST",
+                headers: {
+                  apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  email,
+                  password: process.env.ADS_TEST_USER_PASSWORD,
+                }),
+              },
+            );
+            if (!signIn.ok) {
+              throw new Error(`Sign-in failed for ${email}: ${await signIn.text()}`);
+            }
+            const { access_token: accessToken } = await signIn.json();
+            const customers = await fetch(
+              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/customers?select=id`,
+              {
+                headers: {
+                  apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              },
+            );
+            if (!customers.ok) {
+              throw new Error(`RLS request failed for ${email}: ${await customers.text()}`);
+            }
+            const rows = await customers.json();
+            if (rows.length !== expectedCustomers) {
+              throw new Error(
+                `RLS isolation failed for ${email}: expected ${expectedCustomers}, received ${rows.length}`,
+              );
+            }
+          }
+          console.log("Six seeded sign-ins and role-scoped customer isolation checks passed.");
+          NODE
+
+      - name: Stop disposable Supabase stack
+        if: always()
+        run: supabase stop --no-backup
