@@ -1,12 +1,23 @@
 -- FICTIONAL TEST DATA ONLY. Safe for local/test projects; never run against production.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
 values
-('00000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','avery@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
-('00000000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','jordan@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
-('00000000-0000-4000-8000-000000000010','00000000-0000-0000-0000-000000000000','authenticated','authenticated','admin@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
-('00000000-0000-4000-8000-000000000011','00000000-0000-0000-0000-000000000000','authenticated','authenticated','dispatcher@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
-('00000000-0000-4000-8000-000000000012','00000000-0000-0000-0000-000000000000','authenticated','authenticated','technician@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}'),
-('00000000-0000-4000-8000-000000000013','00000000-0000-0000-0000-000000000000','authenticated','authenticated','unassigned-tech@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{}','{}') on conflict do nothing;
+('00000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','avery@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{"provider":"email","providers":["email"]}','{"email_verified":true}'),
+('00000000-0000-4000-8000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','jordan@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{"provider":"email","providers":["email"]}','{"email_verified":true}'),
+('00000000-0000-4000-8000-000000000010','00000000-0000-0000-0000-000000000000','authenticated','authenticated','admin@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{"provider":"email","providers":["email"]}','{"email_verified":true}'),
+('00000000-0000-4000-8000-000000000011','00000000-0000-0000-0000-000000000000','authenticated','authenticated','dispatcher@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{"provider":"email","providers":["email"]}','{"email_verified":true}'),
+('00000000-0000-4000-8000-000000000012','00000000-0000-0000-0000-000000000000','authenticated','authenticated','technician@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{"provider":"email","providers":["email"]}','{"email_verified":true}'),
+('00000000-0000-4000-8000-000000000013','00000000-0000-0000-0000-000000000000','authenticated','authenticated','unassigned-tech@example.test',crypt(gen_random_uuid()::text,gen_salt('bf')),now(),now(),now(),'{"provider":"email","providers":["email"]}','{"email_verified":true}') on conflict do nothing;
+
+insert into auth.identities(id,provider_id,user_id,identity_data,provider,last_sign_in_at,created_at,updated_at)
+values
+('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','{"sub":"00000000-0000-4000-8000-000000000001","email":"avery@example.test","email_verified":true,"phone_verified":false}','email',now(),now(),now()),
+('10000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000002','{"sub":"00000000-0000-4000-8000-000000000002","email":"jordan@example.test","email_verified":true,"phone_verified":false}','email',now(),now(),now()),
+('10000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000010','{"sub":"00000000-0000-4000-8000-000000000010","email":"admin@example.test","email_verified":true,"phone_verified":false}','email',now(),now(),now()),
+('10000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000011','{"sub":"00000000-0000-4000-8000-000000000011","email":"dispatcher@example.test","email_verified":true,"phone_verified":false}','email',now(),now(),now()),
+('10000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000012','{"sub":"00000000-0000-4000-8000-000000000012","email":"technician@example.test","email_verified":true,"phone_verified":false}','email',now(),now(),now()),
+('10000000-0000-4000-8000-000000000013','00000000-0000-4000-8000-000000000013','00000000-0000-4000-8000-000000000013','{"sub":"00000000-0000-4000-8000-000000000013","email":"unassigned-tech@example.test","email_verified":true,"phone_verified":false}','email',now(),now(),now())
+on conflict do nothing;
+
 insert into public.user_profiles(id,display_name) values
 ('00000000-0000-4000-8000-000000000001','Avery Sample — FICTIONAL'),('00000000-0000-4000-8000-000000000002','Jordan Example — FICTIONAL'),('00000000-0000-4000-8000-000000000010','Test Administrator — FICTIONAL'),('00000000-0000-4000-8000-000000000011','Test Dispatcher — FICTIONAL'),('00000000-0000-4000-8000-000000000012','Test Technician — FICTIONAL'),('00000000-0000-4000-8000-000000000013','Unassigned Test Technician — FICTIONAL');
 insert into public.staff_roles(user_id,role,granted_by) values
