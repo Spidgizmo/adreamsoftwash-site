@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(11);
 
 select throws_like(
   $$insert into service_addresses(customer_id,line1,city,region,postal_code,normalized_address_hash,is_current)
@@ -77,6 +77,14 @@ select throws_like(
     values('90000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000004','test-hash-4')$$,
   '%Referral code must belong to the referrer%',
   'referral codes match their owning referrer'
+);
+
+select throws_like(
+  $$update referral_relationships
+    set referrer_customer_id='20000000-0000-4000-8000-000000000002'
+    where id='91000000-0000-4000-8000-000000000001'$$,
+  '%Referral attribution is immutable%',
+  'referral attribution cannot be rewritten'
 );
 
 select * from finish();
