@@ -21,7 +21,7 @@ $$;
 
 create or replace function public.visit_is_assigned(target uuid)
 returns boolean language sql stable security definer set search_path=public as $$
-  select public.login_is_active() and exists(
+  select public.has_role('field_technician') and exists(
     select 1 from service_visits where id=target and assigned_technician_id=auth.uid()
   )
 $$;
