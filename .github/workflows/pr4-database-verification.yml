@@ -4,7 +4,13 @@ on:
   pull_request:
     paths:
       - "supabase/**"
-      - "scripts/provision-test-auth.mjs"
+      - "src/**"
+      - "scripts/**"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "next.config.*"
       - ".github/workflows/pr4-database-verification.yml"
   workflow_dispatch:
 
