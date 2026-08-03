@@ -26,4 +26,6 @@ test("signup calculator provides an apply control and first-month discount line"
   assert.match(source, /First month before tax/);
   assert.match(source, /Later Monthly renewals before tax/);
   assert.match(source, /That promo code is not recognized/);
+  assert.match(source, /cannot be combined with the Share 50%\. Get/);
+  assert.match(source, /Referral discounts cannot be added to this offer/);
 });
