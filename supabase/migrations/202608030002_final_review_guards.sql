@@ -91,7 +91,6 @@ begin
        from public.customers referred
        join public.cleaning_entitlements entitlement
          on entitlement.customer_id = referred.id
-        and entitlement.status = 'completed'
        join public.paid_service_cycles cycle
          on cycle.id = entitlement.paid_service_cycle_id
         and cycle.customer_id = referred.id
@@ -106,6 +105,7 @@ begin
         and visit.customer_id = referred.id
         and visit.status = 'completed'
         and visit.completed_at is not null
+        and relationship_record.hold_until >= visit.completed_at + interval '7 days'
        where referred.id = relationship_record.referred_customer_id
          and referred.is_residential
      )
