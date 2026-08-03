@@ -61,23 +61,25 @@ jobs:
           DB_CONTAINER="$(docker ps --filter name=supabase_db --format '{{.Names}}' | head -n 1)"
           test -n "$DB_CONTAINER"
           UPDATED_COUNT="$(
-            docker exec "$DB_CONTAINER" psql -U postgres -d postgres -At \
-              -v test_password="$TEST_PASSWORD" \
-              -c "with updated as (
-                    update auth.users
-                    set encrypted_password=crypt(:'test_password',gen_salt('bf')),
-                        email_confirmed_at=coalesce(email_confirmed_at,now()),
-                        confirmation_token=''
-                    where id in (
-                      '00000000-0000-4000-8000-000000000001',
-                      '00000000-0000-4000-8000-000000000002',
-                      '00000000-0000-4000-8000-000000000010',
-                      '00000000-0000-4000-8000-000000000011',
-                      '00000000-0000-4000-8000-000000000012',
-                      '00000000-0000-4000-8000-000000000013'
-                    )
-                    returning 1
-                  ) select count(*) from updated;"
+            docker exec -i "$DB_CONTAINER" psql -U postgres -d postgres -At \
+              -v test_password="$TEST_PASSWORD" <<'SQL'
+          with updated as (
+            update auth.users
+            set encrypted_password=crypt(:'test_password',gen_salt('bf')),
+                email_confirmed_at=coalesce(email_confirmed_at,now()),
+                confirmation_token=''
+            where id in (
+              '00000000-0000-4000-8000-000000000001',
+              '00000000-0000-4000-8000-000000000002',
+              '00000000-0000-4000-8000-000000000010',
+              '00000000-0000-4000-8000-000000000011',
+              '00000000-0000-4000-8000-000000000012',
+              '00000000-0000-4000-8000-000000000013'
+            )
+            returning 1
+          )
+          select count(*) from updated;
+          SQL
           )"
           test "$UPDATED_COUNT" = "6"
           echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
