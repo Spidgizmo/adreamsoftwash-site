@@ -56,9 +56,9 @@ The action may read **Create Account & Continue to Payment**. It must securely c
 
 NEW25 is an active marketing code for new Monthly subscribers only. It discounts the first month's selected Monthly subscription subtotal by 25% before tax. The first-charge summary must show the normal subtotal, promotional discount, discounted first-month subtotal, tax, and total. Later monthly renewals use the regular selected-plan price before tax.
 
-The signup page accepts typed NEW25 and a normalized marketing-link parameter. Code matching is case-insensitive for usability, but the stored/displayed code is NEW25. Quarterly, Twice a Year, One-Time Cleaning, and inactive plans receive no NEW25 discount. The browser preview is not authoritative: the server/checkout service must revalidate the code, plan, account history, new-subscriber eligibility, effective status, and final cents before creating Stripe Checkout or a subscription.
+The signup page accepts typed NEW25 and a normalized marketing-link parameter. Code matching is case-insensitive for usability, but the stored/displayed code is NEW25. Quarterly, Twice a Year, One-Time Cleaning, and inactive plans receive no NEW25 discount. The browser preview is not authoritative: the server/checkout service must revalidate the code, plan, account history, new-subscriber eligibility, effective status, non-stacking eligibility, and final cents before creating Stripe Checkout or a subscription.
 
-Whether NEW25 can stack with the **Share 50%. Get 50%.** new-customer discount or another promotion remains an owner decision. Until approved, live checkout must not invent stacking behavior.
+NEW25 does **not** stack with the **Share 50%. Get 50%.** new-customer referral discount or another discount. A signup may contain both codes for review, but checkout must not apply both. The customer must proceed using only one eligible discount, and the chosen/declined discount decision must be preserved in the audit trail.
 
 ### Staff-assisted signup and leads
 
@@ -82,7 +82,7 @@ One-time customers can view receipt, schedule, service status/history and future
 
 ### Internal CRM
 
-The CRM receives every lead, website/staff/incomplete/pending signup, active/past-due/suspended/canceled customer. It stores/displays customer ID, source, contact details, validated address/result, plan/version/type/frequency, bins, base/discount/tax/total, pickup/cleaning/holiday schedule, return/access details, referral details, promotion/redemption details, payment/subscription/service states, grace deadline, current entitlement, last service, zone/next eligible run, schedule verification, notes, activity, plan-change history, and pricing history.
+The CRM receives every lead, website/staff/incomplete/pending signup, active/past-due/suspended/canceled customer. It stores/displays customer ID, source, contact details, validated address/result, plan/version/type/frequency, bins, base/discount/tax/total, pickup/cleaning/holiday schedule, return/access details, referral details, promotion/redemption details, discount-conflict/selection details, payment/subscription/service states, grace deadline, current entitlement, last service, zone/next eligible run, schedule verification, notes, activity, plan-change history, and pricing history.
 
 ## 5. Billing, tax, and payment lifecycle
 
@@ -92,7 +92,7 @@ Use Stripe Checkout, Billing subscriptions, customer billing portal, secure paym
 
 Website and CRM signup use one replaceable tax-provider interface, initially compatible with Stripe Tax, against the exact validated service address. Never hardcode rates by city, county, ZIP, or a manually maintained rate table, and never hardwire the CRM to one provider.
 
-Before checkout, in Stripe Checkout, on invoices, in the portal, and in CRM, display tax separately. Each invoice/payment keeps an audit snapshot of validated address, validation state, returned jurisdictions, applied rate, taxable subtotal after eligible discounts, discount lines, tax, total, product classification, provider calculation ID, and calculation timestamp. Recurring invoices use the current validated address and current rules rather than freezing signup tax. Ohio taxability and live collection await owner/accountant/legal approval.
+Before checkout, in Stripe Checkout, on invoices, in the portal, and in CRM, display tax separately. Each invoice/payment keeps an audit snapshot of validated address, validation state, returned jurisdictions, applied rate, taxable subtotal after the one eligible discount, discount lines, tax, total, product classification, provider calculation ID, and calculation timestamp. Recurring invoices use the current validated address and current rules rather than freezing signup tax. Ohio taxability and live collection await owner/accountant/legal approval.
 
 ### Failed payment and seven-day rule
 
@@ -136,7 +136,9 @@ The approved program applies only to eligible Monthly residential subscriptions 
 
 A genuinely new eligible customer gets 50% off the eligible base price of the first regular monthly cleaning. After that cleaning is completed, paid, not refunded/disputed/charged back, and past a seven-calendar-day review hold, the referrer earns a credit equal to 50% of their own next eligible monthly base cleaning.
 
-Each eligible Monthly customer receives a permanent unique code during signup. Limit one code per new account and qualifying address. Two earned credits can cover up to 100% of an eligible base invoice; excess rolls forward and expires 12 months after earning. Credits have no cash value, are nontransferable, cannot make an invoice negative, and exclude tax, gratuity, contamination/debris/restoration/missed-service/return-trip charges, additional non-plan bins, and unrelated ADS services. Failure, refund, dispute, chargeback, self-referral, duplicate account, or fraud can block/reverse rewards.
+Each eligible Monthly customer receives a permanent unique code during signup. Limit one code per new account and qualifying address. Two earned referral credits can cover up to 100% of an eligible base invoice; excess rolls forward and expires 12 months after earning. Credits have no cash value, are nontransferable, cannot make an invoice negative, and exclude tax, gratuity, contamination/debris/restoration/missed-service/return-trip charges, additional non-plan bins, and unrelated ADS services. Failure, refund, dispute, chargeback, self-referral, duplicate account, or fraud can block/reverse rewards.
+
+The internal rule allowing two earned referral credits to cover up to 100% does not allow NEW25 to stack with the new-customer referral discount. A new customer uses either the eligible referral discount or NEW25, never both on the same first charge.
 
 Portal views include code/link, pending/qualified referrals, available/applied balances, history, and reversals.
 
