@@ -53,17 +53,17 @@ insert into public.bins(service_address_id,identifier,description,dirty_this_vis
 insert into public.customer_contact_preferences(customer_id) select id from public.customers;
 insert into public.subscriptions(customer_id,service_plan_version_id,started_at) values
 ('20000000-0000-4000-8000-000000000001',(select id from service_plan_versions where plan_id='monthly'),'2026-08-01'),
-('20000000-0000-4000-8000-000000000002',(select id from service_plan_versions where plan_id='quarterly'),'2026-08-01'),
+('20000000-0000-4000-8000-000000000002',(select id from service_plan_versions where plan_id='monthly'),'2026-08-01'),
 ('20000000-0000-4000-8000-000000000003',(select id from service_plan_versions where plan_id='twice-yearly'),'2026-08-01'),
 ('20000000-0000-4000-8000-000000000004',(select id from service_plan_versions where plan_id='one-time'),'2026-08-01');
 insert into public.paid_service_cycles(id,customer_id,subscription_id,service_plan_version_id,cycle_start,cycle_end,payment_status,idempotency_key) values
-('a0000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000001'),(select id from service_plan_versions where plan_id='monthly'),'2026-08-01','2026-08-31','test_paid','test-cycle-monthly-2026-08'),
-('a0000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000002'),(select id from service_plan_versions where plan_id='quarterly'),'2026-08-01','2026-10-31','test_paid','test-cycle-quarterly-2026-08'),
+('a0000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000001'),(select id from service_plan_versions where plan_id='monthly'),'2026-08-01','2026-08-31','test_paid','test-cycle-monthly-avery-2026-08'),
+('a0000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000002'),(select id from service_plan_versions where plan_id='monthly'),'2026-08-01','2026-08-31','test_paid','test-cycle-monthly-jordan-2026-08'),
 ('a0000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000003',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000003'),(select id from service_plan_versions where plan_id='twice-yearly'),'2026-08-01','2027-01-31','test_pending','test-cycle-twice-2026-08'),
 ('a0000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000004',(select id from subscriptions where customer_id='20000000-0000-4000-8000-000000000004'),(select id from service_plan_versions where plan_id='one-time'),'2026-08-01',null,'test_paid','test-cycle-one-time-2026-08');
 insert into public.cleaning_entitlements(id,customer_id,paid_service_cycle_id,status,idempotency_key,eligible_from) values
-('b0000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','a0000000-0000-4000-8000-000000000001','scheduled','test-entitlement-monthly-2026-08','2026-08-01'),
-('b0000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002','a0000000-0000-4000-8000-000000000002','due','test-entitlement-quarterly-2026-08','2026-08-01'),
+('b0000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','a0000000-0000-4000-8000-000000000001','scheduled','test-entitlement-monthly-avery-2026-08','2026-08-01'),
+('b0000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002','a0000000-0000-4000-8000-000000000002','due','test-entitlement-monthly-jordan-2026-08','2026-08-01'),
 ('b0000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000003','a0000000-0000-4000-8000-000000000003','pending_payment','test-entitlement-twice-2026-08','2026-08-01'),
 ('b0000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000004','a0000000-0000-4000-8000-000000000004','due','test-entitlement-one-time-2026-08','2026-08-01');
 insert into public.trash_pickup_schedules(id,service_address_id,weekday,source,verification_status,effective_from,holiday_shift_days,holiday_shift_status) values
@@ -77,16 +77,22 @@ insert into public.routes(id,service_zone_id,route_date,status,dispatcher_id,tec
 insert into public.route_stops(id,route_id,service_address_id,stop_order) values ('70000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',1);
 insert into public.service_visits(id,customer_id,route_stop_id,assigned_technician_id,scheduled_for,status,cleaning_confirmed,bins_returned,entitlement_id) values
 ('80000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000012','2026-08-11 09:00Z','after_photo_complete',true,true,'b0000000-0000-4000-8000-000000000001'),
-('80000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002',null,null,'2026-08-08 09:00Z','weather_delayed',false,false,'b0000000-0000-4000-8000-000000000002'),
+('80000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002',null,null,'2026-08-08 09:00Z','after_photo_complete',true,true,'b0000000-0000-4000-8000-000000000002'),
 ('80000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000003',null,null,'2026-08-06 09:00Z','customer_not_ready',false,false,'b0000000-0000-4000-8000-000000000003');
-insert into public.visit_photographs(service_visit_id,kind,storage_path,uploaded_by) values ('80000000-0000-4000-8000-000000000001','before','test-only/visit-1-before-placeholder.jpg','00000000-0000-4000-8000-000000000012'),('80000000-0000-4000-8000-000000000001','after','test-only/visit-1-after-placeholder.jpg','00000000-0000-4000-8000-000000000012');
+insert into public.visit_photographs(service_visit_id,kind,storage_path,uploaded_by) values
+('80000000-0000-4000-8000-000000000001','before','test-only/visit-1-before-placeholder.jpg','00000000-0000-4000-8000-000000000012'),
+('80000000-0000-4000-8000-000000000001','after','test-only/visit-1-after-placeholder.jpg','00000000-0000-4000-8000-000000000012'),
+('80000000-0000-4000-8000-000000000002','before','test-only/visit-2-before-placeholder.jpg','00000000-0000-4000-8000-000000000010'),
+('80000000-0000-4000-8000-000000000002','after','test-only/visit-2-after-placeholder.jpg','00000000-0000-4000-8000-000000000010');
+update public.service_visits set status='completed' where id='80000000-0000-4000-8000-000000000002';
+set constraints enforce_visit_completion immediate;
 insert into public.service_exceptions(service_visit_id,exception_type,details,status,recorded_by) values ('80000000-0000-4000-8000-000000000003','inaccessible_bins','FICTIONAL: gate inaccessible','open','00000000-0000-4000-8000-000000000011'),('80000000-0000-4000-8000-000000000003','contamination_refusal','FICTIONAL: prohibited contamination documented','open','00000000-0000-4000-8000-000000000011');
 insert into public.referral_codes(id,customer_id,code) values ('90000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','ADS-7K9M2Q4X');
-insert into public.referral_relationships(id,referral_code_id,referrer_customer_id,referred_customer_id,referred_address_hash,status,hold_until,rejection_reason) values
-('91000000-0000-4000-8000-000000000001','90000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002','test-hash-2','qualified','2026-08-01',null),
-('91000000-0000-4000-8000-000000000002','90000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000003','test-hash-3','pending_first_service',null,null);
+insert into public.referral_relationships(id,referral_code_id,referrer_customer_id,referred_customer_id,referred_address_hash,status,hold_until,rejection_reason,created_at) values
+('91000000-0000-4000-8000-000000000001','90000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002','test-hash-2','qualified','2026-08-01',null,'2026-07-25'),
+('91000000-0000-4000-8000-000000000002','90000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000003','test-hash-3','pending_first_service',null,null,now());
 insert into public.referral_credits(customer_id,referral_relationship_id,amount_cents,remaining_cents,status,earned_at,expires_at) values ('20000000-0000-4000-8000-000000000001','91000000-0000-4000-8000-000000000001',1000,1000,'issued','2026-08-01','2027-08-01');
 insert into public.customer_notes(customer_id,body,created_by) values
 ('20000000-0000-4000-8000-000000000001','FICTIONAL VALID REFERRAL scenario.','00000000-0000-4000-8000-000000000010'),
-('20000000-0000-4000-8000-000000000002','FICTIONAL INVALID REFERRAL scenario rejected during validation.','00000000-0000-4000-8000-000000000010'),
+('20000000-0000-4000-8000-000000000002','FICTIONAL ELIGIBLE MONTHLY REFERRED CUSTOMER scenario.','00000000-0000-4000-8000-000000000010'),
 ('20000000-0000-4000-8000-000000000003','FICTIONAL SELF-REFERRAL and DUPLICATE-ADDRESS attempts rejected before persistence.','00000000-0000-4000-8000-000000000010');
