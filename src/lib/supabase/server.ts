@@ -61,6 +61,14 @@ export async function databaseRequest<T>(
 }
 
 async function profileRole(userId: string, token?: string): Promise<AppRole> {
+  const profiles = await databaseRequest<{ login_status: string }[]>(
+    `user_profiles?id=eq.${userId}&select=login_status`,
+    {},
+    token,
+  );
+  if (profiles[0]?.login_status !== "active") {
+    throw new Error("Login is disabled");
+  }
   const roles = await databaseRequest<{ role: AppRole }[]>(
     `staff_roles?user_id=eq.${userId}&revoked_at=is.null&select=role`,
     {},
