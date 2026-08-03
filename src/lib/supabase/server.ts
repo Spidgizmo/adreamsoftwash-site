@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { roleForIdentity } from "@/lib/bin-cleaning/access";
 import type { AppRole } from "@/lib/bin-cleaning/domain";
 
 const ACCESS_COOKIE = "ads-test-access";
@@ -69,12 +70,27 @@ async function profileRole(userId: string, token?: string): Promise<AppRole> {
   if (profiles[0]?.login_status !== "active") {
     throw new Error("Login is disabled");
   }
+
   const roles = await databaseRequest<{ role: AppRole }[]>(
     `staff_roles?user_id=eq.${userId}&revoked_at=is.null&select=role`,
     {},
     token,
   );
-  return roles[0]?.role ?? "customer";
+  const staffRole = roles[0]?.role;
+
+  let hasCustomer = false;
+  if (!staffRole) {
+    const customers = await databaseRequest<{ id: string }[]>(
+      `customers?user_id=eq.${userId}&select=id&limit=1`,
+      {},
+      token,
+    );
+    hasCustomer = customers.length > 0;
+  }
+
+  const role = roleForIdentity(staffRole, hasCustomer);
+  if (!role) throw new Error("Application role is not assigned");
+  return role;
 }
 
 export async function sessionFromToken(
