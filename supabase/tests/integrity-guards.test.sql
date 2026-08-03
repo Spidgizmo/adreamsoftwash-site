@@ -108,8 +108,20 @@ select throws_like(
   'referral credits belong to the relationship referrer'
 );
 
+insert into referral_relationships(
+  id,referral_code_id,referrer_customer_id,referred_customer_id,referred_address_hash
+) values(
+  '91000000-0000-4000-8000-000000000099',
+  '90000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001',
+  'ignored-by-validator'
+);
+
 select throws_like(
-  $$update referral_relationships set status='qualified' where status='rejected'$$,
+  $$update referral_relationships
+    set status='qualified'
+    where id='91000000-0000-4000-8000-000000000099'$$,
   '%Rejected referral claims are terminal%',
   'rejected referral claims cannot become eligible again'
 );
