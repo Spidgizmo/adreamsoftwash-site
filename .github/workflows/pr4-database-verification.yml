@@ -44,7 +44,13 @@ jobs:
         run: supabase start
 
       - name: Reset database from migrations and seed
-        run: supabase db reset
+        shell: bash
+        run: |
+          if ! supabase db reset; then
+            echo "Initial disposable reset failed; retrying once after the local stack settles."
+            sleep 8
+            supabase db reset --debug
+          fi
 
       - name: Lint local database
         run: supabase db lint --local
