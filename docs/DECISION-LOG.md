@@ -25,6 +25,14 @@ This log separates approved direction from decisions still requiring owner appro
 - Every 2 Weeks is future/inactive without price, Stripe Price, public/staff selection, or referral eligibility. Every 4 Weeks, Every 8 Weeks, and Bi-monthly are not launch plans.
 - One central effective-dated/versioned service-plan catalog supplies all website, signup, Stripe, portal, CRM, tax, entitlement, route, invoice, and reporting functions.
 
+### Promotional code NEW25
+
+- James Gibbs approved the marketing promotional code **NEW25** on 2026-08-03.
+- NEW25 is available only to new Monthly subscribers.
+- NEW25 gives 25% off the first month's selected Monthly subscription subtotal before tax. It applies to that first charge only; later Monthly renewals return to the regular selected-plan price before tax.
+- NEW25 is not valid for Quarterly, Twice a Year, One-Time Cleaning, or the inactive Every 2 Weeks plan.
+- The signup page must accept the code directly and may also receive it through a marketing link parameter. Eligibility and the final discount must be revalidated server-side during checkout rather than trusted from the browser.
+
 ### Signup, accounts, and operations
 
 - Both customer and staff-assisted signup use the same account type, records, catalog/pricing/tax/referral services, Stripe billing, automation, entitlements, and route foundation. Pending and incomplete signups remain CRM-visible with their source/status.
@@ -61,6 +69,7 @@ This log separates approved direction from decisions still requiring owner appro
 - Pickup-to-next-day rule, source preservation/mismatch review requirement, and included bin return.
 - Core **Share 50%. Get 50%.** structure and eligibility rules; it is no longer unresolved.
 - Future route/field data foundation and plan-change audit requirements (specific change economics remain open).
+- NEW25 as a 25%-off-first-month promotion for new Monthly subscribers only.
 
 ## Owner decisions required
 
@@ -79,6 +88,7 @@ Only these genuinely unresolved items remain:
 11. Final customer communication and consent wording, including payment and reactivation notices.
 12. Final Ohio taxability classification and approval for live tax collection, subject to owner/accountant/legal confirmation.
 13. Final policy for preserving, expiring, or otherwise resolving an unpaid cleaning entitlement after seven-day suspension.
+14. Whether NEW25 may stack with the **Share 50%. Get 50%.** new-customer discount or any other promotion.
 
 No implementation may invent an answer. Record the owner decision, effective date, approver, and affected plan/version before automation or live activation.
 
@@ -90,7 +100,10 @@ The approved Supabase/Auth/RLS direction is represented by a test-only migration
 
 The correction implements secure test-session routing, database-backed test operations, auditable pending route-change requests, and the approved referral address lookback without permanently reserving an address. These are test controls, not authorization for production roles, credentials, signup, billing, tax, communications, routing, or deployment.
 
-
 ## Entitlement foundation record — no new owner decision
 
 The correction implements the already approved exactly-one entitlement per paid cycle and exactly-one completed cleaning per entitlement as test database constraints. It does not decide or activate unresolved expiry, failed-payment preservation, Stripe, or live billing behavior.
+
+## NEW25 website-preview implementation record — 2026-08-03
+
+The responsive signup preview now accepts and validates NEW25 against one centralized promotion rule, shows the 25% first-Monthly-charge estimate, rejects non-Monthly use, and accepts a normalized marketing-link parameter. This does not activate live signup or Stripe redemption. Phase 4 must revalidate new-subscriber eligibility, persist an idempotent redemption record, and enforce any later-approved stacking rule at the trusted checkout boundary.
