@@ -9,6 +9,7 @@ import {
   PUBLIC_BIN_CLEANING_PLANS,
   TAX_ESTIMATE_MESSAGE,
   calculateBinCleaningPrice,
+  evaluateBinCleaningDiscountCombination,
   evaluateBinCleaningPromotion,
   normalizeBinCleaningPromoCode,
   resolveBinCleaningSelection,
@@ -126,6 +127,7 @@ test("NEW25 is the single active new-subscriber promotion", () => {
       percentOff: 25,
       appliesTo: "first-paid-cycle",
       newSubscriptionOnly: true,
+      stackableWithReferral: false,
     },
   ]);
 });
@@ -144,6 +146,25 @@ test("NEW25 discounts the entire first Monthly charge by 25 percent", () => {
   assert.equal(promotion.status, "applied");
   assert.equal(promotion.discountCents, 875);
   assert.equal(promotion.firstChargeSubtotalCents, 2625);
+});
+
+test("NEW25 cannot be combined with an eligible referral discount", () => {
+  assert.deepEqual(evaluateBinCleaningDiscountCombination("applied", true), {
+    status: "conflict",
+    canProceed: false,
+  });
+  assert.deepEqual(evaluateBinCleaningDiscountCombination("applied", false), {
+    status: "promotion-only",
+    canProceed: true,
+  });
+  assert.deepEqual(evaluateBinCleaningDiscountCombination("empty", true), {
+    status: "referral-only",
+    canProceed: true,
+  });
+  assert.deepEqual(evaluateBinCleaningDiscountCombination("empty", false), {
+    status: "none",
+    canProceed: true,
+  });
 });
 
 test("NEW25 does not discount Quarterly, Twice a Year, or One-Time", () => {
