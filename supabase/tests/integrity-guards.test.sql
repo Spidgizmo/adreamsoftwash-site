@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(15);
 
 select throws_like(
   $$insert into service_addresses(customer_id,line1,city,region,postal_code,normalized_address_hash,is_current)
@@ -99,6 +99,19 @@ select throws_like(
     set constraints customer_requires_current_address immediate$$,
   '%Customer must have exactly one current service address%',
   'new customers require a current service address'
+);
+
+select throws_like(
+  $$insert into referral_credits(customer_id,referral_relationship_id,amount_cents,remaining_cents,status,earned_at,expires_at)
+    values('20000000-0000-4000-8000-000000000002','91000000-0000-4000-8000-000000000001',1000,1000,'issued','2026-08-01','2027-08-01')$$,
+  '%Referral credit customer must match the relationship referrer%',
+  'referral credits belong to the relationship referrer'
+);
+
+select throws_like(
+  $$update referral_relationships set status='qualified' where status='rejected'$$,
+  '%Rejected referral claims are terminal%',
+  'rejected referral claims cannot become eligible again'
 );
 
 select * from finish();
