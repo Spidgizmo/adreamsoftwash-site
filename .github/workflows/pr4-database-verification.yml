@@ -101,8 +101,8 @@ jobs:
           const users = [
             ["avery@example.test", 1],
             ["jordan@example.test", 1],
-            ["admin@example.test", 4],
-            ["dispatcher@example.test", 4],
+            ["admin@example.test", 5],
+            ["dispatcher@example.test", 5],
             ["technician@example.test", 1],
             ["unassigned-tech@example.test", 0],
           ];
