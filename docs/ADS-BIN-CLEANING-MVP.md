@@ -48,17 +48,25 @@ After plan and bin count selection, show selected plan, bin count, base price, a
 
 ### Customer self-signup
 
-Collect plan, bin count, full name, mobile, email, validated service address, customer-confirmed normal trash day, applicable recycling schedule, designated bin-return location, gate/driveway/access/return instructions, optional referral code, terms acceptance, and the reviewed subtotal/tax/total.
+Collect plan, bin count, full name, mobile, email, validated service address, customer-confirmed normal trash day, applicable recycling schedule, designated bin-return location, gate/driveway/access/return instructions, optional referral code, optional promotional code, terms acceptance, and the reviewed subtotal/tax/total.
 
 The action may read **Create Account & Continue to Payment**. It must securely create login credentials, a provisional customer and unique internal customer ID, save signup data, set signup to `pending payment`, expose that record in CRM, and then continue to Stripe. Account creation is not proof of payment or active service.
 
+### NEW25 marketing promotion
+
+NEW25 is an active marketing code for new Monthly subscribers only. It discounts the first month's selected Monthly subscription subtotal by 25% before tax. The first-charge summary must show the normal subtotal, promotional discount, discounted first-month subtotal, tax, and total. Later monthly renewals use the regular selected-plan price before tax.
+
+The signup page accepts typed NEW25 and a normalized marketing-link parameter. Code matching is case-insensitive for usability, but the stored/displayed code is NEW25. Quarterly, Twice a Year, One-Time Cleaning, and inactive plans receive no NEW25 discount. The browser preview is not authoritative: the server/checkout service must revalidate the code, plan, account history, new-subscriber eligibility, effective status, and final cents before creating Stripe Checkout or a subscription.
+
+Whether NEW25 can stack with the **Share 50%. Get 50%.** new-customer discount or another promotion remains an owner decision. Until approved, live checkout must not invent stacking behavior.
+
 ### Staff-assisted signup and leads
 
-The protected CRM includes **Add New Customer** for phone, in-person, door-hanger, advertising, and assisted customers. Staff collect the same information and use the identical catalog, pricing, address validation, tax, referral, account, entitlement, and status services. Staff can review subtotal/tax/total, create a pending account, and text or email a secure Stripe payment link.
+The protected CRM includes **Add New Customer** for phone, in-person, door-hanger, advertising, and assisted customers. Staff collect the same information and use the identical catalog, pricing, address validation, tax, referral, promotion, account, entitlement, and status services. Staff can review subtotal/tax/total, create a pending account, and text or email a secure Stripe payment link.
 
 Signup sources include Website, Staff phone, Staff in person, Door-hanger call, Existing ADS customer, Manual import, and another approved marketing source. Leads/incomplete signups remain visible with at least: New lead, Information requested, Signup started, Payment link sent, Pending payment, Active, Declined, Not interested, and Canceled.
 
-Website and staff-assisted customers share the same database, account type, portal, billing, CRM, referral, tax, automation, entitlements, and route records. Full card numbers, security codes, or raw card data must never enter notes, the database, repository, or logs.
+Website and staff-assisted customers share the same database, account type, portal, billing, CRM, referral, promotion, tax, automation, entitlements, and route records. Full card numbers, security codes, or raw card data must never enter notes, the database, repository, or logs.
 
 ## 4. Accounts, portal, CRM, and security
 
@@ -68,23 +76,23 @@ Customers can access only their own data. Staff and administrator areas require 
 
 ### Customer portal
 
-Display customer/name/login/account/payment/subscription/service states; current plan/version, frequency and recurring status; bin count, base price, tax and total; address, normal pickup day, expected cleaning day; current entitlement, next eligible service date when known, and last completed cleaning; return/access instructions; billing history, invoices and Stripe payment-method access; eligible referral details; service history and requests; and payment-hold, suspension, and reactivation messages.
+Display customer/name/login/account/payment/subscription/service states; current plan/version, frequency and recurring status; bin count, base price, tax and total; address, normal pickup day, expected cleaning day; current entitlement, next eligible service date when known, and last completed cleaning; return/access instructions; billing history, invoices and Stripe payment-method access; eligible referral details; promotional redemption history; service history and requests; and payment-hold, suspension, and reactivation messages.
 
 One-time customers can view receipt, schedule, service status/history and future photos; buy another one-time service; and request a recurring-plan upgrade.
 
 ### Internal CRM
 
-The CRM receives every lead, website/staff/incomplete/pending signup, active/past-due/suspended/canceled customer. It stores/displays customer ID, source, contact details, validated address/result, plan/version/type/frequency, bins, base/tax/total, pickup/cleaning/holiday schedule, return/access details, referral details, payment/subscription/service states, grace deadline, current entitlement, last service, zone/next eligible run, schedule verification, notes, activity, plan-change history, and pricing history.
+The CRM receives every lead, website/staff/incomplete/pending signup, active/past-due/suspended/canceled customer. It stores/displays customer ID, source, contact details, validated address/result, plan/version/type/frequency, bins, base/discount/tax/total, pickup/cleaning/holiday schedule, return/access details, referral details, promotion/redemption details, payment/subscription/service states, grace deadline, current entitlement, last service, zone/next eligible run, schedule verification, notes, activity, plan-change history, and pricing history.
 
 ## 5. Billing, tax, and payment lifecycle
 
-Use Stripe Checkout, Billing subscriptions, customer billing portal, secure payment links, and webhooks in **test mode only** until separately approved. Support monthly, three-month, six-month, and one-time charges with anniversary-based recurring billing. Webhooks update local payment/service states, entitlements, referrals, invoice/tax records, holds, suspension, and reactivation. Never commit credentials.
+Use Stripe Checkout, Billing subscriptions, customer billing portal, secure payment links, and webhooks in **test mode only** until separately approved. Support monthly, three-month, six-month, and one-time charges with anniversary-based recurring billing. Webhooks update local payment/service states, entitlements, referrals, promotion redemptions, invoice/tax records, holds, suspension, and reactivation. Never commit credentials.
 
 ### Address-based tax
 
 Website and CRM signup use one replaceable tax-provider interface, initially compatible with Stripe Tax, against the exact validated service address. Never hardcode rates by city, county, ZIP, or a manually maintained rate table, and never hardwire the CRM to one provider.
 
-Before checkout, in Stripe Checkout, on invoices, in the portal, and in CRM, display tax separately. Each invoice/payment keeps an audit snapshot of validated address, validation state, returned jurisdictions, applied rate, taxable subtotal, tax, total, product classification, provider calculation ID, and calculation timestamp. Recurring invoices use the current validated address and current rules rather than freezing signup tax. Ohio taxability and live collection await owner/accountant/legal approval.
+Before checkout, in Stripe Checkout, on invoices, in the portal, and in CRM, display tax separately. Each invoice/payment keeps an audit snapshot of validated address, validation state, returned jurisdictions, applied rate, taxable subtotal after eligible discounts, discount lines, tax, total, product classification, provider calculation ID, and calculation timestamp. Recurring invoices use the current validated address and current rules rather than freezing signup tax. Ohio taxability and live collection await owner/accountant/legal approval.
 
 ### Failed payment and seven-day rule
 
