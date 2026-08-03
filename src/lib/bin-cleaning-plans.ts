@@ -62,6 +62,7 @@ export const BIN_CLEANING_PROMOTIONS = [
     percentOff: 25,
     appliesTo: "first-paid-cycle",
     newSubscriptionOnly: true,
+    stackableWithReferral: false,
   },
 ] as const;
 
@@ -74,6 +75,11 @@ export type BinCleaningPromotionEvaluation = Readonly<{
   promotion: BinCleaningPromotion | null;
   discountCents: number;
   firstChargeSubtotalCents: number;
+}>;
+
+export type BinCleaningDiscountCombinationEvaluation = Readonly<{
+  status: "none" | "promotion-only" | "referral-only" | "conflict";
+  canProceed: boolean;
 }>;
 
 export type BinCleaningSelection = Readonly<{
@@ -205,6 +211,24 @@ export function evaluateBinCleaningPromotion(
     discountCents,
     firstChargeSubtotalCents: subtotalCents - discountCents,
   };
+}
+
+export function evaluateBinCleaningDiscountCombination(
+  promotionStatus: BinCleaningPromotionEvaluation["status"],
+  hasEligibleReferralDiscount: boolean,
+): BinCleaningDiscountCombinationEvaluation {
+  const hasAppliedPromotion = promotionStatus === "applied";
+
+  if (hasAppliedPromotion && hasEligibleReferralDiscount) {
+    return { status: "conflict", canProceed: false };
+  }
+  if (hasAppliedPromotion) {
+    return { status: "promotion-only", canProceed: true };
+  }
+  if (hasEligibleReferralDiscount) {
+    return { status: "referral-only", canProceed: true };
+  }
+  return { status: "none", canProceed: true };
 }
 
 export function formatCurrency(cents: number) {
