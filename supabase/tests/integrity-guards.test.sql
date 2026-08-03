@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(13);
 
 select throws_like(
   $$insert into service_addresses(customer_id,line1,city,region,postal_code,normalized_address_hash,is_current)
@@ -85,6 +85,20 @@ select throws_like(
     where id='91000000-0000-4000-8000-000000000001'$$,
   '%Referral attribution is immutable%',
   'referral attribution cannot be rewritten'
+);
+
+select throws_like(
+  $$update service_plans set display_name='Divergent' where id='monthly'$$,
+  '%Service plans are canonical and immutable at runtime%',
+  'canonical service-plan metadata cannot be rewritten'
+);
+
+select throws_like(
+  $$insert into customers(id,full_name,email)
+    values('22000000-0000-4000-8000-000000000099','No Address','no-address@example.test');
+    set constraints customer_requires_current_address immediate$$,
+  '%Customer must have exactly one current service address%',
+  'new customers require a current service address'
 );
 
 select * from finish();
