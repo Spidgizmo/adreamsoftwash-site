@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(7);
+select plan(8);
 
 select throws_like(
   $$insert into service_visits(customer_id,status,cleaning_confirmed,bins_returned)
@@ -23,7 +23,7 @@ select is(
 
 select throws_like(
   $$insert into referral_credits(customer_id,referral_relationship_id,amount_cents,remaining_cents,status,earned_at,expires_at)
-    values('20000000-0000-4000-8000-000000000002','91000000-0000-4000-8000-000000000002',1000,1000,'issued','2026-08-01','2027-08-01')$$,
+    values('20000000-0000-4000-8000-000000000001','91000000-0000-4000-8000-000000000002',1000,1000,'issued','2026-08-01','2027-08-01')$$,
   '%Referral credit requires a qualified relationship%',
   'credit issuance requires a qualified referral'
 );
