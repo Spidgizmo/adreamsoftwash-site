@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(11);
 
 select throws_like(
   $$insert into service_visits(customer_id,status,cleaning_confirmed,bins_returned)
