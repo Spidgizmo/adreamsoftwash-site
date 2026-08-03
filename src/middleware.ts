@@ -79,7 +79,7 @@ export async function middleware(request: NextRequest) {
       new URL(`${target}?denied=1`, request.url),
     );
   } else {
-    response = NextResponse.next({ request });
+    response = NextResponse.next({ request: { headers: request.headers } });
   }
 
   if (rotated) storeRotatedSession(response, rotated);
