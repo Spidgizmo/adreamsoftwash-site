@@ -73,7 +73,10 @@ jobs:
             update auth.users
             set encrypted_password=crypt(:'test_password',gen_salt('bf')),
                 email_confirmed_at=coalesce(email_confirmed_at,now()),
-                confirmation_token=''
+                confirmation_token='',
+                email_change='',
+                email_change_token_new='',
+                recovery_token=''
             where id in (
               '00000000-0000-4000-8000-000000000001',
               '00000000-0000-4000-8000-000000000002',
