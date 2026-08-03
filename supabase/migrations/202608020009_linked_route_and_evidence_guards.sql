@@ -54,7 +54,7 @@ begin
 end
 $$;
 create trigger preserve_completed_visit_photographs
-before update or delete on public.visit_photographs
+before insert or update or delete on public.visit_photographs
 for each row execute function public.freeze_completed_visit_evidence();
 
 create or replace function public.require_one_current_address()
