@@ -4,7 +4,8 @@ select plan(7);
 
 select throws_like(
   $$insert into service_visits(customer_id,status,cleaning_confirmed,bins_returned)
-    values('20000000-0000-4000-8000-000000000004','completed',true,true)$$,
+    values('20000000-0000-4000-8000-000000000004','completed',true,true);
+    set constraints enforce_visit_completion immediate$$,
   '%Completed visits require a paid-service entitlement%',
   'completed visits require an entitlement'
 );
