@@ -51,9 +51,15 @@ begin
     select 1 from public.referral_relationships relationship
     where relationship.id = new.referral_relationship_id
       and relationship.referrer_customer_id = new.customer_id
+  ) then
+    raise exception 'Referral credit customer must match the relationship referrer';
+  end if;
+  if not exists (
+    select 1 from public.referral_relationships relationship
+    where relationship.id = new.referral_relationship_id
       and relationship.status in ('qualified','credit_issued','credit_applied')
   ) then
-    raise exception 'Referral credit requires a qualified relationship owned by the referrer';
+    raise exception 'Referral credit requires a qualified relationship';
   end if;
   return new;
 end
