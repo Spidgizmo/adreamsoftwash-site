@@ -42,7 +42,7 @@ The locked configuration includes:
 
 ## Step 2 — Create the hosted test environment
 
-**Status: NEXT**
+**Status: IN PROGRESS — repository preparation complete; awaiting hosted account configuration**
 
 Create a hosted staging environment using fictional/test data only:
 
@@ -51,6 +51,23 @@ Create a hosted staging environment using fictional/test data only:
 - Separate development, staging, and future production configuration.
 - Database migrations and fictional seed run successfully in hosted Supabase.
 - No real customer information and no live payment credentials.
+
+Completed in the repository:
+
+- hosted staging environment validation that rejects localhost and non-HTTPS configuration;
+- a permanent staging banner stating fictional data only and no real payments;
+- a redacted `/api/bin-cleaning/staging-health` endpoint;
+- a manual hosted Supabase migration/seed/Auth/RLS workflow;
+- a hosted website smoke-test workflow and verification script;
+- exact setup and secret-handling instructions in `docs/ADS-BIN-CLEANING-STAGING-SETUP.md`.
+
+Still required outside the repository:
+
+- create/link a dedicated hosted Supabase staging project;
+- connect a hosted Next.js staging deployment to this GitHub branch;
+- place staging credentials in protected service/GitHub environment settings;
+- run the publish and smoke-test workflows;
+- complete James's phone and computer sign-in acceptance test.
 
 **DONE when:** James can open the staging website from a phone and computer, sign in with fictional test accounts, and confirm the app is using the hosted test database rather than only the disposable local stack.
 
@@ -188,4 +205,4 @@ Only after Step 17: configure production Supabase/backups, Stripe live products/
 
 ## Current next action
 
-Begin **Step 2: Create the hosted test environment**. Do not activate live Stripe or public signup before Steps 2–17 pass.
+Complete the external hosted account configuration for **Step 2**, then run the publish and smoke-test workflows. Do not activate live Stripe or public signup before Steps 2–17 pass.
