@@ -10,6 +10,7 @@
     "lint": "next lint",
     "test": "npm run catalog:check && node --test --experimental-strip-types tests/*.test.mts",
     "test:auth:provision": "node scripts/provision-test-auth.mjs",
+    "test:staging:verify": "node scripts/verify-hosted-staging.mjs",
     "catalog:generate": "node scripts/generate-bin-cleaning-catalog.mjs",
     "catalog:check": "node scripts/generate-bin-cleaning-catalog.mjs --check"
   },
