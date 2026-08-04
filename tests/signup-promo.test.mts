@@ -22,10 +22,10 @@ test("signup page advertises NEW25 and enables the promo-code calculator", async
 test("signup calculator provides an apply control and first-month discount line", async () => {
   const source = await readFile(calculatorPath, "utf8");
   assert.match(source, /id="promo-code"/);
-  assert.match(source, />\s*Apply code\s*</);
+  assert.match(source, />\s*Apply promo\s*</);
   assert.match(source, /First month before tax/);
   assert.match(source, /Later Monthly renewals before tax/);
   assert.match(source, /That promo code is not recognized/);
-  assert.match(source, /cannot be combined with the Share 50%\. Get/);
-  assert.match(source, /Referral discounts cannot be added to this offer/);
+  assert.match(source, /cannot be combined on the same signup/);
+  assert.match(source, /A referral code cannot be added to this signup/);
 });
