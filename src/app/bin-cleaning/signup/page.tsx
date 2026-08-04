@@ -4,6 +4,7 @@ import { BinCleaningCalculator } from "@/components/BinCleaningCalculator";
 import { Container } from "@/components/Container";
 import {
   NEW25_PROMO_CODE,
+  ONE45_PROMO_CODE,
   normalizeBinCleaningPromoCode,
   normalizeBinCleaningReferralCode,
   resolveBinCleaningSelection,
@@ -63,19 +64,40 @@ export default function SignupFoundationPage({
             </p>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-brand-300 bg-white p-5 shadow-sm">
-            <p className="text-sm font-black uppercase tracking-wide text-brand-800">
-              New Monthly subscriber offer
-            </p>
-            <p className="mt-1 text-lg font-black text-zinc-950">
-              Use code {NEW25_PROMO_CODE} for 25% off your first month.
-            </p>
-            <p className="mt-1 text-sm text-zinc-600">
-              Monthly subscriptions only. Later monthly renewals return to the
-              regular selected-plan price before tax. Promotional and referral
-              discounts cannot be combined.
-            </p>
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-brand-300 bg-white p-5 shadow-sm">
+              <p className="text-sm font-black uppercase tracking-wide text-brand-800">
+                New Monthly subscriber offer
+              </p>
+              <p className="mt-1 text-lg font-black text-zinc-950">
+                Use code {NEW25_PROMO_CODE} for 25% off your first month.
+              </p>
+              <p className="mt-1 text-sm text-zinc-600">
+                Monthly subscriptions only. Later renewals return to the regular
+                price before tax.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-red-300 bg-white p-5 shadow-sm">
+              <p className="text-sm font-black uppercase tracking-wide text-red-700">
+                New-customer two-bin special
+              </p>
+              <p className="mt-1 text-lg font-black text-zinc-950">
+                Use code {ONE45_PROMO_CODE} for a $45 One-Time Cleaning of 2
+                bins.
+              </p>
+              <p className="mt-1 text-sm text-zinc-600">
+                Before tax. One successful use per customer. Established
+                customers and future cleanings use the regular price. Valid
+                through September 1, 2026.
+              </p>
+            </div>
           </div>
+
+          <p className="mt-3 text-sm font-semibold text-zinc-700">
+            Promotional and referral discounts cannot be combined. Only one
+            discount may be used per signup.
+          </p>
 
           <h1 className="mt-8 text-4xl font-black tracking-tight">
             ADS Bin Cleaning signup preview
