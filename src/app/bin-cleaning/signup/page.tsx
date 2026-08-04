@@ -5,6 +5,7 @@ import { Container } from "@/components/Container";
 import {
   NEW25_PROMO_CODE,
   normalizeBinCleaningPromoCode,
+  normalizeBinCleaningReferralCode,
   resolveBinCleaningSelection,
 } from "@/lib/bin-cleaning-plans";
 
@@ -23,13 +24,13 @@ const FIELDS = [
   "Recycling information",
   "Designated bin-return location",
   "Access instructions",
-  "Referral code",
 ];
 
 type SignupSearchParams = {
   plan?: string | string[];
   bins?: string | string[];
   promo?: string | string[];
+  ref?: string | string[];
 };
 
 export default function SignupFoundationPage({
@@ -39,6 +40,7 @@ export default function SignupFoundationPage({
 }) {
   const selection = resolveBinCleaningSelection(searchParams);
   const initialPromoCode = normalizeBinCleaningPromoCode(searchParams.promo);
+  const initialReferralCode = normalizeBinCleaningReferralCode(searchParams.ref);
 
   return (
     <main className="bg-brand-50">
@@ -70,7 +72,8 @@ export default function SignupFoundationPage({
             </p>
             <p className="mt-1 text-sm text-zinc-600">
               Monthly subscriptions only. Later monthly renewals return to the
-              regular selected-plan price before tax.
+              regular selected-plan price before tax. Promotional and referral
+              discounts cannot be combined.
             </p>
           </div>
 
@@ -87,7 +90,7 @@ export default function SignupFoundationPage({
             className="mt-10 rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-7"
           >
             <h2 id="plan-heading" className="sr-only">
-              Plan, promotional code, and pricing preview
+              Plan, discount code, and pricing preview
             </h2>
             <BinCleaningCalculator
               showAction={false}
@@ -95,6 +98,8 @@ export default function SignupFoundationPage({
               initialBinCount={selection.binCount}
               enablePromoCode
               initialPromoCode={initialPromoCode}
+              enableReferralCode
+              initialReferralCode={initialReferralCode}
             />
           </section>
 
@@ -125,9 +130,10 @@ export default function SignupFoundationPage({
             </div>
             <div className="mt-6 rounded-xl bg-zinc-100 p-4 text-sm text-zinc-700">
               <strong>Pricing summary:</strong> Choose a plan and bin count
-              above, then enter a promotional code to preview any eligible
-              first-charge discount. Applicable tax will be calculated from the
-              validated service address when online signup becomes available.
+              above, then use either one promotional code or one permanent
+              customer referral code. Applicable tax will be calculated from
+              the validated service address when online signup becomes
+              available.
             </div>
             <button
               disabled
