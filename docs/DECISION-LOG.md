@@ -16,7 +16,6 @@ This log separates approved direction from decisions still requiring owner appro
 ### Catalog and pricing
 
 - James Gibbs approved the updated launch pricing on 2026-08-02; it is represented by the effective catalog version for that pricing decision.
-
 - Active launch plans are Monthly, Quarterly, Twice a Year, and One-Time Cleaning.
 - Monthly is calendar-month recurring: $20 first bin plus $5 each additional bin.
 - Quarterly is three-calendar-month recurring: $35 first bin plus $5 each additional bin.
@@ -59,7 +58,7 @@ This log separates approved direction from decisions still requiring owner appro
 - Every customer account receives one permanent unique referral code at signup. The code remains attached to that customer and is displayed in the portal with a shareable referral link.
 - Signup keeps a separate promotional-code field and referral-code field because promotional codes may also be used for future campaigns or later subscription offers. Applying one type removes/locks the other type for that signup. The customer may remove the selected code and switch before payment, but only one discount can reach checkout.
 - Permanent unique code, one code per new account/address, stacking two earned referral credits to 100%, rollover, 12-month expiry, exclusions, anti-fraud/reversal rules, and portal visibility described in the MVP are approved.
-- Referral-credit stacking within the referral program does not authorize stacking NEW25 with the new-customer referral discount.
+- Referral-credit stacking within the referral program does not authorize stacking a promotional code with the new-customer referral discount.
 
 ## Decisions moved from unresolved to approved by the current directive
 
@@ -75,7 +74,7 @@ This log separates approved direction from decisions still requiring owner appro
 - Core **Share 50%. Get 50%.** structure and eligibility rules; it is no longer unresolved.
 - Future route/field data foundation and plan-change audit requirements (specific change economics remain open).
 - NEW25 as a 25%-off-first-month promotion for new Monthly subscribers only.
-- NEW25 is exclusive and cannot stack with the new-customer referral discount or another discount.
+- Promotional codes are exclusive and cannot stack with the new-customer referral discount or another promotion.
 
 ## Owner decisions required
 
@@ -111,28 +110,34 @@ The correction implements the already approved exactly-one entitlement per paid 
 
 ## NEW25 website-preview implementation record — 2026-08-03
 
-The responsive signup preview now accepts and validates NEW25 against one centralized promotion rule, shows the 25% first-Monthly-charge estimate, rejects non-Monthly use, accepts a normalized marketing-link parameter, and clearly states that NEW25 cannot be combined with the referral offer. The centralized rule marks NEW25 as non-stackable with referral discounts, and the shared combination check blocks a checkout state containing both until one discount is selected. This does not activate live signup or Stripe redemption. Phase 4 must revalidate new-subscriber eligibility, persist an idempotent redemption record, and enforce the approved non-stacking rule at the trusted checkout boundary.
+The responsive signup preview accepts and validates NEW25 against one centralized promotion rule, shows the 25% first-Monthly-charge estimate, rejects non-Monthly use, accepts a normalized marketing-link parameter, and clearly states that NEW25 cannot be combined with the referral offer. This does not activate live signup or Stripe redemption. The trusted checkout phase must revalidate new-subscriber eligibility, persist an idempotent redemption record, and enforce the approved non-stacking rule.
 
 ## Referral-code signup clarification and implementation record — 2026-08-03
 
-James Gibbs confirmed that NEW25 remains promoted on the website, the signup retains distinct promotional and referral code fields, and the fields are mutually exclusive rather than stackable. The preview now clears and locks the opposite field when one valid code type is selected and permits removal before switching. Supabase already contains the referral tables; the added trusted provisioning migration gives each real customer account one permanent code automatically at customer creation, provides an idempotent service-role provisioning function for the signup transaction, and keeps anonymous callers from generating codes. Live signup, Stripe, and real-customer activation remain disabled.
+James Gibbs confirmed that promotional offers remain separate from referral codes, the signup retains distinct promotional and referral fields, and the fields are mutually exclusive rather than stackable. Supabase already contains the referral tables; the trusted provisioning migration gives each real customer account one permanent code automatically at customer creation. Live signup, Stripe, and real-customer activation remain disabled.
 
-## ONE45 card-campaign decision — 2026-08-04
+## Historical ONE45 v1 record — 2026-08-04
 
-James Gibbs approved the private card promotion code **ONE45**. The exact code is the letters `O-N-E` followed by the digits `4-5`; it is not numeric `145`.
+ONE45 was initially approved as a private card-only offer. That visibility decision and configuration version `2026-08-04-launch-rules-v1` are historical and are superseded by the controlling v2 decision below. The code spelling, eligible One-Time/two-bin purchase, $45 pre-tax subtotal, deadline, and non-stacking direction were retained.
 
-- ONE45 is a card-only new-customer acquisition offer and is not displayed as the general website One-Time price.
+## Controlling ONE45 public-promotion revision — 2026-08-04
+
+James Gibbs revised ONE45 and approved it for public website advertising. This section supersedes any earlier statement that ONE45 must remain private or card-only.
+
+- Exact code: **ONE45**, meaning letters `O-N-E` followed by digits `4-5`; not numeric `145`.
+- ONE45 is publicly advertised on the ADS Bin Cleaning website and signup page.
 - It applies only to a One-Time Cleaning purchase with exactly two bins.
 - It changes the normal $60 pre-tax subtotal to $45 before tax, a $15 discount.
-- The customer redeems it by entering ONE45 in the promotional-code field before payment.
-- It is limited to one successful redemption per customer and one per service address.
+- It is for genuinely new ADS Bin Cleaning customers only.
+- It is limited to one successful redemption per customer. The customer cannot use it again six months, one year, or any later time; established customers pay the regular One-Time price.
+- Service-address history remains an anti-abuse check against a customer creating another account to reuse the offer.
 - It is redeemable through September 1, 2026 in the America/New_York business time zone.
 - It cannot stack with NEW25, a referral discount, or any other promotion.
 - Entry is case-insensitive, but the stored/displayed normalized code is ONE45.
-- Trusted checkout must revalidate plan, exact bin count, new-customer and address history, deadline, prior redemption, tax basis, and final cents. Browser preview is not authoritative.
+- Trusted checkout must revalidate plan, exact bin count, new-customer identity/history, address history, deadline, prior redemption, tax basis, and final cents. Browser preview is not authoritative.
 
-The authoritative cross-system rule set is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.md`; code mirrors it in `src/lib/bin-cleaning-launch-config.ts`. This decision does not activate live signup or Stripe.
+The public page and signup preview now advertise ONE45 and calculate the eligible $45 pre-tax preview. Actual historical one-use enforcement and payment acceptance remain scheduled for the trusted pricing/discount and Stripe test-checkout steps.
 
-## Launch-checklist Step 1 completion record — 2026-08-04
+## Launch-checklist Step 1 revised completion record — 2026-08-04
 
-James Gibbs approved the launch-rule set, including ONE45. The permanent catalog remains the only source of normal prices; NEW25 remains publicly advertised; ONE45 remains private/card-only; promo and referral discounts remain mutually exclusive; referral-code provisioning, pickup-plus-one-day cleaning, included bin return, seven-day failed-payment handling, and next-normal-route reactivation remain approved. Step 1 is complete at configuration version `2026-08-04-launch-rules-v1`; hosted staging remains the next step.
+Step 1 remains **DONE** after the owner revision. The controlling configuration is `2026-08-04-launch-rules-v2`: normal One-Time pricing remains $60 for up to two bins; ONE45 is a public limited promotion; it is one successful use per genuinely new customer; established customers are ineligible; address history is checked against duplicate-account abuse; and all promo/referral non-stacking, referral-code provisioning, pickup-plus-one-day cleaning, included bin return, seven-day failed-payment handling, and next-normal-route reactivation rules remain approved. Hosted staging remains the next numbered step.
