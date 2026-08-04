@@ -20,6 +20,8 @@ test("public page advertises ONE45 and deep-links the eligible selection", async
   assert.match(source, /One-Time Cleaning for 2 bins: \$45/);
   assert.match(source, /One\s+successful use per customer/);
   assert.match(source, /Established customers and future/);
+  assert.match(source, /This offer does not\s+expire/);
+  assert.doesNotMatch(source, /September 1, 2026/);
   assert.match(source, /promo=\$\{ONE45_PROMO_CODE\}/);
   assert.match(source, /<BinCleaningCalculator enablePromoCode \/>/);
 });
@@ -29,6 +31,8 @@ test("signup page advertises NEW25 and ONE45 and enables promo entry", async () 
   assert.match(source, /Use code \{NEW25_PROMO_CODE\} for 25% off your first month/);
   assert.match(source, /Use code \{ONE45_PROMO_CODE\} for a \$45 One-Time Cleaning of 2/);
   assert.match(source, /One successful use per customer/);
+  assert.match(source, /does not expire/);
+  assert.doesNotMatch(source, /September 1, 2026/);
   assert.match(source, /enablePromoCode/);
   assert.match(source, /initialPromoCode=\{initialPromoCode\}/);
   assert.match(source, /normalizeBinCleaningPromoCode\(searchParams\.promo\)/);
