@@ -6,7 +6,7 @@ Extend the existing Next.js App Router and Tailwind CSS application as one respo
 
 The public page, self-signup, staff-assisted signup, customer portal, CRM, billing/tax adapters, promotions, entitlements, and future routing are modules over the same database—not separately owned applications or synchronized customer copies. Lavo remains isolated and unchanged.
 
-The authoritative owner-approved launch configuration is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.md`; code mirrors it in `src/lib/bin-cleaning-launch-config.ts`. Normal plan pricing remains sourced only from `src/lib/bin-cleaning-catalog.json` and its generated immutable database snapshot. The controlling launch configuration version is `2026-08-04-launch-rules-v2`.
+The authoritative owner-approved launch configuration is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.md`; code mirrors it in `src/lib/bin-cleaning-launch-config.ts`. Normal plan pricing remains sourced only from `src/lib/bin-cleaning-catalog.json` and its generated immutable database snapshot. The controlling launch configuration version is `2026-08-04-launch-rules-v3`.
 
 ## Logical layers and flows
 
@@ -28,7 +28,7 @@ Pricing is calculated server-side from catalog version plus bin count; clients r
 
 ## Central promotion policy
 
-NEW25 and ONE45 are represented as reviewed promotion rules rather than duplicated in signup copy, Stripe configuration, CRM, invoices, or reporting. The browser may normalize and preview a code, but it cannot establish eligibility, exclusivity, deadlines, prior use, customer/address history, or final cents.
+NEW25 and ONE45 are represented as reviewed promotion rules rather than duplicated in signup copy, Stripe configuration, CRM, invoices, or reporting. The browser may normalize and preview a code, but it cannot establish eligibility, exclusivity, prior use, customer/address history, or final cents.
 
 ### NEW25
 
@@ -40,7 +40,7 @@ Marketing links may carry `promo=NEW25`, but the server always revalidates the v
 
 ### ONE45
 
-ONE45 is a publicly advertised new-customer acquisition code. The exact normalized code is `ONE45`, not numeric `145`. The normal One-Time catalog price remains $60 for up to two bins; ONE45 is a limited promotion and does not alter that catalog record.
+ONE45 is a publicly advertised new-customer acquisition code. The exact normalized code is `ONE45`, not numeric `145`. The normal One-Time catalog price remains $60 for up to two bins; ONE45 is a promotion and does not alter that catalog record.
 
 The trusted promotion policy must require all of the following before applying ONE45:
 
@@ -52,10 +52,9 @@ The trusted promotion policy must require all of the following before applying O
 - customer has no successful prior ONE45 redemption, regardless of how much time has passed;
 - identity/account history does not show the customer as established under another current or historical login/contact record;
 - service-address history does not indicate duplicate-account abuse;
-- redemption occurs through September 1, 2026 in `America/New_York`;
 - no NEW25, referral discount, or other promotion is selected.
 
-Input matching is case-insensitive, while stored/displayed code is ONE45. The public page and signup may preview the eligible amount, but the checkout service persists and authoritatively evaluates customer identity/history, service address, campaign source, plan version, bin count, normal subtotal, discount, final subtotal, deadline, prior redemption, selected/declined conflicts, Stripe references, status, timestamps, and refund/dispute/reversal state.
+ONE45 has no expiration date. The trusted service must not reject it because of the current date or elapsed time. Input matching is case-insensitive, while stored/displayed code is ONE45. The public page and signup may preview the eligible amount, but the checkout service persists and authoritatively evaluates customer identity/history, service address, campaign source, plan version, bin count, normal subtotal, discount, final subtotal, no-expiration policy, prior redemption, selected/declined conflicts, Stripe references, status, timestamps, and refund/dispute/reversal state.
 
 A previous ONE45 customer must receive the normal catalog price for every later One-Time purchase, including six months or a year later. A browser-created amount or eligibility result is never trusted.
 
@@ -74,7 +73,7 @@ A possible match that cannot be safely resolved automatically must enter a staff
 - **Identity/access:** auth user mapping, customer/staff/admin profile, roles/permissions, login status, recovery/audit events, protected customer-history resolution.
 - **Customer/lead:** customer ID, normalized contact history, address validation/history, source, signup status, trash/recycling declarations, return/access instructions, consent and activity.
 - **Catalog/history:** plans, versions, Stripe references, tax class, referral eligibility, plan-change requests and audit.
-- **Promotions:** normalized codes, campaign source/visibility, active/effective/expiry state, eligible plan/version and exact-bin scope, new-customer/customer-history/address-history rules, percentage/fixed/fixed-final-subtotal basis, non-stacking policy, per-customer limits, address anti-abuse rules, Stripe test references, attempts, successful applications, reversals, declined-conflict records, and audit history.
+- **Promotions:** normalized codes, campaign source/visibility, active/effective/optional-expiry state, eligible plan/version and exact-bin scope, new-customer/customer-history/address-history rules, percentage/fixed/fixed-final-subtotal basis, non-stacking policy, per-customer limits, address anti-abuse rules, Stripe test references, attempts, successful applications, reversals, declined-conflict records, and audit history. ONE45 is explicitly configured with no expiration.
 - **Billing/tax:** Stripe customer/subscription/checkout/invoice/payment references; separate payment/subscription states; calculation snapshots containing validated address/status, jurisdictions, rate, pre-discount subtotal, the single applied discount line, taxable subtotal, tax, total, classification, provider ID, timestamp.
 - **Service:** separate service status; pickup source values, holiday dates, calculated cleaning date, verification/review; service history.
 - **Entitlements:** one idempotently created entitlement per successful paid cycle, lifecycle status, source invoice/payment, cycle boundaries, and a uniqueness rule preventing more than one completion.
@@ -137,8 +136,8 @@ Private routes are guarded by Next.js middleware which validates the HTTP-only S
 
 ### Promotion-preview foundation
 
-The public page and signup preview consume centralized NEW25 and ONE45 policies, accept typed or marketing-link input, calculate eligible preview amounts, and expose a shared combination rule that blocks simultaneous promotion/referral application. ONE45 preview requires the One-Time plan and exactly two bins. No Stripe coupon, live redemption, trusted customer-history decision, or one-use persistence is activated by preview work.
+The public page and signup preview consume centralized NEW25 and ONE45 policies, accept typed or marketing-link input, calculate eligible preview amounts, and expose a shared combination rule that blocks simultaneous promotion/referral application. ONE45 preview requires the One-Time plan and exactly two bins and states that the offer does not expire. No Stripe coupon, live redemption, trusted customer-history decision, or one-use persistence is activated by preview work.
 
 ### Step 1 configuration foundation — 2026-08-04
 
-The owner-approved cross-system rules are locked at `2026-08-04-launch-rules-v2`. `src/lib/bin-cleaning-launch-config.ts` exposes public ONE45, one-successful-use-per-customer, established-customer ineligibility, address-history anti-abuse, and the launch operational rules for later trusted signup, CRM, Stripe, portal, reporting, and tests. It does not activate checkout or replace the Step 6 trusted promotion service.
+The owner-approved cross-system rules are locked at `2026-08-04-launch-rules-v3`. `src/lib/bin-cleaning-launch-config.ts` exposes public ONE45, one-successful-use-per-customer, established-customer ineligibility, address-history anti-abuse, no-expiration policy, and the launch operational rules for later trusted signup, CRM, Stripe, portal, reporting, and tests. It does not activate checkout or replace the Step 6 trusted promotion service.
