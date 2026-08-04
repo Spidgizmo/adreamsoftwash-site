@@ -1,4 +1,4 @@
-import { BIN_CLEANING_CATALOG_VERSION } from "./bin-cleaning-plans";
+import { BIN_CLEANING_CATALOG_VERSION } from "./bin-cleaning-plans.ts";
 
 export const ONE45_PROMO_CODE = "ONE45" as const;
 
