@@ -6,6 +6,7 @@ import {
   BIN_CLEANING_STANDARD_SERVICE,
   ESTIMATED_TOTAL_LABEL,
   NEW25_PROMO_CODE,
+  ONE45_PROMO_CODE,
   PUBLIC_BIN_CLEANING_PLANS,
   TAX_ESTIMATE_MESSAGE,
   calculateBinCleaningPrice,
@@ -116,31 +117,47 @@ test("invalid bin values fall back to one bin", () => {
   }
 });
 
-test("NEW25 is the single active new-subscriber promotion", () => {
+test("NEW25 and ONE45 are the active advertised promotions", () => {
   assert.equal(NEW25_PROMO_CODE, "NEW25");
-  assert.deepEqual(BIN_CLEANING_PROMOTIONS, [
-    {
-      code: "NEW25",
-      displayName: "New Monthly subscriber first-month discount",
-      status: "active",
-      eligiblePlanIds: ["monthly"],
-      percentOff: 25,
-      appliesTo: "first-paid-cycle",
-      newSubscriptionOnly: true,
-      stackableWithReferral: false,
-    },
-  ]);
+  assert.equal(ONE45_PROMO_CODE, "ONE45");
+  assert.equal(BIN_CLEANING_PROMOTIONS.length, 2);
+
+  const new25 = BIN_CLEANING_PROMOTIONS.find(
+    (promotion) => promotion.code === NEW25_PROMO_CODE,
+  )!;
+  assert.equal(new25.discountType, "percent");
+  assert.equal(new25.percentOff, 25);
+  assert.deepEqual(new25.eligiblePlanIds, ["monthly"]);
+  assert.equal(new25.maximumSuccessfulRedemptionsPerCustomer, 1);
+  assert.equal(new25.publiclyAdvertised, true);
+  assert.equal(new25.stackableWithReferral, false);
+
+  const one45 = BIN_CLEANING_PROMOTIONS.find(
+    (promotion) => promotion.code === ONE45_PROMO_CODE,
+  )!;
+  assert.equal(one45.discountType, "fixed-final-subtotal");
+  assert.equal(one45.fixedFinalSubtotalCents, 4500);
+  assert.equal(one45.requiredBinCount, 2);
+  assert.deepEqual(one45.eligiblePlanIds, ["one-time"]);
+  assert.equal(one45.maximumSuccessfulRedemptionsPerCustomer, 1);
+  assert.equal(one45.publiclyAdvertised, true);
+  assert.equal(one45.stackableWithReferral, false);
 });
 
 test("promo code input is trimmed and case-insensitive", () => {
   assert.equal(normalizeBinCleaningPromoCode("  new25  "), "NEW25");
-  assert.equal(normalizeBinCleaningPromoCode(["new25", "ignored"]), "NEW25");
+  assert.equal(normalizeBinCleaningPromoCode(["one45", "ignored"]), "ONE45");
 });
 
 test("NEW25 discounts the entire first Monthly charge by 25 percent", () => {
   const plan = BIN_CLEANING_PLANS.find((item) => item.id === "monthly")!;
   const price = calculateBinCleaningPrice(plan, 4)!;
-  const promotion = evaluateBinCleaningPromotion("new25", plan, price.subtotalCents);
+  const promotion = evaluateBinCleaningPromotion(
+    "new25",
+    plan,
+    price.subtotalCents,
+    4,
+  );
 
   assert.equal(price.subtotalCents, 3500);
   assert.equal(promotion.status, "applied");
@@ -148,7 +165,41 @@ test("NEW25 discounts the entire first Monthly charge by 25 percent", () => {
   assert.equal(promotion.firstChargeSubtotalCents, 2625);
 });
 
-test("NEW25 cannot be combined with an eligible referral discount", () => {
+test("ONE45 makes exactly two One-Time bins $45 before tax", () => {
+  const plan = BIN_CLEANING_PLANS.find((item) => item.id === "one-time")!;
+  const price = calculateBinCleaningPrice(plan, 2)!;
+  const promotion = evaluateBinCleaningPromotion(
+    "one45",
+    plan,
+    price.subtotalCents,
+    2,
+  );
+
+  assert.equal(price.subtotalCents, 6000);
+  assert.equal(promotion.status, "applied");
+  assert.equal(promotion.discountCents, 1500);
+  assert.equal(promotion.firstChargeSubtotalCents, 4500);
+});
+
+test("ONE45 rejects the wrong plan or bin count", () => {
+  const oneTime = BIN_CLEANING_PLANS.find((item) => item.id === "one-time")!;
+  const monthly = BIN_CLEANING_PLANS.find((item) => item.id === "monthly")!;
+
+  assert.equal(
+    evaluateBinCleaningPromotion("ONE45", oneTime, 6000, 1).status,
+    "ineligible",
+  );
+  assert.equal(
+    evaluateBinCleaningPromotion("ONE45", oneTime, 7000, 3).status,
+    "ineligible",
+  );
+  assert.equal(
+    evaluateBinCleaningPromotion("ONE45", monthly, 2500, 2).status,
+    "ineligible",
+  );
+});
+
+test("an applied promotion cannot be combined with an eligible referral discount", () => {
   assert.deepEqual(evaluateBinCleaningDiscountCombination("applied", true), {
     status: "conflict",
     canProceed: false,
@@ -175,6 +226,7 @@ test("NEW25 does not discount Quarterly, Twice a Year, or One-Time", () => {
       NEW25_PROMO_CODE,
       plan,
       price.subtotalCents,
+      2,
     );
 
     assert.equal(promotion.status, "ineligible");
@@ -186,14 +238,14 @@ test("NEW25 does not discount Quarterly, Twice a Year, or One-Time", () => {
 test("blank and unknown promo codes do not change the charge", () => {
   const plan = BIN_CLEANING_PLANS.find((item) => item.id === "monthly")!;
 
-  assert.deepEqual(evaluateBinCleaningPromotion("", plan, 2000), {
+  assert.deepEqual(evaluateBinCleaningPromotion("", plan, 2000, 1), {
     normalizedCode: "",
     status: "empty",
     promotion: null,
     discountCents: 0,
     firstChargeSubtotalCents: 2000,
   });
-  assert.deepEqual(evaluateBinCleaningPromotion("NOTREAL", plan, 2000), {
+  assert.deepEqual(evaluateBinCleaningPromotion("NOTREAL", plan, 2000, 1), {
     normalizedCode: "NOTREAL",
     status: "invalid",
     promotion: null,
@@ -202,14 +254,18 @@ test("blank and unknown promo codes do not change the charge", () => {
   });
 });
 
-test("promotion calculations reject invalid cent subtotals", () => {
+test("promotion calculations reject invalid cents and bin counts", () => {
   const plan = BIN_CLEANING_PLANS.find((item) => item.id === "monthly")!;
   assert.throws(
-    () => evaluateBinCleaningPromotion(NEW25_PROMO_CODE, plan, -1),
+    () => evaluateBinCleaningPromotion(NEW25_PROMO_CODE, plan, -1, 1),
     RangeError,
   );
   assert.throws(
-    () => evaluateBinCleaningPromotion(NEW25_PROMO_CODE, plan, 19.5),
+    () => evaluateBinCleaningPromotion(NEW25_PROMO_CODE, plan, 19.5, 1),
+    RangeError,
+  );
+  assert.throws(
+    () => evaluateBinCleaningPromotion(NEW25_PROMO_CODE, plan, 2000, 0),
     RangeError,
   );
 });
