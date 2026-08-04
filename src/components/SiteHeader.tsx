@@ -7,6 +7,7 @@ import { NAV_LINKS, SITE } from "@/lib/site";
 
 const QUICK_QUOTE_URL =
   "https://www.lavocrm.com/quote/c2bbf662-b7dd-4a3e-818d-6736bdab49dc";
+const CUSTOMER_PORTAL_URL = "/bin-cleaning/login";
 
 export function SiteHeader() {
   const isBinCleaning = usePathname().startsWith("/bin-cleaning");
@@ -41,15 +42,21 @@ export function SiteHeader() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <a
-              className="hidden rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-brand-50 lg:inline-flex"
+              className="hidden rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-brand-50 xl:inline-flex"
               href={`tel:${SITE.phoneTel}`}
             >
               Call {SITE.phoneDisplay}
             </a>
 
-            {/* MATCHES your existing blue button style */}
+            <Link
+              href={CUSTOMER_PORTAL_URL}
+              className="hidden rounded-md border border-brand-300 bg-white px-3 py-2 text-center text-sm font-semibold text-brand-800 hover:bg-brand-50 md:inline-flex"
+            >
+              Customer Portal
+            </Link>
+
             <a
               className="quick-quote-shake inline-flex rounded-md bg-brand-700 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-brand-800 sm:px-4"
               href={QUICK_QUOTE_URL}
@@ -68,6 +75,12 @@ export function SiteHeader() {
                 {l.label}
               </Link>
             ))}
+            <Link
+              href={CUSTOMER_PORTAL_URL}
+              className="px-1 font-black text-brand-800 hover:text-brand-600 md:hidden"
+            >
+              Customer Portal
+            </Link>
           </div>
         </div>
       </Container>
