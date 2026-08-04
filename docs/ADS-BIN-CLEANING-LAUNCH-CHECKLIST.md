@@ -66,9 +66,9 @@ Configure protected test credentials for Supabase, Stripe test mode, address val
 
 **Status: WAITING**
 
-Enable the responsive form in this order: service explanation; address/eligibility; trash/recycling schedule; bin count; plan/price; promo or referral; account details; return/access/safety/contact details; terms; Stripe test checkout. Save incomplete and unpaid signups to CRM.
+Enable the responsive form in this order: service explanation; address/eligibility; trash/recycling schedule; bin count; plan/price; promo or referral; account details; return/access/safety/contact details; terms; and a review-and-continue-to-payment handoff. Do not open Stripe yet. Save incomplete, abandoned, and submitted-but-unpaid signups to CRM.
 
-**DONE when:** a fictional customer can submit required information on phone and desktop, clear validation is shown, and an abandoned or pending-payment signup appears in CRM.
+**DONE when:** a fictional customer can enter and submit all required information on phone and desktop, clear validation is shown, the signup reaches a ready-for-trusted-pricing/payment state, and an abandoned or pending-payment signup appears in CRM. No Stripe payment is required in this step.
 
 ## Step 5 — Validate address, service eligibility, and collection schedule
 
@@ -82,11 +82,11 @@ Normalize the exact address, decide service-area eligibility, obtain or collect 
 
 **Status: WAITING**
 
-Move final pricing to the trusted server/database boundary. Validate catalog price, bin charges, tax basis, `NEW25`, `ONE45`, referral eligibility, customer/address history, redemption limits, and strict one-discount selection. Record attempts, selections, declines, rejections, redemptions, reversals, and final cents.
+Move final pricing to the trusted server/database boundary. Validate catalog price, bin charges, tax basis, `NEW25`, `ONE45`, referral eligibility, customer/address history, redemption limits, and strict one-discount selection. Record attempts, selections, declines, rejections, redemptions, reversals, and final cents. This step produces the authoritative amount that Step 8 will send to Stripe.
 
 For ONE45, trusted validation must prove the customer is genuinely new and has never successfully redeemed it. A returning or established customer must receive the normal One-Time price even if the code is entered again. ONE45 must not be rejected for expiration because it has no expiration date.
 
-**DONE when:** browser-submitted prices cannot alter the trusted total and automated tests cover every valid, invalid, reused, established-customer, wrong-plan, wrong-bin-count, duplicate-address, and stacking combination.
+**DONE when:** browser-submitted prices cannot alter the trusted total and automated tests cover every valid, invalid, reused, established-customer, wrong-plan, wrong-bin-count, duplicate-address, and stacking combination. Stripe is not required to complete these pricing-rule tests.
 
 ## Step 7 — Create the account and connected customer records
 
@@ -100,7 +100,7 @@ Idempotently create Auth identity, customer, contact preferences, current addres
 
 **Status: WAITING**
 
-Create Stripe test Checkout from trusted calculations, support anniversary billing and one-time purchases, pass exactly one approved discount and validated tax address, keep card data inside Stripe, and provide safe success/cancel returns.
+This is the first step that actually opens Stripe Checkout. Create Stripe test Checkout from the trusted Step 6 calculation and the connected Step 7 records, support anniversary billing and one-time purchases, pass exactly one approved discount and validated tax address, keep card data inside Stripe, and provide safe success/cancel returns.
 
 **DONE when:** the Stripe test amount exactly matches the trusted application calculation and a fictional customer can pay or cancel without corrupting records.
 
