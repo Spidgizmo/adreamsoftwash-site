@@ -15,7 +15,7 @@ const calculatorPath = new URL(
   import.meta.url,
 );
 
-test("public page advertises ONE45 and deep-links the eligible selection", async () => {
+test("public page advertises nonexpiring ONE45 and deep-links the eligible selection", async () => {
   const source = await readFile(publicPagePath, "utf8");
   assert.match(source, /One-Time Cleaning for 2 bins: \$45/);
   assert.match(source, /One\s+successful use per customer/);
@@ -26,7 +26,7 @@ test("public page advertises ONE45 and deep-links the eligible selection", async
   assert.match(source, /<BinCleaningCalculator enablePromoCode \/>/);
 });
 
-test("signup page advertises NEW25 and ONE45 and enables promo entry", async () => {
+test("signup page advertises NEW25 and nonexpiring ONE45", async () => {
   const source = await readFile(signupPagePath, "utf8");
   assert.match(source, /Use code \{NEW25_PROMO_CODE\} for 25% off your first month/);
   assert.match(source, /Use code \{ONE45_PROMO_CODE\} for a \$45 One-Time Cleaning of 2/);
