@@ -7,6 +7,7 @@ import {
   MAX_BIN_COUNT,
   MIN_BIN_COUNT,
   NEW25_PROMO_CODE,
+  ONE45_PROMO_CODE,
   PUBLIC_BIN_CLEANING_PLANS,
   TAX_ESTIMATE_MESSAGE,
   calculateBinCleaningPrice,
@@ -71,6 +72,7 @@ export function BinCleaningCalculator({
         submittedPromoCode,
         plan,
         price.subtotalCents,
+        binCount,
       )
     : null;
   const referralLooksValid =
@@ -82,6 +84,10 @@ export function BinCleaningCalculator({
   const referralEligibleForPlan =
     hasSubmittedReferral && plan.referralEligible;
   const hasAppliedPromotion = promotion?.status === "applied";
+  const isNew25Applied =
+    hasAppliedPromotion && promotion.normalizedCode === NEW25_PROMO_CODE;
+  const isOne45Applied =
+    hasAppliedPromotion && promotion.normalizedCode === ONE45_PROMO_CODE;
 
   const applyPromo = () => {
     const normalized = normalizeBinCleaningPromoCode(promoEntry);
@@ -114,6 +120,12 @@ export function BinCleaningCalculator({
     setReferralEntry("");
     setSubmittedReferralCode("");
   };
+
+  const discountQuery = hasAppliedPromotion
+    ? `&promo=${encodeURIComponent(promotion.normalizedCode)}`
+    : referralEligibleForPlan
+      ? `&ref=${encodeURIComponent(submittedReferralCode)}`
+      : "";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
@@ -199,11 +211,13 @@ export function BinCleaningCalculator({
         {(enablePromoCode || enableReferralCode) && (
           <div className="mt-7 space-y-4 rounded-2xl border border-brand-200 bg-brand-50 p-4">
             <div>
-              <p className="text-sm font-black">Choose one discount</p>
+              <p className="text-sm font-black">
+                {enableReferralCode ? "Choose one discount" : "Promotional code"}
+              </p>
               <p className="mt-1 text-xs leading-relaxed text-zinc-600">
-                Use either one promotional code or one referral code. They
-                cannot be combined on the same signup. Remove the selected code
-                before switching to the other type.
+                {enableReferralCode
+                  ? "Use either one promotional code or one referral code. They cannot be combined on the same signup. Remove the selected code before switching to the other type."
+                  : "Enter an advertised promotional code to preview the eligible price. Final customer eligibility is verified securely during checkout."}
               </p>
             </div>
 
@@ -231,7 +245,7 @@ export function BinCleaningCalculator({
                     maxLength={32}
                     autoCapitalize="characters"
                     autoComplete="off"
-                    placeholder={NEW25_PROMO_CODE}
+                    placeholder={`${NEW25_PROMO_CODE} or ${ONE45_PROMO_CODE}`}
                     onChange={(event) => setPromoEntry(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
@@ -251,9 +265,11 @@ export function BinCleaningCalculator({
                   </button>
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-zinc-600">
-                  New Monthly subscribers can use {NEW25_PROMO_CODE} for 25%
-                  off the first month. Final account eligibility is verified
-                  during checkout.
+                  {NEW25_PROMO_CODE} gives new Monthly subscribers 25% off the
+                  first month. {ONE45_PROMO_CODE} gives a new customer a
+                  one-time two-bin cleaning for $45 before tax. ONE45 may be
+                  redeemed only once per customer. Final account and address
+                  eligibility are verified during checkout.
                 </p>
                 {promotion?.status === "applied" && (
                   <div
@@ -261,9 +277,18 @@ export function BinCleaningCalculator({
                     className="mt-3 rounded-lg bg-emerald-100 p-3 text-sm font-bold text-emerald-900"
                   >
                     <p>
-                      {NEW25_PROMO_CODE} applied: 25% off your first Monthly
-                      charge. A referral code cannot be added to this signup.
+                      {isNew25Applied
+                        ? `${NEW25_PROMO_CODE} applied: 25% off your first Monthly charge.`
+                        : `${ONE45_PROMO_CODE} applied: one One-Time Cleaning for exactly two bins is $45 before tax.`}{" "}
+                      A referral code or another promotion cannot be added to
+                      this signup.
                     </p>
+                    {isOne45Applied && (
+                      <p className="mt-1 text-xs font-semibold">
+                        New customers only. One successful ONE45 redemption per
+                        customer. Established customers pay the regular price.
+                      </p>
+                    )}
                     <button
                       type="button"
                       onClick={removePromo}
@@ -278,8 +303,9 @@ export function BinCleaningCalculator({
                     role="alert"
                     className="mt-3 rounded-lg bg-amber-100 p-3 text-sm font-bold text-amber-950"
                   >
-                    {NEW25_PROMO_CODE} is available only with a new Monthly
-                    subscription.
+                    {promotion.normalizedCode === ONE45_PROMO_CODE
+                      ? `${ONE45_PROMO_CODE} is available only for a new customer's One-Time Cleaning with exactly two bins.`
+                      : `${NEW25_PROMO_CODE} is available only with a new Monthly subscription.`}
                   </p>
                 )}
                 {promotion?.status === "invalid" && (
@@ -412,7 +438,11 @@ export function BinCleaningCalculator({
             </div>
             {promotion?.status === "applied" && (
               <div className="flex justify-between gap-4 font-bold text-emerald-300">
-                <dt>{NEW25_PROMO_CODE} · first month 25% off</dt>
+                <dt>
+                  {isNew25Applied
+                    ? `${NEW25_PROMO_CODE} · first month 25% off`
+                    : `${ONE45_PROMO_CODE} · new-customer two-bin special`}
+                </dt>
                 <dd>−{formatCurrency(promotion.discountCents)}</dd>
               </div>
             )}
@@ -430,22 +460,30 @@ export function BinCleaningCalculator({
             </div>
             <div className="flex justify-between gap-4 border-t border-zinc-700 pt-4 text-lg font-bold">
               <dt>
-                {promotion?.status === "applied"
+                {isNew25Applied
                   ? "First month before tax"
-                  : ESTIMATED_TOTAL_LABEL}
+                  : isOne45Applied
+                    ? "Promotional total before tax"
+                    : ESTIMATED_TOTAL_LABEL}
               </dt>
               <dd>
                 {formatCurrency(
-                  promotion?.status === "applied"
+                  hasAppliedPromotion
                     ? promotion.firstChargeSubtotalCents
                     : price.subtotalCents,
                 )}
               </dd>
             </div>
-            {promotion?.status === "applied" && (
+            {isNew25Applied && (
               <div className="flex justify-between gap-4 border-t border-zinc-700 pt-3 text-xs text-zinc-300">
                 <dt>Later Monthly renewals before tax</dt>
                 <dd>{formatCurrency(price.subtotalCents)}</dd>
+              </div>
+            )}
+            {isOne45Applied && (
+              <div className="border-t border-zinc-700 pt-3 text-xs leading-relaxed text-zinc-300">
+                ONE45 is a one-time new-customer offer. Future One-Time
+                cleanings use the regular catalog price.
               </div>
             )}
             {referralEligibleForPlan && (
@@ -464,7 +502,7 @@ export function BinCleaningCalculator({
         {showAction &&
           (price ? (
             <Link
-              href={`/bin-cleaning/signup?plan=${plan.id}&bins=${binCount}`}
+              href={`/bin-cleaning/signup?plan=${plan.id}&bins=${binCount}${discountQuery}`}
               className="mt-5 inline-flex w-full justify-center rounded-lg bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-500"
             >
               Preview signup
