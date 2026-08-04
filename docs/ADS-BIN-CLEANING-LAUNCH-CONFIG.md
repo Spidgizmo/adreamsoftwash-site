@@ -2,7 +2,7 @@
 
 **Owner:** James Gibbs  
 **Effective date:** 2026-08-04  
-**Configuration version:** `2026-08-04-launch-rules-v2`  
+**Configuration version:** `2026-08-04-launch-rules-v3`  
 **System:** ADS Bin Cleaning at `www.acleanbin.com`
 
 This is the single owner-approved launch-rule reference for the website, signup, CRM, Stripe configuration, portal, reporting, scheduling, and tests. Code mirrors these rules in `src/lib/bin-cleaning-launch-config.ts`. Service-plan prices remain sourced only from the versioned central plan catalog.
@@ -41,7 +41,7 @@ The exact promo code is **`ONE45`**: the letters `O-N-E`, followed by the digits
 
 - Campaign: publicly advertised two-bin One-Time new-customer special.
 - Redemption method: customer enters `ONE45` in the promotional-code field during signup or before payment.
-- General website price chart: normal One-Time pricing remains $60 for up to two bins; ONE45 is presented as a limited new-customer promotion rather than a replacement price.
+- General website price chart: normal One-Time pricing remains $60 for up to two bins; ONE45 is presented as a new-customer promotion rather than a replacement price.
 - Eligible purchase: One-Time Cleaning with exactly two bins.
 - Promotional subtotal: $45 before tax.
 - Normal subtotal: $60 before tax.
@@ -49,10 +49,10 @@ The exact promo code is **`ONE45`**: the letters `O-N-E`, followed by the digits
 - Customer eligibility: genuinely new ADS Bin Cleaning customer only.
 - Established customers are not eligible, including six months or a year later.
 - Usage limit: one successful redemption per customer. A service-address history check remains an anti-abuse safeguard against duplicate accounts.
-- Redemption deadline: through September 1, 2026, using the `America/New_York` business time zone.
+- Expiration: **none**. ONE45 has no expiration date.
 - Stacking: cannot combine with `NEW25`, a referral discount, or any other promotion.
 - Matching: customer entry is case-insensitive; the stored and displayed normalized value is `ONE45`.
-- Validation: the browser may preview the code, but final plan, bin count, customer/address history, deadline, usage, tax basis, and cents must be revalidated by the trusted checkout service.
+- Validation: the browser may preview the code, but final plan, bin count, customer/address history, prior use, tax basis, and cents must be revalidated by the trusted checkout service.
 - Future One-Time purchases by that customer use the regular catalog price.
 
 ## 5. Referral program
