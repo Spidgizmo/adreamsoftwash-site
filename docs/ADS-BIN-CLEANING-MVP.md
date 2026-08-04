@@ -149,3 +149,20 @@ Support future transitions among launch and later-active plans. Audit previous/n
 ## 9. Release gate
 
 The public page may be built visually first, but live signup remains disabled until accounts, portal, Stripe test billing, and minimum CRM connectivity work together. Deployment, live Stripe/tax, and release require separate approval.
+
+## 10. ONE45 private card promotion — approved 2026-08-04
+
+The authoritative launch configuration is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.md`, mirrored by `src/lib/bin-cleaning-launch-config.ts`.
+
+- Exact promo code: `ONE45` — letters `O-N-E`, digits `4-5`; not numeric `145`.
+- Purpose: private card-only new-customer acquisition offer.
+- Public pricing: do not show it as the normal website One-Time price; the central catalog remains $60 for up to two bins.
+- Eligible purchase: One-Time Cleaning with exactly two bins.
+- Promotional pre-tax subtotal: $45; normal pre-tax subtotal: $60; discount: $15.
+- Redemption: customer enters ONE45 in the promotional-code field before payment.
+- Usage: one successful redemption per customer and one per service address.
+- Deadline: redeem through September 1, 2026 in the America/New_York business time zone.
+- Non-stacking: no NEW25, referral discount, or other promotion may be combined.
+- Matching: input is case-insensitive; stored/displayed normalized code is ONE45.
+- Trusted validation must check plan, exact bin count, new-customer and address history, deadline, prior redemption, tax basis, and final cents. Browser preview is not authoritative.
+- Refund, dispute, chargeback, duplicate-account/address, or fraud handling must preserve an auditable promotion state and may reverse/block the benefit according to the trusted promotion lifecycle.
