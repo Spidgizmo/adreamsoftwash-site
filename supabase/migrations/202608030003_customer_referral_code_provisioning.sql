@@ -10,7 +10,7 @@ set search_path=public
 as $$
 declare
   alphabet constant text := '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-  random_bytes bytea := gen_random_bytes(8);
+  random_bytes bytea := extensions.gen_random_bytes(8);
   token text := '';
   position integer;
 begin
