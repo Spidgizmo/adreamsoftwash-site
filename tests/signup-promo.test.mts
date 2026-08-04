@@ -18,7 +18,7 @@ const calculatorPath = new URL(
 test("public page advertises ONE45 and deep-links the eligible selection", async () => {
   const source = await readFile(publicPagePath, "utf8");
   assert.match(source, /One-Time Cleaning for 2 bins: \$45/);
-  assert.match(source, /One successful use per customer/);
+  assert.match(source, /One\s+successful use per customer/);
   assert.match(source, /Established customers and future/);
   assert.match(source, /promo=\$\{ONE45_PROMO_CODE\}/);
   assert.match(source, /<BinCleaningCalculator enablePromoCode \/>/);
