@@ -116,3 +116,23 @@ The responsive signup preview now accepts and validates NEW25 against one centra
 ## Referral-code signup clarification and implementation record — 2026-08-03
 
 James Gibbs confirmed that NEW25 remains promoted on the website, the signup retains distinct promotional and referral code fields, and the fields are mutually exclusive rather than stackable. The preview now clears and locks the opposite field when one valid code type is selected and permits removal before switching. Supabase already contains the referral tables; the added trusted provisioning migration gives each real customer account one permanent code automatically at customer creation, provides an idempotent service-role provisioning function for the signup transaction, and keeps anonymous callers from generating codes. Live signup, Stripe, and real-customer activation remain disabled.
+
+## ONE45 card-campaign decision — 2026-08-04
+
+James Gibbs approved the private card promotion code **ONE45**. The exact code is the letters `O-N-E` followed by the digits `4-5`; it is not numeric `145`.
+
+- ONE45 is a card-only new-customer acquisition offer and is not displayed as the general website One-Time price.
+- It applies only to a One-Time Cleaning purchase with exactly two bins.
+- It changes the normal $60 pre-tax subtotal to $45 before tax, a $15 discount.
+- The customer redeems it by entering ONE45 in the promotional-code field before payment.
+- It is limited to one successful redemption per customer and one per service address.
+- It is redeemable through September 1, 2026 in the America/New_York business time zone.
+- It cannot stack with NEW25, a referral discount, or any other promotion.
+- Entry is case-insensitive, but the stored/displayed normalized code is ONE45.
+- Trusted checkout must revalidate plan, exact bin count, new-customer and address history, deadline, prior redemption, tax basis, and final cents. Browser preview is not authoritative.
+
+The authoritative cross-system rule set is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.md`; code mirrors it in `src/lib/bin-cleaning-launch-config.ts`. This decision does not activate live signup or Stripe.
+
+## Launch-checklist Step 1 completion record — 2026-08-04
+
+James Gibbs approved the launch-rule set, including ONE45. The permanent catalog remains the only source of normal prices; NEW25 remains publicly advertised; ONE45 remains private/card-only; promo and referral discounts remain mutually exclusive; referral-code provisioning, pickup-plus-one-day cleaning, included bin return, seven-day failed-payment handling, and next-normal-route reactivation remain approved. Step 1 is complete at configuration version `2026-08-04-launch-rules-v1`; hosted staging remains the next step.
