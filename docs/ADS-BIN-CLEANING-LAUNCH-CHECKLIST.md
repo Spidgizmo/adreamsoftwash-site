@@ -16,20 +16,21 @@ Purpose: one permanent, numbered path from the current test foundation to a cont
 
 ## Current starting point
 
-The responsive public-page preview, signup preview, Supabase data model, authentication and role security, permanent referral-code provisioning, test portal, test CRM, and test field foundation exist. The missing center is the hosted test-mode chain from submitted signup information through payment, portal activation, CRM visibility, scheduling, and service completion.
+The responsive public page, signup preview, Supabase data model, authentication and role security, permanent referral-code provisioning, test portal, test CRM, and test field foundation exist. The missing center is the hosted test-mode chain from submitted signup information through payment, portal activation, CRM visibility, scheduling, and service completion.
 
 ---
 
 ## Step 1 — Lock the launch rules and campaign handling
 
-**Status: DONE — completed 2026-08-04**
+**Status: DONE — revised and revalidated 2026-08-04**
 
 The locked configuration includes:
 
 - Monthly, Quarterly, Twice a Year, and One-Time permanent catalog prices.
 - `NEW25`: publicly advertised, new Monthly subscribers only, 25% off the first Monthly charge.
-- `ONE45`: private card code; exact spelling is `O-N-E-4-5`; One-Time Cleaning with exactly two bins for $45 before tax instead of the normal $60.
-- `ONE45` is new-customer only, one successful use per customer and service address, redeemable through September 1, 2026 in `America/New_York`, and not displayed as the general website price.
+- `ONE45`: publicly advertised new-customer code; exact spelling is `O-N-E-4-5`; One-Time Cleaning with exactly two bins for $45 before tax instead of the normal $60.
+- `ONE45` is limited to one successful use per customer. Established customers are ineligible later, including six months or a year after their first purchase. Service-address history remains an anti-abuse check.
+- `ONE45` is redeemable through September 1, 2026 in `America/New_York`.
 - Referral offer: eligible Monthly residential signup only.
 - Only one discount source per checkout; promo/promo and promo/referral stacking are prohibited.
 - Every customer receives one permanent unique referral code.
@@ -37,7 +38,7 @@ The locked configuration includes:
 - Cleaned bins are returned to the designated storage location.
 - Failed recurring payment uses a seven-calendar-day grace period; portal remains accessible; recovery returns the customer to the next normal eligible route day without a special trip.
 
-**Acceptance result:** passed. The decision log, authoritative launch configuration, and code configuration agree at version `2026-08-04-launch-rules-v1`.
+**Acceptance result:** passed. The authoritative launch configuration and code agree at version `2026-08-04-launch-rules-v2`. ONE45 is visible on the website and signup preview but cannot collect payment until the later trusted checkout steps are complete.
 
 ## Step 2 — Create the hosted test environment
 
@@ -83,7 +84,9 @@ Normalize the exact address, decide service-area eligibility, obtain or collect 
 
 Move final pricing to the trusted server/database boundary. Validate catalog price, bin charges, tax basis, `NEW25`, `ONE45`, referral eligibility, customer/address history, deadlines, redemption limits, and strict one-discount selection. Record attempts, selections, declines, rejections, redemptions, reversals, and final cents.
 
-**DONE when:** browser-submitted prices cannot alter the trusted total and automated tests cover every valid, invalid, expired, reused, wrong-plan, wrong-bin-count, and stacking combination.
+For ONE45, trusted validation must prove the customer is genuinely new and has never successfully redeemed it. A returning or established customer must receive the normal One-Time price even if the code is entered again.
+
+**DONE when:** browser-submitted prices cannot alter the trusted total and automated tests cover every valid, invalid, expired, reused, established-customer, wrong-plan, wrong-bin-count, duplicate-address, and stacking combination.
 
 ## Step 7 — Create the account and connected customer records
 
@@ -161,15 +164,15 @@ Send approved test email/SMS for pending payment, confirmation, preparation, del
 
 **Status: WAITING**
 
-Replace placeholders with approved ADS photos; finalize copy, prices, inclusions, FAQs, preparation/prohibited-material rules, terms/privacy/recurring authorization/cancellation/promotion/referral consent; keep `ONE45` out of the public price chart while accepting it privately; track QR/deep-link campaigns; preserve Lavo separation.
+Replace placeholders with approved ADS photos; finalize copy, prices, inclusions, FAQs, preparation/prohibited-material rules, terms/privacy/recurring authorization/cancellation/promotion/referral consent; keep the normal One-Time catalog price visible while presenting ONE45 clearly as a limited new-customer promotion; track QR/deep-link campaigns; preserve Lavo separation.
 
-**DONE when:** every public statement matches approved rules and customers can understand service, price, obligations, and signup before paying.
+**DONE when:** every public statement matches approved rules and customers can understand service, regular price, promotion eligibility, one-use limit, obligations, and signup before paying.
 
 ## Step 17 — Run complete end-to-end acceptance testing
 
 **Status: WAITING**
 
-Test all devices and major flows: Monthly without code; `NEW25`; valid/invalid referral; attempted stacking; `ONE45`; Quarterly; Twice a Year; normal One-Time; abandoned/failed checkout; successful payment and webhook replay; portal/CRM/routes/field/photos/notifications; failed recurring payment through recovery; roles, isolation, accessibility, privacy, audit, backups, and recovery.
+Test all devices and major flows: Monthly without code; `NEW25`; valid/invalid referral; attempted stacking; `ONE45` for a new customer; attempted second ONE45 use by the same customer; established-customer ONE45 rejection; duplicate-account/address abuse; Quarterly; Twice a Year; normal One-Time; abandoned/failed checkout; successful payment and webhook replay; portal/CRM/routes/field/photos/notifications; failed recurring payment through recovery; roles, isolation, accessibility, privacy, audit, backups, and recovery.
 
 **DONE when:** all launch blockers pass, serious defects are corrected, and James completes an owner acceptance walkthrough with fictional data.
 
