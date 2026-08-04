@@ -30,7 +30,7 @@ The locked configuration includes:
 - `NEW25`: publicly advertised, new Monthly subscribers only, 25% off the first Monthly charge.
 - `ONE45`: publicly advertised new-customer code; exact spelling is `O-N-E-4-5`; One-Time Cleaning with exactly two bins for $45 before tax instead of the normal $60.
 - `ONE45` is limited to one successful use per customer. Established customers are ineligible later, including six months or a year after their first purchase. Service-address history remains an anti-abuse check.
-- `ONE45` is redeemable through September 1, 2026 in `America/New_York`.
+- `ONE45` has no expiration date.
 - Referral offer: eligible Monthly residential signup only.
 - Only one discount source per checkout; promo/promo and promo/referral stacking are prohibited.
 - Every customer receives one permanent unique referral code.
@@ -38,7 +38,7 @@ The locked configuration includes:
 - Cleaned bins are returned to the designated storage location.
 - Failed recurring payment uses a seven-calendar-day grace period; portal remains accessible; recovery returns the customer to the next normal eligible route day without a special trip.
 
-**Acceptance result:** passed. The authoritative launch configuration and code agree at version `2026-08-04-launch-rules-v2`. ONE45 is visible on the website and signup preview but cannot collect payment until the later trusted checkout steps are complete.
+**Acceptance result:** passed. The authoritative launch configuration and code agree at version `2026-08-04-launch-rules-v3`. ONE45 is visible on the website and signup preview but cannot collect payment until the later trusted checkout steps are complete.
 
 ## Step 2 — Create the hosted test environment
 
@@ -82,11 +82,11 @@ Normalize the exact address, decide service-area eligibility, obtain or collect 
 
 **Status: WAITING**
 
-Move final pricing to the trusted server/database boundary. Validate catalog price, bin charges, tax basis, `NEW25`, `ONE45`, referral eligibility, customer/address history, deadlines, redemption limits, and strict one-discount selection. Record attempts, selections, declines, rejections, redemptions, reversals, and final cents.
+Move final pricing to the trusted server/database boundary. Validate catalog price, bin charges, tax basis, `NEW25`, `ONE45`, referral eligibility, customer/address history, redemption limits, and strict one-discount selection. Record attempts, selections, declines, rejections, redemptions, reversals, and final cents.
 
-For ONE45, trusted validation must prove the customer is genuinely new and has never successfully redeemed it. A returning or established customer must receive the normal One-Time price even if the code is entered again.
+For ONE45, trusted validation must prove the customer is genuinely new and has never successfully redeemed it. A returning or established customer must receive the normal One-Time price even if the code is entered again. ONE45 must not be rejected for expiration because it has no expiration date.
 
-**DONE when:** browser-submitted prices cannot alter the trusted total and automated tests cover every valid, invalid, expired, reused, established-customer, wrong-plan, wrong-bin-count, duplicate-address, and stacking combination.
+**DONE when:** browser-submitted prices cannot alter the trusted total and automated tests cover every valid, invalid, reused, established-customer, wrong-plan, wrong-bin-count, duplicate-address, and stacking combination.
 
 ## Step 7 — Create the account and connected customer records
 
@@ -164,9 +164,9 @@ Send approved test email/SMS for pending payment, confirmation, preparation, del
 
 **Status: WAITING**
 
-Replace placeholders with approved ADS photos; finalize copy, prices, inclusions, FAQs, preparation/prohibited-material rules, terms/privacy/recurring authorization/cancellation/promotion/referral consent; keep the normal One-Time catalog price visible while presenting ONE45 clearly as a limited new-customer promotion; track QR/deep-link campaigns; preserve Lavo separation.
+Replace placeholders with approved ADS photos; finalize copy, prices, inclusions, FAQs, preparation/prohibited-material rules, terms/privacy/recurring authorization/cancellation/promotion/referral consent; keep the normal One-Time catalog price visible while presenting ONE45 clearly as a new-customer promotion with no expiration; track QR/deep-link campaigns; preserve Lavo separation.
 
-**DONE when:** every public statement matches approved rules and customers can understand service, regular price, promotion eligibility, one-use limit, obligations, and signup before paying.
+**DONE when:** every public statement matches approved rules and customers can understand service, regular price, promotion eligibility, one-use limit, no-expiration rule, obligations, and signup before paying.
 
 ## Step 17 — Run complete end-to-end acceptance testing
 
