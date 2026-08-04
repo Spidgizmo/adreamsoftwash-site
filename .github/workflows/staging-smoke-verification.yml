@@ -1,0 +1,29 @@
+name: Verify ADS Bin Cleaning hosted staging
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-hosted-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ads-bin-cleaning-staging
+    env:
+      STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      ADS_STAGING_TEST_PASSWORD: ${{ secrets.ADS_STAGING_TEST_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run test:staging:verify
