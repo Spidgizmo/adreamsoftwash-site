@@ -73,11 +73,11 @@ ONE45 is publicly advertised on the website and signup page. The exact code is l
 - Eligible customer: genuinely new ADS Bin Cleaning customer only.
 - Usage: one successful redemption per customer. An established customer cannot return six months, one year, or later and receive the offer again.
 - Service-address history is checked against duplicate-account abuse.
-- Deadline: through September 1, 2026 in `America/New_York`.
+- Expiration: none. ONE45 has no expiration date.
 - Non-stacking: cannot combine with NEW25, a referral discount, or another promotion.
 - Matching: case-insensitive entry; normalized stored/displayed code is ONE45.
 
-The normal One-Time catalog price remains $60 for up to two bins. ONE45 is shown as a limited promotion and does not replace that catalog price. The browser may display an eligible preview, but the trusted checkout service must verify identity/customer history, service-address history, prior redemption, selected plan, exact bin count, deadline, tax basis, and final cents. Future One-Time purchases by that customer use the regular price.
+The normal One-Time catalog price remains $60 for up to two bins. ONE45 is shown as a new-customer promotion and does not replace that catalog price. The browser may display an eligible preview, but the trusted checkout service must verify identity/customer history, service-address history, prior redemption, selected plan, exact bin count, tax basis, and final cents. Future One-Time purchases by that customer use the regular price.
 
 ### Staff-assisted signup and leads
 
@@ -182,7 +182,8 @@ Trusted promotion implementation must:
 - record every attempt, rejection, selection, successful redemption, refund, dispute, reversal, and staff action;
 - enforce one successful ONE45 redemption per customer for all future time;
 - reject established customers even if they use a different email, phone number, or return months later;
-- enforce ONE45's plan, exact-bin-count, deadline, normal subtotal, discount, tax basis, and non-stacking rules;
+- enforce ONE45's plan, exact-bin-count, no-expiration rule, normal subtotal, discount, tax basis, and non-stacking rules;
+- never reject ONE45 because of time or date;
 - keep later One-Time purchases at the regular catalog price;
 - use idempotency so checkout/webhook retries cannot create duplicate benefits.
 
