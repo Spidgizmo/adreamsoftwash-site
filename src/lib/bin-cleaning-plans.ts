@@ -1,4 +1,8 @@
 import catalog from "./bin-cleaning-catalog.json" with { type: "json" };
+import {
+  BIN_CLEANING_LAUNCH_CONFIG,
+  ONE45_PROMO_CODE,
+} from "./bin-cleaning-launch-config.ts";
 
 export type PlanId =
   | "monthly"
@@ -52,6 +56,7 @@ export const BIN_CLEANING_STANDARD_SERVICE = [
 ] as const;
 
 export const NEW25_PROMO_CODE = "NEW25" as const;
+export { ONE45_PROMO_CODE };
 
 export const BIN_CLEANING_PROMOTIONS = [
   {
@@ -59,9 +64,31 @@ export const BIN_CLEANING_PROMOTIONS = [
     displayName: "New Monthly subscriber first-month discount",
     status: "active",
     eligiblePlanIds: ["monthly"],
+    discountType: "percent",
     percentOff: 25,
+    fixedFinalSubtotalCents: null,
+    requiredBinCount: null,
     appliesTo: "first-paid-cycle",
-    newSubscriptionOnly: true,
+    newCustomerOnly: true,
+    publiclyAdvertised: true,
+    maximumSuccessfulRedemptionsPerCustomer: 1,
+    stackableWithReferral: false,
+  },
+  {
+    code: ONE45_PROMO_CODE,
+    displayName: "Two-bin one-time new-customer special",
+    status: "active",
+    eligiblePlanIds: ["one-time"],
+    discountType: "fixed-final-subtotal",
+    percentOff: null,
+    fixedFinalSubtotalCents:
+      BIN_CLEANING_LAUNCH_CONFIG.discounts.one45.fixedPreTaxSubtotalCents,
+    requiredBinCount:
+      BIN_CLEANING_LAUNCH_CONFIG.discounts.one45.requiredBinCount,
+    appliesTo: "one-time-order",
+    newCustomerOnly: true,
+    publiclyAdvertised: true,
+    maximumSuccessfulRedemptionsPerCustomer: 1,
     stackableWithReferral: false,
   },
 ] as const;
@@ -176,9 +203,13 @@ export function evaluateBinCleaningPromotion(
   rawCode: string | string[] | undefined,
   plan: ServicePlan,
   subtotalCents: number,
+  binCount?: number,
 ): BinCleaningPromotionEvaluation {
   if (!Number.isInteger(subtotalCents) || subtotalCents < 0) {
     throw new RangeError("Subtotal must be a nonnegative integer number of cents.");
+  }
+  if (binCount !== undefined && (!Number.isInteger(binCount) || binCount < 1)) {
+    throw new RangeError("Bin count must be a positive integer when supplied.");
   }
 
   const normalizedCode = normalizeBinCleaningPromoCode(rawCode);
@@ -215,9 +246,24 @@ export function evaluateBinCleaningPromotion(
     };
   }
 
-  const discountCents = Math.round(
-    (subtotalCents * promotion.percentOff) / 100,
-  );
+  if (
+    promotion.requiredBinCount !== null &&
+    binCount !== promotion.requiredBinCount
+  ) {
+    return {
+      normalizedCode,
+      status: "ineligible",
+      promotion,
+      discountCents: 0,
+      firstChargeSubtotalCents: subtotalCents,
+    };
+  }
+
+  const discountCents =
+    promotion.discountType === "percent"
+      ? Math.round((subtotalCents * promotion.percentOff) / 100)
+      : Math.max(0, subtotalCents - promotion.fixedFinalSubtotalCents);
+
   return {
     normalizedCode,
     status: "applied",
