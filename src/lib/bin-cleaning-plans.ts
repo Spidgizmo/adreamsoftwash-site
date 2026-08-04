@@ -119,11 +119,25 @@ export function resolveBinCleaningSelection(
   };
 }
 
+function normalizeCode(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return (candidate ?? "").trim().toUpperCase().slice(0, 32);
+}
+
 export function normalizeBinCleaningPromoCode(
   value: string | string[] | undefined,
 ) {
-  const candidate = Array.isArray(value) ? value[0] : value;
-  return (candidate ?? "").trim().toUpperCase().slice(0, 32);
+  return normalizeCode(value);
+}
+
+export function normalizeBinCleaningReferralCode(
+  value: string | string[] | undefined,
+) {
+  return normalizeCode(value);
+}
+
+export function isPlausibleBinCleaningReferralCode(value: string) {
+  return /^[A-Z0-9-]{4,32}$/.test(value);
 }
 
 export type PriceBreakdown = Readonly<{
