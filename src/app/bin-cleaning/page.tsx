@@ -123,9 +123,9 @@ export default function BinCleaningPage() {
               <p className="mt-2 max-w-3xl text-zinc-700">
                 Use promo code <strong>{ONE45_PROMO_CODE}</strong>. One
                 successful use per customer. Established customers and future
-                One-Time cleanings use the regular price. Valid through
-                September 1, 2026. Before tax. Cannot be combined with another
-                promotion or referral discount.
+                One-Time cleanings use the regular price. This offer does not
+                expire. Before tax. Cannot be combined with another promotion
+                or referral discount.
               </p>
             </div>
             <Link
