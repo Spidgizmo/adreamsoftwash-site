@@ -5,6 +5,7 @@ import { MobileCTA } from "@/components/MobileCTA";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StagingBanner } from "@/components/StagingBanner";
+import { isStagingEnvironment } from "@/lib/app-environment";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -18,6 +19,9 @@ export const metadata: Metadata = {
     icon: "/favicon.ico?v=2",
     apple: "/apple-touch-icon.png?v=2",
   },
+  robots: isStagingEnvironment()
+    ? { index: false, follow: false, nocache: true }
+    : undefined,
 };
 
 export default function RootLayout({
