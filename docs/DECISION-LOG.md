@@ -33,6 +33,7 @@ This log separates approved direction from decisions still requiring owner appro
 - NEW25 is not valid for Quarterly, Twice a Year, One-Time Cleaning, or the inactive Every 2 Weeks plan.
 - NEW25 does **not** stack with the **Share 50%. Get 50%.** new-customer referral discount or another discount. A checkout containing both must not apply both; the customer must proceed with only one eligible discount.
 - The signup page must accept the code directly and may also receive it through a marketing link parameter. Eligibility, exclusivity, and the final discount must be revalidated server-side during checkout rather than trusted from the browser.
+- NEW25 remains visibly advertised on the website so a visitor who arrives for another ADS service can discover the bin-cleaning offer.
 
 ### Signup, accounts, and operations
 
@@ -55,6 +56,8 @@ This log separates approved direction from decisions still requiring owner appro
 
 - **Share 50%. Get 50%.** is approved for eligible Monthly residential subscriptions only at launch.
 - The new customer receives 50% off the eligible first monthly base cleaning. The referrer receives 50% of their own next eligible monthly base cleaning after completed/paid/good-standing service and a seven-day review hold.
+- Every customer account receives one permanent unique referral code at signup. The code remains attached to that customer and is displayed in the portal with a shareable referral link.
+- Signup keeps a separate promotional-code field and referral-code field because promotional codes may also be used for future campaigns or later subscription offers. Applying one type removes/locks the other type for that signup. The customer may remove the selected code and switch before payment, but only one discount can reach checkout.
 - Permanent unique code, one code per new account/address, stacking two earned referral credits to 100%, rollover, 12-month expiry, exclusions, anti-fraud/reversal rules, and portal visibility described in the MVP are approved.
 - Referral-credit stacking within the referral program does not authorize stacking NEW25 with the new-customer referral discount.
 
@@ -109,3 +112,7 @@ The correction implements the already approved exactly-one entitlement per paid 
 ## NEW25 website-preview implementation record — 2026-08-03
 
 The responsive signup preview now accepts and validates NEW25 against one centralized promotion rule, shows the 25% first-Monthly-charge estimate, rejects non-Monthly use, accepts a normalized marketing-link parameter, and clearly states that NEW25 cannot be combined with the referral offer. The centralized rule marks NEW25 as non-stackable with referral discounts, and the shared combination check blocks a checkout state containing both until one discount is selected. This does not activate live signup or Stripe redemption. Phase 4 must revalidate new-subscriber eligibility, persist an idempotent redemption record, and enforce the approved non-stacking rule at the trusted checkout boundary.
+
+## Referral-code signup clarification and implementation record — 2026-08-03
+
+James Gibbs confirmed that NEW25 remains promoted on the website, the signup retains distinct promotional and referral code fields, and the fields are mutually exclusive rather than stackable. The preview now clears and locks the opposite field when one valid code type is selected and permits removal before switching. Supabase already contains the referral tables; the added trusted provisioning migration gives each real customer account one permanent code automatically at customer creation, provides an idempotent service-role provisioning function for the signup transaction, and keeps anonymous callers from generating codes. Live signup, Stripe, and real-customer activation remain disabled.
