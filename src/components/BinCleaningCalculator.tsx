@@ -12,7 +12,9 @@ import {
   calculateBinCleaningPrice,
   evaluateBinCleaningPromotion,
   formatCurrency,
+  isPlausibleBinCleaningReferralCode,
   normalizeBinCleaningPromoCode,
+  normalizeBinCleaningReferralCode,
   type PlanId,
 } from "@/lib/bin-cleaning-plans";
 
@@ -22,6 +24,8 @@ type BinCleaningCalculatorProps = {
   initialBinCount?: number;
   enablePromoCode?: boolean;
   initialPromoCode?: string;
+  enableReferralCode?: boolean;
+  initialReferralCode?: string;
 };
 
 export function BinCleaningCalculator({
@@ -30,14 +34,34 @@ export function BinCleaningCalculator({
   initialBinCount = 1,
   enablePromoCode = false,
   initialPromoCode = "",
+  enableReferralCode = false,
+  initialReferralCode = "",
 }: BinCleaningCalculatorProps) {
   const normalizedInitialPromo = normalizeBinCleaningPromoCode(initialPromoCode);
+  const normalizedInitialReferral =
+    normalizeBinCleaningReferralCode(initialReferralCode);
+  const startsWithConflictingCodes = Boolean(
+    normalizedInitialPromo && normalizedInitialReferral,
+  );
+  const safeInitialPromo = startsWithConflictingCodes
+    ? ""
+    : normalizedInitialPromo;
+  const safeInitialReferral = startsWithConflictingCodes
+    ? ""
+    : normalizedInitialReferral;
+
   const [planId, setPlanId] = useState<PlanId>(initialPlanId);
   const [binCount, setBinCount] = useState(initialBinCount);
-  const [promoEntry, setPromoEntry] = useState(normalizedInitialPromo);
-  const [submittedPromoCode, setSubmittedPromoCode] = useState(
-    normalizedInitialPromo,
+  const [promoEntry, setPromoEntry] = useState(safeInitialPromo);
+  const [submittedPromoCode, setSubmittedPromoCode] =
+    useState(safeInitialPromo);
+  const [referralEntry, setReferralEntry] = useState(safeInitialReferral);
+  const [submittedReferralCode, setSubmittedReferralCode] =
+    useState(safeInitialReferral);
+  const [showInitialConflict, setShowInitialConflict] = useState(
+    startsWithConflictingCodes,
   );
+
   const plan = PUBLIC_BIN_CLEANING_PLANS.find(
     (item) => item.id === planId,
   )!;
@@ -49,11 +73,46 @@ export function BinCleaningCalculator({
         price.subtotalCents,
       )
     : null;
+  const referralLooksValid =
+    !submittedReferralCode ||
+    isPlausibleBinCleaningReferralCode(submittedReferralCode);
+  const hasSubmittedReferral = Boolean(
+    submittedReferralCode && referralLooksValid,
+  );
+  const referralEligibleForPlan =
+    hasSubmittedReferral && plan.referralEligible;
+  const hasAppliedPromotion = promotion?.status === "applied";
 
   const applyPromo = () => {
     const normalized = normalizeBinCleaningPromoCode(promoEntry);
     setPromoEntry(normalized);
     setSubmittedPromoCode(normalized);
+    setShowInitialConflict(false);
+    if (normalized) {
+      setReferralEntry("");
+      setSubmittedReferralCode("");
+    }
+  };
+
+  const applyReferral = () => {
+    const normalized = normalizeBinCleaningReferralCode(referralEntry);
+    setReferralEntry(normalized);
+    setSubmittedReferralCode(normalized);
+    setShowInitialConflict(false);
+    if (normalized) {
+      setPromoEntry("");
+      setSubmittedPromoCode("");
+    }
+  };
+
+  const removePromo = () => {
+    setPromoEntry("");
+    setSubmittedPromoCode("");
+  };
+
+  const removeReferral = () => {
+    setReferralEntry("");
+    setSubmittedReferralCode("");
   };
 
   return (
@@ -137,68 +196,190 @@ export function BinCleaningCalculator({
           </button>
         </div>
 
-        {enablePromoCode && (
-          <div className="mt-7 rounded-2xl border border-brand-200 bg-brand-50 p-4">
-            <label htmlFor="promo-code" className="block text-sm font-black">
-              Promo code
-            </label>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <input
-                id="promo-code"
-                name="promo_code"
-                value={promoEntry}
-                maxLength={32}
-                autoCapitalize="characters"
-                autoComplete="off"
-                placeholder={NEW25_PROMO_CODE}
-                onChange={(event) => setPromoEntry(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    applyPromo();
-                  }
-                }}
-                className="h-11 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 font-bold uppercase"
-              />
-              <button
-                type="button"
-                onClick={applyPromo}
-                className="h-11 rounded-lg bg-brand-700 px-5 font-bold text-white hover:bg-brand-600"
-              >
-                Apply code
-              </button>
+        {(enablePromoCode || enableReferralCode) && (
+          <div className="mt-7 space-y-4 rounded-2xl border border-brand-200 bg-brand-50 p-4">
+            <div>
+              <p className="text-sm font-black">Choose one discount</p>
+              <p className="mt-1 text-xs leading-relaxed text-zinc-600">
+                Use either one promotional code or one referral code. They
+                cannot be combined on the same signup. Remove the selected code
+                before switching to the other type.
+              </p>
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-zinc-600">
-              New Monthly subscribers can use {NEW25_PROMO_CODE} for 25% off
-              the first month. It cannot be combined with the Share 50%. Get
-              50%. referral offer or another discount. Final account
-              eligibility is verified during checkout.
-            </p>
-            {promotion?.status === "applied" && (
-              <p
-                role="status"
-                className="mt-3 rounded-lg bg-emerald-100 p-3 text-sm font-bold text-emerald-900"
-              >
-                {NEW25_PROMO_CODE} applied: 25% off your first Monthly charge.
-                Referral discounts cannot be added to this offer.
-              </p>
-            )}
-            {promotion?.status === "ineligible" && (
+
+            {showInitialConflict && (
               <p
                 role="alert"
-                className="mt-3 rounded-lg bg-amber-100 p-3 text-sm font-bold text-amber-950"
+                className="rounded-lg bg-red-100 p-3 text-sm font-bold text-red-900"
               >
-                {NEW25_PROMO_CODE} is available only with a new Monthly
-                subscription.
+                A promotional code and referral code were supplied together.
+                Neither was selected. Choose only one code below.
               </p>
             )}
-            {promotion?.status === "invalid" && (
-              <p
-                role="alert"
-                className="mt-3 rounded-lg bg-red-100 p-3 text-sm font-bold text-red-900"
-              >
-                That promo code is not recognized.
-              </p>
+
+            {enablePromoCode && (
+              <div className="rounded-xl border border-brand-200 bg-white p-4">
+                <label htmlFor="promo-code" className="block text-sm font-black">
+                  Promo code
+                </label>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    id="promo-code"
+                    name="promo_code"
+                    value={promoEntry}
+                    disabled={hasSubmittedReferral}
+                    maxLength={32}
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    placeholder={NEW25_PROMO_CODE}
+                    onChange={(event) => setPromoEntry(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        applyPromo();
+                      }
+                    }}
+                    className="h-11 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 font-bold uppercase disabled:cursor-not-allowed disabled:bg-zinc-100"
+                  />
+                  <button
+                    type="button"
+                    disabled={hasSubmittedReferral}
+                    onClick={applyPromo}
+                    className="h-11 rounded-lg bg-brand-700 px-5 font-bold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-zinc-400"
+                  >
+                    Apply promo
+                  </button>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-zinc-600">
+                  New Monthly subscribers can use {NEW25_PROMO_CODE} for 25%
+                  off the first month. Final account eligibility is verified
+                  during checkout.
+                </p>
+                {promotion?.status === "applied" && (
+                  <div
+                    role="status"
+                    className="mt-3 rounded-lg bg-emerald-100 p-3 text-sm font-bold text-emerald-900"
+                  >
+                    <p>
+                      {NEW25_PROMO_CODE} applied: 25% off your first Monthly
+                      charge. A referral code cannot be added to this signup.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={removePromo}
+                      className="mt-2 underline"
+                    >
+                      Remove promo code
+                    </button>
+                  </div>
+                )}
+                {promotion?.status === "ineligible" && (
+                  <p
+                    role="alert"
+                    className="mt-3 rounded-lg bg-amber-100 p-3 text-sm font-bold text-amber-950"
+                  >
+                    {NEW25_PROMO_CODE} is available only with a new Monthly
+                    subscription.
+                  </p>
+                )}
+                {promotion?.status === "invalid" && (
+                  <p
+                    role="alert"
+                    className="mt-3 rounded-lg bg-red-100 p-3 text-sm font-bold text-red-900"
+                  >
+                    That promo code is not recognized.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {enableReferralCode && (
+              <div className="rounded-xl border border-brand-200 bg-white p-4">
+                <label
+                  htmlFor="referral-code"
+                  className="block text-sm font-black"
+                >
+                  Referral code
+                </label>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    id="referral-code"
+                    name="referral_code"
+                    value={referralEntry}
+                    disabled={hasAppliedPromotion}
+                    maxLength={32}
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    placeholder="Enter the customer’s code"
+                    onChange={(event) => setReferralEntry(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        applyReferral();
+                      }
+                    }}
+                    className="h-11 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 font-bold uppercase disabled:cursor-not-allowed disabled:bg-zinc-100"
+                  />
+                  <button
+                    type="button"
+                    disabled={hasAppliedPromotion}
+                    onClick={applyReferral}
+                    className="h-11 rounded-lg bg-zinc-950 px-5 font-bold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+                  >
+                    Use referral
+                  </button>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-zinc-600">
+                  Referral codes are permanent unique customer codes. The code,
+                  customer, address, plan, and new-customer eligibility will be
+                  verified securely before the referral discount is applied.
+                </p>
+                {submittedReferralCode && !referralLooksValid && (
+                  <p
+                    role="alert"
+                    className="mt-3 rounded-lg bg-red-100 p-3 text-sm font-bold text-red-900"
+                  >
+                    That referral code format is not valid.
+                  </p>
+                )}
+                {hasSubmittedReferral && !plan.referralEligible && (
+                  <div
+                    role="alert"
+                    className="mt-3 rounded-lg bg-amber-100 p-3 text-sm font-bold text-amber-950"
+                  >
+                    <p>
+                      The Share 50%. Get 50%. referral offer is available only
+                      with an eligible new Monthly subscription.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={removeReferral}
+                      className="mt-2 underline"
+                    >
+                      Remove referral code
+                    </button>
+                  </div>
+                )}
+                {referralEligibleForPlan && (
+                  <div
+                    role="status"
+                    className="mt-3 rounded-lg bg-emerald-100 p-3 text-sm font-bold text-emerald-900"
+                  >
+                    <p>
+                      Referral code {submittedReferralCode} selected for secure
+                      verification. A promotional code cannot be added to this
+                      signup.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={removeReferral}
+                      className="mt-2 underline"
+                    >
+                      Remove referral code
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -235,6 +416,12 @@ export function BinCleaningCalculator({
                 <dd>−{formatCurrency(promotion.discountCents)}</dd>
               </div>
             )}
+            {referralEligibleForPlan && (
+              <div className="flex justify-between gap-4 font-bold text-emerald-300">
+                <dt>Referral offer</dt>
+                <dd>Pending verification</dd>
+              </div>
+            )}
             <div className="border-t border-zinc-700 pt-3">
               <dt className="font-bold">Tax</dt>
               <dd className="mt-1 text-xs leading-relaxed text-zinc-300">
@@ -259,6 +446,13 @@ export function BinCleaningCalculator({
               <div className="flex justify-between gap-4 border-t border-zinc-700 pt-3 text-xs text-zinc-300">
                 <dt>Later Monthly renewals before tax</dt>
                 <dd>{formatCurrency(price.subtotalCents)}</dd>
+              </div>
+            )}
+            {referralEligibleForPlan && (
+              <div className="border-t border-zinc-700 pt-3 text-xs leading-relaxed text-zinc-300">
+                The eligible new-customer referral discount is 50% off the
+                first Monthly base cleaning. Its exact value is shown only
+                after the permanent customer code is verified.
               </div>
             )}
           </dl>
