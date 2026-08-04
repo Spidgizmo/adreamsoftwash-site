@@ -64,6 +64,8 @@ select lives_ok(
   'the trusted signup service can provision a missing code idempotently'
 );
 
+reset role;
+
 select is(
   (select count(*)::integer from public.referral_codes
    where customer_id='20000000-0000-4000-8000-000000000002'),
