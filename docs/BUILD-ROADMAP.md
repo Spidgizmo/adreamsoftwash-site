@@ -19,7 +19,7 @@ The authoritative launch-rule reference is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.
 - Build the fully responsive ADS Bin Cleaning page and active-plan selector using the existing Tailwind system.
 - Show standard service, bin-return inclusion, referral eligibility, billing interval, calculated line items, dynamic tax placeholder/contract, and total.
 - Add responsive promotional entry and pricing previews for NEW25 and ONE45, including invalid, wrong-plan, and wrong-bin-count states.
-- Advertise ONE45 as a limited new-customer promotion without changing the normal $60 One-Time catalog price.
+- Advertise ONE45 as a new-customer promotion with no expiration without changing the normal $60 One-Time catalog price.
 - State clearly that promotions cannot be combined with the **Share 50%. Get 50%.** referral offer or another discount.
 - Accept normalized marketing-link/code input without treating the client preview as authoritative.
 - Do not expose live signup yet and do not disturb Lavo.
@@ -35,9 +35,9 @@ The authoritative launch-rule reference is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.
 
 - Implement website self-signup and CRM staff-assisted signup against the same customer, catalog, pricing, promotion, referral, and status services.
 - Validate NEW25 server-side as a new-Monthly-subscriber, first-paid-cycle-only discount; calculate trusted discount cents; persist an idempotent attempt/redemption record; and map it to reviewed Stripe test-mode configuration.
-- Validate ONE45 server-side as a public new-customer code for exactly two bins on the One-Time plan: $45 pre-tax subtotal instead of $60; one successful use per customer; service-address history checked against duplicate-account abuse; redeemable through September 1, 2026 in America/New_York.
-- Keep ONE45 unavailable to Monthly, Quarterly, Twice a Year, inactive plans, non-two-bin purchases, established customers, expired offers, reused customers, or duplicate-account/address abuse.
-- Fail closed for unknown, inactive, expired, reused, otherwise ineligible, or mismatched codes.
+- Validate ONE45 server-side as a public new-customer code for exactly two bins on the One-Time plan: $45 pre-tax subtotal instead of $60; one successful use per customer; service-address history checked against duplicate-account abuse; no expiration date.
+- Keep ONE45 unavailable to Monthly, Quarterly, Twice a Year, inactive plans, non-two-bin purchases, established customers, reused customers, or duplicate-account/address abuse.
+- Fail closed for unknown, inactive, reused, otherwise ineligible, or mismatched codes. Do not reject ONE45 for expiration because it does not expire.
 - Enforce the approved non-stacking rule: if more than one promotion/referral discount is present, checkout must proceed using only one eligible discount and must record selected and declined states.
 - Validate exact service addresses and calculate tax through a replaceable provider adapter initially supporting Stripe Tax, using the post-discount taxable subtotal from the single applied discount.
 - Use Stripe Checkout/Billing/payment links in test mode, billing portal, signed webhooks, tax audit snapshots, pending-payment leads, and anniversary billing.
@@ -55,7 +55,7 @@ The authoritative launch-rule reference is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.
 - Hold/remove route stops while unpaid, preserve entitlement per the final approved policy, restore next-eligible-zone-run assignment after recovery, and never create special trips or alter the billing anniversary.
 - Test exactly-one entitlement per paid cycle and exactly-one completion per entitlement.
 - Test NEW25 exactly-once first-cycle application, no later renewal discount, idempotent webhook/retry behavior, invalid-plan rejection, customer-history eligibility, refund/dispute handling, and rejection of simultaneous referral-discount application.
-- Test ONE45 plan/bin matching, fixed $45 pre-tax subtotal, deadline, one-use-per-customer enforcement, established-customer rejection, address anti-abuse checks, refund/dispute/reversal handling, and rejection of every stacking attempt.
+- Test ONE45 plan/bin matching, fixed $45 pre-tax subtotal, no-expiration behavior, one-use-per-customer enforcement, established-customer rejection, address anti-abuse checks, refund/dispute/reversal handling, and rejection of every stacking attempt.
 
 ## Phase 7 — Route and field service
 
@@ -75,7 +75,8 @@ The authoritative launch-rule reference is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.
 - No duplicated plan, pricing, promotion, or campaign rules and no hardcoded location tax tables.
 - No client-authored discount amounts or browser-only eligibility decisions.
 - Only one discount source may reach checkout: one promotion or one eligible referral discount.
-- ONE45 remains a limited public new-customer promotion and never replaces the normal $60 One-Time catalog price.
+- ONE45 remains a public new-customer promotion and never replaces the normal $60 One-Time catalog price.
+- ONE45 has no expiration date.
 - ONE45 is one successful use per customer; established customers cannot use it later.
 - No raw payment-card data or committed secrets.
 - No mobile-only surface.
@@ -103,4 +104,4 @@ The signup preview advertises NEW25 and ONE45, accepts typed and URL-supplied co
 
 ### Step 1 / ONE45 configuration checkpoint — 2026-08-04
 
-Launch-rule Step 1 is complete at configuration version `2026-08-04-launch-rules-v2`. ONE45 is locked as a public code for exactly two One-Time bins at $45 before tax, genuinely new customers only, one successful use per customer, address-history anti-abuse protected, redeemable through September 1, 2026, and never stackable. Hosted staging remains the next phase.
+Launch-rule Step 1 is complete at configuration version `2026-08-04-launch-rules-v3`. ONE45 is locked as a public code for exactly two One-Time bins at $45 before tax, genuinely new customers only, one successful use per customer, address-history anti-abuse protected, no expiration date, and never stackable. Hosted staging remains the next phase.
