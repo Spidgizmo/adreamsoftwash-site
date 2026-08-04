@@ -12,12 +12,11 @@ declare
   alphabet constant text := '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   random_bytes bytea := extensions.gen_random_bytes(8);
   token text := '';
-  position integer;
 begin
-  for position in 0..7 loop
+  for byte_index in 0..7 loop
     token := token || substr(
       alphabet,
-      (get_byte(random_bytes,position) % length(alphabet)) + 1,
+      (get_byte(random_bytes,byte_index) % length(alphabet)) + 1,
       1
     );
   end loop;
