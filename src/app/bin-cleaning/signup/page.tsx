@@ -88,8 +88,8 @@ export default function SignupFoundationPage({
               </p>
               <p className="mt-1 text-sm text-zinc-600">
                 Before tax. One successful use per customer. Established
-                customers and future cleanings use the regular price. Valid
-                through September 1, 2026.
+                customers and future cleanings use the regular price. This offer
+                does not expire.
               </p>
             </div>
           </div>
