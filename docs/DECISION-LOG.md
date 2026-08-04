@@ -118,11 +118,15 @@ James Gibbs confirmed that promotional offers remain separate from referral code
 
 ## Historical ONE45 v1 record — 2026-08-04
 
-ONE45 was initially approved as a private card-only offer. That visibility decision and configuration version `2026-08-04-launch-rules-v1` are historical and are superseded by the controlling v2 decision below. The code spelling, eligible One-Time/two-bin purchase, $45 pre-tax subtotal, deadline, and non-stacking direction were retained.
+ONE45 was initially approved as a private card-only offer. That visibility decision and configuration version `2026-08-04-launch-rules-v1` are historical. The private/card-only restriction is superseded.
 
-## Controlling ONE45 public-promotion revision — 2026-08-04
+## Historical ONE45 v2 public-promotion record — 2026-08-04
 
-James Gibbs revised ONE45 and approved it for public website advertising. This section supersedes any earlier statement that ONE45 must remain private or card-only.
+James Gibbs revised ONE45 and approved it for public website advertising. Configuration version `2026-08-04-launch-rules-v2` correctly established public visibility, the $45 two-bin price, new-customer eligibility, one successful redemption per customer, address-history anti-abuse, and non-stacking. That version also included a September 1, 2026 expiration date. The expiration date was later rejected by James Gibbs and is superseded by the controlling v3 decision below.
+
+## Controlling ONE45 no-expiration revision — 2026-08-04
+
+James Gibbs explicitly confirmed that ONE45 has **no expiration date**. This section and configuration version `2026-08-04-launch-rules-v3` supersede every earlier ONE45 expiration or deadline statement.
 
 - Exact code: **ONE45**, meaning letters `O-N-E` followed by digits `4-5`; not numeric `145`.
 - ONE45 is publicly advertised on the ADS Bin Cleaning website and signup page.
@@ -131,13 +135,13 @@ James Gibbs revised ONE45 and approved it for public website advertising. This s
 - It is for genuinely new ADS Bin Cleaning customers only.
 - It is limited to one successful redemption per customer. The customer cannot use it again six months, one year, or any later time; established customers pay the regular One-Time price.
 - Service-address history remains an anti-abuse check against a customer creating another account to reuse the offer.
-- It is redeemable through September 1, 2026 in the America/New_York business time zone.
+- **ONE45 does not expire. There is no redemption deadline or expiration date.**
 - It cannot stack with NEW25, a referral discount, or any other promotion.
 - Entry is case-insensitive, but the stored/displayed normalized code is ONE45.
-- Trusted checkout must revalidate plan, exact bin count, new-customer identity/history, address history, deadline, prior redemption, tax basis, and final cents. Browser preview is not authoritative.
+- Trusted checkout must revalidate plan, exact bin count, new-customer identity/history, address history, prior redemption, tax basis, and final cents. Browser preview is not authoritative.
 
-The public page and signup preview now advertise ONE45 and calculate the eligible $45 pre-tax preview. Actual historical one-use enforcement and payment acceptance remain scheduled for the trusted pricing/discount and Stripe test-checkout steps.
+The public page and signup preview advertise ONE45, state that it does not expire, and calculate the eligible $45 pre-tax preview. Actual historical one-use enforcement and payment acceptance remain scheduled for the trusted pricing/discount and Stripe test-checkout steps.
 
 ## Launch-checklist Step 1 revised completion record — 2026-08-04
 
-Step 1 remains **DONE** after the owner revision. The controlling configuration is `2026-08-04-launch-rules-v2`: normal One-Time pricing remains $60 for up to two bins; ONE45 is a public limited promotion; it is one successful use per genuinely new customer; established customers are ineligible; address history is checked against duplicate-account abuse; and all promo/referral non-stacking, referral-code provisioning, pickup-plus-one-day cleaning, included bin return, seven-day failed-payment handling, and next-normal-route reactivation rules remain approved. Hosted staging remains the next numbered step.
+Step 1 remains **DONE** after the owner correction. The controlling configuration is `2026-08-04-launch-rules-v3`: normal One-Time pricing remains $60 for up to two bins; ONE45 is a public new-customer promotion with no expiration date; it is one successful use per genuinely new customer; established customers are ineligible; address history is checked against duplicate-account abuse; and all promo/referral non-stacking, referral-code provisioning, pickup-plus-one-day cleaning, included bin return, seven-day failed-payment handling, and next-normal-route reactivation rules remain approved. Hosted staging remains the next numbered step.
