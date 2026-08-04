@@ -7,6 +7,8 @@ export const APP_ENVIRONMENTS = [
 
 export type AppEnvironment = (typeof APP_ENVIRONMENTS)[number];
 
+type EnvironmentValues = Readonly<Record<string, string | undefined>>;
+
 export type HostedStagingConfiguration = Readonly<{
   appEnvironment: "staging";
   supabaseHost: string;
@@ -62,7 +64,7 @@ function hostedHttpsUrl(value: string | undefined, label: string): URL {
 }
 
 export function validateHostedStagingConfiguration(
-  environment: NodeJS.ProcessEnv = process.env,
+  environment: EnvironmentValues = process.env,
 ): HostedStagingConfiguration {
   if (resolveAppEnvironment(environment.NEXT_PUBLIC_APP_ENV) !== "staging") {
     throw new Error("NEXT_PUBLIC_APP_ENV must be staging.");
