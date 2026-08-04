@@ -6,6 +6,8 @@ Extend the existing Next.js App Router and Tailwind CSS application as one respo
 
 The public page, self-signup, staff-assisted signup, customer portal, CRM, billing/tax adapters, promotions, entitlements, and future routing are modules over the same database—not separately owned applications or synchronized customer copies. Lavo remains isolated and unchanged.
 
+The authoritative owner-approved launch configuration is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.md`; code mirrors it in `src/lib/bin-cleaning-launch-config.ts`. Normal plan pricing remains sourced only from `src/lib/bin-cleaning-catalog.json` and its generated immutable database snapshot.
+
 ## Logical layers and flows
 
 1. **Responsive Next.js surfaces:** public pricing/signup, customer portal, staff/admin CRM, and future field views reuse the existing Tailwind design system and work across phone, tablet, laptop, desktop, portrait, and landscape.
@@ -26,18 +28,43 @@ Pricing is calculated server-side from catalog version plus bin count; clients r
 
 ## Central promotion policy
 
-NEW25 is represented once as an active promotion rule rather than duplicated in signup copy, Stripe configuration, CRM, invoices, or reporting. Its current approved rule is: new Monthly subscriber only, 25% off the first paid Monthly cycle, no discount on later cycles, and no stacking with the **Share 50%. Get 50%.** new-customer referral discount or another discount. The browser may normalize and preview the code, but it cannot establish eligibility, exclusivity, or author the final cents.
+NEW25 and ONE45 are represented as reviewed promotion rules rather than duplicated in signup copy, Stripe configuration, CRM, invoices, or reporting. The browser may normalize and preview a code, but it cannot establish eligibility, exclusivity, deadlines, prior use, customer/address history, or final cents.
+
+### NEW25
+
+The approved rule is: new Monthly subscriber only, 25% off the first paid Monthly cycle, no discount on later cycles, publicly advertised on the website, and no stacking with the **Share 50%. Get 50%.** new-customer referral discount or another discount.
 
 The trusted checkout service must normalize the submitted code, load the active promotion policy, confirm the selected plan/version is Monthly, confirm the customer/account has no disqualifying prior Monthly subscription under the final approved new-subscriber definition, calculate the discount from the trusted first-cycle subtotal, and create Stripe Checkout with the matching test-mode coupon/promotion configuration. It must persist an idempotent redemption/attempt record tied to customer, signup, subscription, plan version, invoice/payment cycle, normalized code, discount basis, discount cents, status, and timestamps.
 
-Marketing links may carry `promo=NEW25`, but the server always revalidates the value. Unknown, inactive, expired, or ineligible codes fail closed. If both a valid NEW25 code and an eligible new-customer referral discount are present, the discount-combination service returns a conflict and checkout cannot apply both. The customer must proceed using only one eligible discount, and the chosen and declined discount states are recorded for audit.
+Marketing links may carry `promo=NEW25`, but the server always revalidates the value. Unknown, inactive, expired, or ineligible codes fail closed.
+
+### ONE45
+
+ONE45 is the private card-only acquisition code. The exact normalized code is `ONE45`, not numeric `145`. It is not shown as the general website One-Time price and does not alter the central One-Time catalog price of $60 for up to two bins.
+
+The trusted promotion policy must require all of the following before applying ONE45:
+
+- selected plan/version is One-Time Cleaning;
+- exact bin count is two;
+- trusted normal pre-tax subtotal is $60;
+- final promotional pre-tax subtotal is $45, producing a $15 discount;
+- customer meets the new-customer rule;
+- neither the customer nor the service address has a successful prior ONE45 redemption;
+- redemption occurs through September 1, 2026 in `America/New_York`;
+- no NEW25, referral discount, or other promotion is selected.
+
+Input matching is case-insensitive, while stored/displayed code is ONE45. The checkout service persists customer, service address, campaign source, plan version, bin count, normal subtotal, discount, final subtotal, deadline evaluation, customer/address-history decision, selected/declined conflicts, Stripe references, status, timestamps, and refund/dispute/reversal state. A browser-created amount or eligibility result is never trusted.
+
+### Exclusive discount resolver
+
+If more than one promotion or an eligible referral discount is present, the discount-combination service returns a conflict. Checkout cannot apply more than one. The customer or authorized staff must proceed with one eligible discount, and selected, declined, rejected, and redeemed states are recorded for audit.
 
 ## Proposed data domains
 
 - **Identity/access:** auth user mapping, customer/staff/admin profile, roles/permissions, login status, recovery/audit events.
 - **Customer/lead:** customer ID, contact/address validation, source, signup status, trash/recycling declarations, return/access instructions, consent and activity.
 - **Catalog/history:** plans, versions, Stripe references, tax class, referral eligibility, plan-change requests and audit.
-- **Promotions:** normalized codes, active/effective state, eligible plan/version scope, first-cycle/new-subscriber rules, percentage/fixed discount basis, non-stacking policy, Stripe test references, redemption attempts, successful applications, reversals, declined-conflict records, and audit history.
+- **Promotions:** normalized codes, campaign source/visibility, active/effective/expiry state, eligible plan/version and exact-bin scope, first-cycle/new-customer/customer-address-history rules, percentage/fixed/fixed-final-subtotal basis, non-stacking policy, per-customer/address limits, Stripe test references, attempts, successful applications, reversals, declined-conflict records, and audit history.
 - **Billing/tax:** Stripe customer/subscription/checkout/invoice/payment references; separate payment/subscription states; calculation snapshots containing validated address/status, jurisdictions, rate, pre-discount subtotal, the single applied discount line, taxable subtotal, tax, total, classification, provider ID, timestamp.
 - **Service:** separate service status; pickup source values, holiday dates, calculated cleaning date, verification/review; service history.
 - **Entitlements:** one idempotently created entitlement per successful paid cycle, lifecycle status, source invoice/payment, cycle boundaries, and a uniqueness rule preventing more than one completion.
@@ -100,3 +127,7 @@ Private routes are guarded by Next.js middleware which validates the HTTP-only S
 ### NEW25 signup-preview foundation
 
 The signup preview consumes the centralized NEW25 policy, accepts typed or marketing-link input, calculates the first-month estimate, states that referral discounts cannot be added, and exposes a shared combination rule that blocks simultaneous NEW25/referral application. No Stripe coupon, live redemption, or customer-history eligibility check is activated by this preview work.
+
+### Step 1 configuration foundation — 2026-08-04
+
+The owner-approved cross-system rules are locked at `2026-08-04-launch-rules-v1`. `src/lib/bin-cleaning-launch-config.ts` now exposes ONE45 and the launch operational rules for later trusted signup, CRM, Stripe, portal, reporting, and tests. It does not activate checkout or replace the Step 6 trusted promotion service.
