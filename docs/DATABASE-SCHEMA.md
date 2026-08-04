@@ -17,6 +17,12 @@ Migration `supabase/migrations/202608020001_ads_bin_cleaning_foundation.sql` is 
 
 The address hash has a non-unique history index; the referral trigger applies duplicate-benefit protection only within the approved 12-month lookback. Pickup source, verification, holiday shift, adjusted pickup, and cleaning date remain separate. A deferred database trigger prevents completion without cleaning, both photo kinds, and bin return or an authorized exception.
 
+## Permanent customer referral codes
+
+Migration `202608030003_customer_referral_code_provisioning.sql` adds trusted, idempotent referral-code provisioning. Each real customer account receives one permanent unique code when the customer row is created. New codes use the readable `ADS-XXXX-XXXX` format with ambiguous characters removed and are still protected by the database unique constraint. The trusted signup service can call `ensure_customer_referral_code(customer_id)` safely more than once and will always receive the same stored code. Anonymous and ordinary authenticated users cannot execute that provisioning function.
+
+Fictional seed customers remain explicit and deterministic. Live signup must create real customer rows with `is_test=false`; the database trigger then provisions the code immediately so the portal and referral link can display it after signup.
+
 ## Catalog synchronization
 
 `src/lib/bin-cleaning-catalog.json` is the canonical approved catalog. `src/lib/bin-cleaning-plans.ts` imports that file for typed application pricing, while `scripts/generate-bin-cleaning-catalog.mjs` generates the marked database seed block. `npm test` first runs `catalog:check` and fails if the generated database snapshot diverges. A catalog change requires one owner-approved JSON version followed by `npm run catalog:generate`; the SQL block must not be hand-edited. Historical subscription rows retain the selected immutable version.
