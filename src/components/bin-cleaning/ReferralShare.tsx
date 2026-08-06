@@ -24,7 +24,7 @@ export function ReferralShare({
   const signupPath = `/bin-cleaning/signup?ref=${encodeURIComponent(code)}`;
   const shareUrl = origin ? `${origin}${signupPath}` : signupPath;
   const subject = `${senderFirstName} sent you 50% off ADS Bin Cleaning`;
-  const textMessage = `Hey! ${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use ${senderFirstName}'s referral code ${code} for 50% off your first eligible Monthly base cleaning: ${shareUrl} ${senderFirstName} gets 50% off too after your referral qualifies. Once your ADS account is active, you’ll get your own permanent referral code to share too.`;
+  const textMessage = `Hey! ${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use ${senderFirstName}'s referral code ${code} for 50% off your first eligible Monthly base cleaning: ${shareUrl} ${senderFirstName} earns a referral reward too—50% for their first qualified referral and 25% for later qualified referrals. Once your ADS account is active, you’ll get your own permanent referral code to share too.`;
   const emailMessage = `Hey,
 
 ${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. Trash and recycling bins collect grime, odors, germs, leaked waste, and nasty buildup that a quick hose-off does not really remove.
@@ -38,9 +38,9 @@ Referral code: ${code}
 Claim the offer here:
 ${shareUrl}
 
-Full disclosure: after your referral qualifies, ${senderFirstName} receives 50% off an eligible base cleaning too.
+Full disclosure: ${senderFirstName} earns a referral reward after your referral qualifies—50% off an eligible base cleaning for their first qualified referral, then 25% off an eligible base cleaning for each later qualified referral.
 
-Once your signup is complete and your ADS account is active, you will receive your own permanent referral code to share with friends and family. Referral rewards apply when an eligible new Monthly residential customer signs up with your code.
+Once your signup is complete and your ADS account is active, you will receive your own permanent referral code to share with friends and family. Your referred friends can receive 50% off their first eligible Monthly base cleaning, while you can earn 50% for your first qualified referral and 25% for later qualified referrals.
 
 ${senderFirstName} thought this might save you the mess of cleaning the bins yourself!`;
 
@@ -55,7 +55,7 @@ ${senderFirstName} thought this might save you the mess of cleaning the bins you
 
   async function inviteFriends() {
     const absoluteUrl = `${window.location.origin}${signupPath}`;
-    const shareText = `${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use ${senderFirstName}'s referral code ${code} for 50% off your first eligible Monthly base cleaning. ${senderFirstName} gets 50% off too after your referral qualifies. Once your ADS account is active, you’ll get your own permanent referral code to share too.`;
+    const shareText = `${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use ${senderFirstName}'s referral code ${code} for 50% off your first eligible Monthly base cleaning. ${senderFirstName} earns 50% for their first qualified referral and 25% for later qualified referrals. Once your ADS account is active, you’ll get your own permanent referral code to share too.`;
 
     if (typeof navigator.share === "function") {
       try {
