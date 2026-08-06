@@ -44,7 +44,8 @@ test("simulators cannot send messages or invent authoritative tax", async () => 
   assert.match(integration, /delivered: false/);
   assert.match(integration, /taxCents: null/);
   assert.match(integration, /does not invent a live taxability decision or tax rate/);
-  assert.match(integration, /fictional \.test recipients only/);
+  assert.match(integration, /fictional \.test email addresses/);
+  assert.match(integration, /reserved 555 test phone numbers/);
 });
 
 test("staging integration health response is redacted", async () => {
