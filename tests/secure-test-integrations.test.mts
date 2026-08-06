@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import {
+  runStep3SimulatorProbe,
+  simulateAddressValidation,
+  simulateNotification,
+  simulateTaxReview,
+} from "../src/lib/bin-cleaning/test-integration-simulators.ts";
 
 const integrationPath = new URL(
   "../src/lib/bin-cleaning/test-integrations.ts",
@@ -55,16 +61,38 @@ test("Step 3 requires safe simulators and keeps Stripe disabled until Step 8", a
   assert.match(env, /Step 8 is the first checkout step/);
 });
 
-test("simulators cannot send messages or invent authoritative tax", async () => {
-  const integration = await readFile(integrationPath, "utf8");
+test("simulators execute with fictional results and no external delivery", () => {
+  const address = simulateAddressValidation({
+    line1: "123 Fictional Avenue",
+    city: "Toledo",
+    region: "OH",
+    postalCode: "43604",
+  });
+  const tax = simulateTaxReview();
+  const email = simulateNotification({
+    channel: "email",
+    fictionalRecipient: "simulator@example.test",
+    subject: "Fictional test",
+    body: "Nothing is delivered.",
+  });
+  const probe = runStep3SimulatorProbe();
 
-  assert.match(integration, /runStep3SimulatorProbe/);
-  assert.match(integration, /123 Fictional Avenue/);
-  assert.match(integration, /delivered: false/);
-  assert.match(integration, /taxCents: null/);
-  assert.match(integration, /does not invent a live taxability decision or tax rate/);
-  assert.match(integration, /fictional \.test email addresses/);
-  assert.match(integration, /reserved 555 test phone numbers/);
+  assert.equal(address.outcome, "eligible-test-address");
+  assert.equal(address.provider, "safe-simulator");
+  assert.equal(tax.taxCents, null);
+  assert.equal(tax.outcome, "staff-review-required");
+  assert.equal(email.delivered, false);
+  assert.equal(probe.notifications.sms.delivered, false);
+  assert.match(probe.notifications.sms.fictionalRecipient, /555/);
+  assert.throws(
+    () =>
+      simulateNotification({
+        channel: "email",
+        fictionalRecipient: "real@example.com",
+        body: "Blocked",
+      }),
+    /fictional \.test email addresses/,
+  );
 });
 
 test("staging integration response executes probes and remains redacted", async () => {
@@ -84,7 +112,7 @@ test("staging integration response executes probes and remains redacted", async 
   assert.doesNotMatch(route, /TEST_SMS_API_KEY/);
 });
 
-test("hosted verification discovers the Vercel Preview and checks Step 3", async () => {
+test("staging workflow verifies the Vercel Preview and supports protected deployments", async () => {
   const [verifier, workflow] = await Promise.all([
     readFile(verifierPath, "utf8"),
     readFile(workflowPath, "utf8"),
@@ -92,10 +120,10 @@ test("hosted verification discovers the Vercel Preview and checks Step 3", async
 
   assert.match(verifier, /deployments\?sha=/);
   assert.match(verifier, /api\/bin-cleaning\/test-integrations/);
-  assert.match(verifier, /sensitiveValuesReturned/);
-  assert.match(verifier, /stripeCheckoutEnabled/);
-  assert.match(verifier, /ADS_STAGING_TEST_PASSWORD/);
+  assert.match(verifier, /VERCEL_AUTOMATION_BYPASS_SECRET/);
+  assert.match(verifier, /deployment protection/i);
   assert.match(workflow, /pull_request:/);
   assert.match(workflow, /deployments: read/);
   assert.match(workflow, /EXPECTED_COMMIT_SHA/);
+  assert.match(workflow, /npm test/);
 });

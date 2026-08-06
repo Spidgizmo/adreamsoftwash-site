@@ -10,6 +10,7 @@ on:
       - "scripts/verify-hosted-staging.mjs"
       - "src/app/api/bin-cleaning/test-integrations/**"
       - "src/lib/bin-cleaning/test-integrations.ts"
+      - "src/lib/bin-cleaning/test-integration-simulators.ts"
       - "tests/secure-test-integrations.test.mts"
       - ".env.example"
       - "package.json"
@@ -28,13 +29,10 @@ jobs:
     timeout-minutes: 10
     environment: ads-bin-cleaning-staging
     env:
-      STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      ADS_STAGING_TEST_PASSWORD: ${{ secrets.ADS_STAGING_TEST_PASSWORD }}
       EXPECTED_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       GITHUB_REPOSITORY: ${{ github.repository }}
       GITHUB_TOKEN: ${{ github.token }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -45,4 +43,7 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run test:staging:verify
+      - name: Execute fictional simulator and redaction tests
+        run: npm test
+      - name: Verify successful Vercel Preview and probe when accessible
+        run: npm run test:staging:verify
