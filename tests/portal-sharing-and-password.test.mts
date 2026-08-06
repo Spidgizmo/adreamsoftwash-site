@@ -46,6 +46,17 @@ test("portal referral sharing supports native share, text, email, code, and link
   assert.match(referral, /does not\s+collect or store your friend/);
 });
 
+test("referral invitations explain the problem, service, discount, and mutual reward", async () => {
+  const referral = await readFile(referralPath, "utf8");
+
+  assert.match(referral, /Skip the dirty-bin mess/);
+  assert.match(referral, /odor, grime, leaked bags, and buildup/);
+  assert.match(referral, /clean, sanitize, and deodorize/);
+  assert.match(referral, /return them to the designated storage spot/);
+  assert.match(referral, /50% off your first eligible Monthly base cleaning/);
+  assert.match(referral, /after your referral qualifies, I receive 50% off/);
+});
+
 test("portal explains which bins need cleaning without changing paid bin count", async () => {
   const portal = await readFile(portalPath, "utf8");
 
