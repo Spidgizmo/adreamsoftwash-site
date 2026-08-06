@@ -21,22 +21,20 @@ export function ReferralShare({
   }
 
   const senderFirstName = senderName.trim().split(/\s+/)[0] || "A friend";
-  const signupPath = `/bin-cleaning/signup?ref=${encodeURIComponent(code)}`;
-  const shareUrl = origin ? `${origin}${signupPath}` : signupPath;
+  const shortPath = `/r/${encodeURIComponent(code)}`;
+  const shortUrl = origin ? `${origin}${shortPath}` : shortPath;
   const subject = `${senderFirstName} sent you 50% off ADS Bin Cleaning`;
-  const textMessage = `Hey! ${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use ${senderFirstName}'s referral code ${code} for 50% off your first eligible Monthly base cleaning: ${shareUrl} ${senderFirstName} earns a referral reward too—50% for their first qualified referral and 25% for later qualified referrals. Once your ADS account is active, you’ll get your own permanent referral code to share too.`;
+  const textMessage = `Hey! ${senderFirstName} thinks your bins probably stink—but everybody's do. ADS cleans, sanitizes, deodorizes, and returns them. Get 50% off your first eligible Monthly base cleaning. Clean My Bins: ${shortUrl} ${senderFirstName} earns a referral reward too. You'll get your own referral code after signup.`;
   const emailMessage = `Hey,
 
 ${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. Trash and recycling bins collect grime, odors, germs, leaked waste, and nasty buildup that a quick hose-off does not really remove.
 
 ${senderFirstName} found a solution: ADS Bin Cleaning professionally cleans, sanitizes, and deodorizes the bins after collection, then returns them to the designated storage spot.
 
-${senderFirstName} sent you this referral so you can receive 50% off your first eligible Monthly base cleaning.
+${senderFirstName} sent you this referral so you can receive 50% off your first eligible Monthly base cleaning. The referral is attached automatically when you open the signup link.
 
-Referral code: ${code}
-
-Claim the offer here:
-${shareUrl}
+Clean My Bins:
+${shortUrl}
 
 Full disclosure: ${senderFirstName} earns a referral reward after your referral qualifies—50% off an eligible base cleaning for their first qualified referral, then 25% off an eligible base cleaning for each later qualified referral.
 
@@ -54,12 +52,16 @@ ${senderFirstName} thought this might save you the mess of cleaning the bins you
   }
 
   async function inviteFriends() {
-    const absoluteUrl = `${window.location.origin}${signupPath}`;
-    const shareText = `${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use ${senderFirstName}'s referral code ${code} for 50% off your first eligible Monthly base cleaning. ${senderFirstName} earns 50% for their first qualified referral and 25% for later qualified referrals. Once your ADS account is active, you’ll get your own permanent referral code to share too.`;
+    const absoluteShortUrl = `${window.location.origin}${shortPath}`;
+    const shareText = `${senderFirstName} thinks your bins probably stink—but everybody's do. ADS cleans, sanitizes, deodorizes, and returns them. Get 50% off your first eligible Monthly base cleaning. ${senderFirstName} earns a referral reward too, and you'll get your own referral code after signup.`;
 
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: subject, text: shareText, url: absoluteUrl });
+        await navigator.share({
+          title: subject,
+          text: shareText,
+          url: absoluteShortUrl,
+        });
         setFeedback("Referral invitation opened.");
         return;
       } catch (error) {
@@ -67,7 +69,7 @@ ${senderFirstName} thought this might save you the mess of cleaning the bins you
       }
     }
 
-    await copy(absoluteUrl, "Referral link copied.");
+    await copy(absoluteShortUrl, "Short referral link copied.");
   }
 
   return (
@@ -85,7 +87,7 @@ ${senderFirstName} thought this might save you the mess of cleaning the bins you
           cleaning. Each later qualified referral earns 25% off one eligible
           Monthly base cleaning. Rewards apply one per invoice and do not stack.
         </p>
-        <p className="mt-2 break-all text-sm text-zinc-700">{shareUrl}</p>
+        <p className="mt-2 break-all text-sm text-zinc-700">{shortUrl}</p>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -117,7 +119,12 @@ ${senderFirstName} thought this might save you the mess of cleaning the bins you
         </button>
         <button
           type="button"
-          onClick={() => copy(`${window.location.origin}${signupPath}`, "Referral link copied.")}
+          onClick={() =>
+            copy(
+              `${window.location.origin}${shortPath}`,
+              "Short referral link copied.",
+            )
+          }
           className="rounded-lg border border-zinc-300 bg-white px-4 py-3 font-bold text-zinc-800 hover:bg-zinc-50"
         >
           Copy referral link
