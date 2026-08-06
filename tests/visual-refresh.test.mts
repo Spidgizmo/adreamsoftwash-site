@@ -14,7 +14,7 @@ test("homepage uses ADS-owned gallery assets without forcing a slider", async ()
   assert.match(home, /\/gallery\/before-after-house-1\.JPG/);
   assert.match(home, /\/gallery\/before-after-roof-1\.JPG/);
   assert.match(home, /\/gallery\/before-after-drive\.JPG/);
-  assert.match(home, /No stock-photo pretending/);
+  assert.match(home, /Every photograph shown here comes from ADS work/);
   assert.doesNotMatch(home, /BeforeAfterSlider|comparison slider/i);
 });
 
