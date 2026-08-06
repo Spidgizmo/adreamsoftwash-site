@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-  if (!supabaseUrl || !anonKey) {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json(
       { ok: false, error: "Staging database configuration is unavailable." },
       { status: 503, headers: RESPONSE_HEADERS },
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
     {
       method: "POST",
       headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
         "Content-Type": "application/json",
         Prefer: "return=representation",
       },
