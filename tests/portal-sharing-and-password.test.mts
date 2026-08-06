@@ -46,7 +46,7 @@ test("portal referral sharing supports native share, text, email, code, and link
   assert.match(referral, /does not\s+collect or store your friend/);
 });
 
-test("referral invitations explain the problem, service, discount, mutual reward, sender, and future code", async () => {
+test("referral invitations explain the service, sender, future code, and tiered rewards", async () => {
   const referral = await readFile(referralPath, "utf8");
 
   assert.match(referral, /senderFirstName/);
@@ -54,12 +54,13 @@ test("referral invitations explain the problem, service, discount, mutual reward
   assert.match(referral, /thinks your trash bins probably stink/);
   assert.match(referral, /let’s be honest, everybody’s do/);
   assert.match(referral, /grime, odors, germs, leaked waste, and nasty buildup/);
-  assert.match(referral, /clean, sanitize, and deodorize/);
+  assert.match(referral, /cleans, sanitizes, and deodorizes/);
   assert.match(referral, /returns them to the designated storage spot/);
   assert.match(referral, /50% off your first eligible Monthly base cleaning/);
-  assert.match(referral, /after your referral qualifies/);
+  assert.match(referral, /50% for their first qualified referral/);
+  assert.match(referral, /25% for later qualified referrals/);
   assert.match(referral, /your own permanent referral code to share/);
-  assert.match(referral, /eligible new Monthly residential customer/);
+  assert.match(referral, /Rewards apply one per invoice and do not stack/);
   assert.match(referral, /Invitations identify \{senderFirstName\} as the sender/);
 });
 
