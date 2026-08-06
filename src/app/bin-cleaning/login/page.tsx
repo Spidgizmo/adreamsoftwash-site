@@ -19,7 +19,7 @@ export default function LoginPage({
       : searchParams.logged_out
         ? "You have signed out."
         : searchParams.error
-          ? "Sign-in failed. Check the disposable test credentials."
+          ? "Sign-in failed. Check the hosted staging test credentials."
           : null;
 
   return (
@@ -28,8 +28,9 @@ export default function LoginPage({
       <main className="mx-auto max-w-md px-4 py-16">
         <h1 className="text-3xl font-black">Test account sign in</h1>
         <p className="mt-3 text-zinc-600">
-          Supabase Auth accepts only fictional users provisioned in the
-          disposable test database.
+          Supabase Auth accepts only fictional users connected to the hosted
+          ADS Bin Cleaning staging database. No real customer or payment data
+          belongs here.
         </p>
         <form
           action="/api/bin-cleaning/auth/login"
