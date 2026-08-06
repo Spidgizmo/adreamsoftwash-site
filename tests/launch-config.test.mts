@@ -10,7 +10,7 @@ test("ONE45 is the locked public new-customer campaign code", () => {
 
   assert.equal(
     BIN_CLEANING_LAUNCH_CONFIG.configVersion,
-    "2026-08-05-launch-rules-v4",
+    "2026-08-05-launch-rules-v5",
   );
   assert.equal(ONE45_PROMO_CODE, "ONE45");
   assert.equal(campaign.code, "ONE45");
@@ -49,6 +49,26 @@ test("launch discounts remain mutually exclusive and single-use", () => {
       .maximumSuccessfulRedemptionsPerCustomer,
     1,
   );
+});
+
+test("referral rewards are unlimited but tier down after the first qualification", () => {
+  const referrals = BIN_CLEANING_LAUNCH_CONFIG.referrals;
+
+  assert.equal(referrals.programStatus, "active");
+  assert.equal(referrals.eligiblePlanId, "monthly");
+  assert.equal(referrals.residentialOnly, true);
+  assert.equal(referrals.newCustomerPercentOff, 50);
+  assert.equal(referrals.referrerFirstQualifiedReferralPercentOff, 50);
+  assert.equal(referrals.referrerSubsequentQualifiedReferralPercentOff, 25);
+  assert.equal(referrals.hardReferralCountLimit, null);
+  assert.equal(referrals.maximumRewardApplicationsPerInvoice, 1);
+  assert.equal(referrals.referralRewardStackingAllowed, false);
+  assert.equal(referrals.additionalBinChargesDiscounted, false);
+  assert.equal(referrals.taxesDiscounted, false);
+  assert.equal(referrals.earnedRewardExpirationMonths, 12);
+  assert.equal(referrals.qualificationReviewHoldDays, 7);
+  assert.equal(referrals.programMayBePausedProspectively, true);
+  assert.equal(referrals.qualifiedRewardsRemainValidAfterPause, true);
 });
 
 test("launch operations preserve route, recycling, and payment rules", () => {
