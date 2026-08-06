@@ -1,7 +1,7 @@
 export const ONE45_PROMO_CODE = "ONE45" as const;
 
 export const BIN_CLEANING_LAUNCH_CONFIG = {
-  configVersion: "2026-08-05-launch-rules-v4",
+  configVersion: "2026-08-05-launch-rules-v5",
   catalogVersion: "2026-08-02-approved-pricing",
   owner: "James Gibbs",
   publicDomain: "www.acleanbin.com",
@@ -45,6 +45,28 @@ export const BIN_CLEANING_LAUNCH_CONFIG = {
       stackableWithOtherPromotions: false,
       normalizedCase: "upper",
     },
+  },
+  referrals: {
+    programStatus: "active",
+    eligiblePlanId: "monthly",
+    residentialOnly: true,
+    newCustomerPercentOff: 50,
+    newCustomerAppliesTo: "first-eligible-monthly-base-cleaning",
+    referrerFirstQualifiedReferralPercentOff: 50,
+    referrerSubsequentQualifiedReferralPercentOff: 25,
+    qualifyingReferralCountScope:
+      "lifetime-qualified-nonreversed-referrals-per-referrer",
+    hardReferralCountLimit: null,
+    maximumRewardApplicationsPerInvoice: 1,
+    referralRewardStackingAllowed: false,
+    additionalBinChargesDiscounted: false,
+    taxesDiscounted: false,
+    earnedRewardExpirationMonths: 12,
+    qualificationRequiresCompletedService: true,
+    qualificationRequiresSettledPayment: true,
+    qualificationReviewHoldDays: 7,
+    programMayBePausedProspectively: true,
+    qualifiedRewardsRemainValidAfterPause: true,
   },
   operations: {
     trashOnlyCleaningDayRule:
