@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-export function ReferralShare({ code }: { code: string | null | undefined }) {
+export function ReferralShare({
+  code,
+  senderName,
+}: {
+  code: string | null | undefined;
+  senderName: string;
+}) {
   const [origin, setOrigin] = useState("");
   const [feedback, setFeedback] = useState("");
 
@@ -14,26 +20,27 @@ export function ReferralShare({ code }: { code: string | null | undefined }) {
     return <p className="mt-3 text-sm text-zinc-600">Not eligible</p>;
   }
 
+  const senderFirstName = senderName.trim().split(/\s+/)[0] || "A friend";
   const signupPath = `/bin-cleaning/signup?ref=${encodeURIComponent(code)}`;
   const shareUrl = origin ? `${origin}${signupPath}` : signupPath;
-  const subject = "Skip the dirty-bin mess — get 50% off";
-  const textMessage = `Hey! Trash and recycling bins get nasty fast. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use my referral code ${code} for 50% off your first eligible Monthly base cleaning: ${shareUrl} I get 50% off too after your referral qualifies.`;
+  const subject = `${senderFirstName} sent you 50% off ADS Bin Cleaning`;
+  const textMessage = `Hey! ${senderFirstName} thought you might like this. Trash and recycling bins get nasty fast. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use ${senderFirstName}'s referral code ${code} for 50% off your first eligible Monthly base cleaning: ${shareUrl} ${senderFirstName} gets 50% off too after your referral qualifies.`;
   const emailMessage = `Hey,
 
-Trash and recycling bins can get nasty fast—odor, grime, leaked bags, and buildup that a quick hose-off does not really fix.
+${senderFirstName} sent you this referral because trash and recycling bins can get nasty fast—odor, grime, leaked bags, and buildup that a quick hose-off does not really fix.
 
-I use ADS Bin Cleaning. They professionally clean, sanitize, and deodorize the bins after collection, then return them to the designated storage spot.
+ADS Bin Cleaning professionally cleans, sanitizes, and deodorizes the bins after collection, then returns them to the designated storage spot.
 
-I am sharing my referral because you can get 50% off your first eligible Monthly base cleaning.
+With ${senderFirstName}'s referral, you can get 50% off your first eligible Monthly base cleaning.
 
-Use referral code: ${code}
+Referral code: ${code}
 
 Claim the offer here:
 ${shareUrl}
 
-Full disclosure: after your referral qualifies, I receive 50% off an eligible base cleaning too.
+Full disclosure: after your referral qualifies, ${senderFirstName} receives 50% off an eligible base cleaning too.
 
-I thought this might save you the mess of cleaning the bins yourself!`;
+${senderFirstName} thought this might save you the mess of cleaning the bins yourself!`;
 
   async function copy(value: string, successMessage: string) {
     try {
@@ -46,7 +53,7 @@ I thought this might save you the mess of cleaning the bins yourself!`;
 
   async function inviteFriends() {
     const absoluteUrl = `${window.location.origin}${signupPath}`;
-    const shareText = `Trash and recycling bins get nasty fast. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use my referral code ${code} for 50% off your first eligible Monthly base cleaning. I get 50% off too after your referral qualifies.`;
+    const shareText = `${senderFirstName} thought you might like this. Trash and recycling bins get nasty fast. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use ${senderFirstName}'s referral code ${code} for 50% off your first eligible Monthly base cleaning. ${senderFirstName} gets 50% off too after your referral qualifies.`;
 
     if (typeof navigator.share === "function") {
       try {
@@ -68,6 +75,9 @@ I thought this might save you the mess of cleaning the bins yourself!`;
           Permanent referral code
         </p>
         <p className="mt-1 text-2xl font-black tracking-wide text-zinc-950">{code}</p>
+        <p className="mt-2 text-sm font-semibold text-zinc-800">
+          Invitations identify {senderFirstName} as the sender.
+        </p>
         <p className="mt-2 break-all text-sm text-zinc-700">{shareUrl}</p>
       </div>
 
