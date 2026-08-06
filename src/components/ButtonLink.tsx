@@ -24,11 +24,11 @@ export function ButtonLink({
   const isExternal = /^https?:\/\//i.test(href);
 
   const base =
-    "inline-flex items-center justify-center rounded-md px-5 py-3 text-sm font-semibold shadow-sm transition";
+    "inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-extrabold shadow-lg transition duration-200 hover:-translate-y-0.5";
   const styles =
     variant === "secondary"
-      ? "border border-zinc-200 bg-white text-zinc-900 hover:bg-brand-50"
-      : "bg-brand-700 text-white hover:bg-zinc-900";
+      ? "border border-brand-300 bg-white text-brand-900 shadow-brand-950/10 hover:border-brand-500 hover:bg-brand-50"
+      : "bg-red-600 text-white shadow-red-950/25 hover:bg-red-700";
 
   const classes = cx(base, styles, className);
 
@@ -40,7 +40,6 @@ export function ButtonLink({
     );
   }
 
-  // Internal route
   return (
     <Link href={href} className={classes} {...(anchorProps as any)}>
       {children}
