@@ -25,7 +25,7 @@ export async function GET() {
         addressSimulatorMakesExternalRequests: false,
         taxSimulatorCreatesAuthoritativeTax: false,
         notificationSimulatorDeliversMessages: false,
-        stripeCheckoutEnabled: status.stripe === "test" ? false : false,
+        stripeCheckoutEnabled: false,
       },
       commit:
         process.env.VERCEL_GIT_COMMIT_SHA ??
