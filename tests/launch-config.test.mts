@@ -8,7 +8,10 @@ import {
 test("ONE45 is the locked public new-customer campaign code", () => {
   const campaign = BIN_CLEANING_LAUNCH_CONFIG.discounts.one45;
 
-  assert.equal(BIN_CLEANING_LAUNCH_CONFIG.configVersion, "2026-08-04-launch-rules-v3");
+  assert.equal(
+    BIN_CLEANING_LAUNCH_CONFIG.configVersion,
+    "2026-08-05-launch-rules-v4",
+  );
   assert.equal(ONE45_PROMO_CODE, "ONE45");
   assert.equal(campaign.code, "ONE45");
   assert.equal(campaign.publiclyAdvertisedOnGeneralWebsite, true);
@@ -42,17 +45,31 @@ test("launch discounts remain mutually exclusive and single-use", () => {
     false,
   );
   assert.equal(
-    BIN_CLEANING_LAUNCH_CONFIG.discounts.new25.maximumSuccessfulRedemptionsPerCustomer,
+    BIN_CLEANING_LAUNCH_CONFIG.discounts.new25
+      .maximumSuccessfulRedemptionsPerCustomer,
     1,
   );
 });
 
-test("launch operations preserve the approved route and payment rules", () => {
+test("launch operations preserve route, recycling, and payment rules", () => {
   const operations = BIN_CLEANING_LAUNCH_CONFIG.operations;
 
   assert.equal(
-    operations.cleaningDayRule,
-    "next-calendar-day-after-trash-collection",
+    operations.trashOnlyCleaningDayRule,
+    "next-calendar-day-after-eligible-trash-collection",
+  );
+  assert.equal(
+    operations.recyclingIncludedCleaningDayRule,
+    "next-calendar-day-after-next-verified-recycling-collection",
+  );
+  assert.equal(operations.recyclingCadenceRequiresAnchorCollectionDate, true);
+  assert.equal(
+    operations.recyclingIncludedMayDelayFirstServicePastNextTrashPickup,
+    true,
+  );
+  assert.equal(
+    operations.differentTrashAndRecyclingWeekdaysRequireStaffReview,
+    true,
   );
   assert.equal(operations.returnToDesignatedStorageLocationIncluded, true);
   assert.equal(operations.failedRecurringPaymentGraceDays, 7);
