@@ -37,7 +37,7 @@ test("portal referral sharing supports native share, text, email, code, and link
     readFile(portalPath, "utf8"),
   ]);
 
-  assert.match(portal, /<ReferralShare code=\{referrals\[0\]\?\.code\} \/>/);
+  assert.match(portal, /senderName=\{customer\.full_name\}/);
   assert.match(referral, /navigator\.share/);
   assert.match(referral, /sms:\?&body=/);
   assert.match(referral, /mailto:\?subject=/);
@@ -46,15 +46,18 @@ test("portal referral sharing supports native share, text, email, code, and link
   assert.match(referral, /does not\s+collect or store your friend/);
 });
 
-test("referral invitations explain the problem, service, discount, and mutual reward", async () => {
+test("referral invitations explain the problem, service, discount, mutual reward, and sender", async () => {
   const referral = await readFile(referralPath, "utf8");
 
-  assert.match(referral, /Skip the dirty-bin mess/);
+  assert.match(referral, /senderFirstName/);
+  assert.match(referral, /sent you 50% off ADS Bin Cleaning/);
+  assert.match(referral, /thought you might like this/);
   assert.match(referral, /odor, grime, leaked bags, and buildup/);
   assert.match(referral, /clean, sanitize, and deodorize/);
   assert.match(referral, /return them to the designated storage spot/);
   assert.match(referral, /50% off your first eligible Monthly base cleaning/);
-  assert.match(referral, /after your referral qualifies, I receive 50% off/);
+  assert.match(referral, /after your referral qualifies/);
+  assert.match(referral, /Invitations identify \{senderFirstName\} as the sender/);
 });
 
 test("portal explains which bins need cleaning without changing paid bin count", async () => {
