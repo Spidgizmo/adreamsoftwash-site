@@ -7,6 +7,7 @@ import { ReferralShare } from "@/components/bin-cleaning/ReferralShare";
 import { portalCustomer } from "@/lib/bin-cleaning/queries";
 import { databaseRequest } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/bin-cleaning-plans";
+import { RECYCLING_ALIGNMENT_EXPLANATION } from "@/lib/bin-cleaning/scheduling";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,14 @@ const days = [
   "Saturday",
 ];
 
+function cadenceLabel(frequencyWeeks: number) {
+  return frequencyWeeks === 1
+    ? "every week"
+    : frequencyWeeks === 2
+      ? "every other week"
+      : `every ${frequencyWeeks} weeks`;
+}
+
 export default async function PortalPage({
   searchParams,
 }: {
@@ -27,7 +36,8 @@ export default async function PortalPage({
 }) {
   const customer = await portalCustomer();
   const address = customer.service_addresses[0];
-  const schedule = address?.trash_pickup_schedules[0];
+  const trashSchedule = address?.trash_pickup_schedules[0];
+  const recyclingSchedule = address?.recycling_pickup_schedules[0];
   const subscription = customer.subscriptions[0];
 
   const bins = await databaseRequest<
@@ -35,10 +45,11 @@ export default async function PortalPage({
       id: string;
       identifier: string | null;
       description: string | null;
+      collection_stream: "trash" | "recycling" | "other";
       dirty_this_visit: boolean;
     }[]
   >(
-    `bins?service_address_id=eq.${address.id}&select=id,identifier,description,dirty_this_visit`,
+    `bins?service_address_id=eq.${address.id}&select=id,identifier,description,collection_stream,dirty_this_visit`,
   );
 
   const preferences = (
@@ -111,12 +122,26 @@ export default async function PortalPage({
             {address.line1}, {address.city}, {address.region} {address.postal_code}
           </Definition>
           <Definition label="Trash pickup">
-            {schedule?.weekday == null ? "Unverified" : days[schedule.weekday]} ·{" "}
-            {schedule?.source}
+            {trashSchedule?.weekday == null
+              ? "Unverified"
+              : days[trashSchedule.weekday]}{" "}
+            · {trashSchedule?.source}
+          </Definition>
+          <Definition label="Recycling pickup">
+            {recyclingSchedule
+              ? `${days[recyclingSchedule.weekday]} · ${cadenceLabel(recyclingSchedule.frequency_weeks)} · reference pickup ${recyclingSchedule.anchor_collection_date}`
+              : "Not recorded"}
+          </Definition>
+          <Definition label="Service alignment">
+            {subscription?.service_alignment === "recycling_collection"
+              ? "After an eligible recycling collection"
+              : subscription?.service_alignment === "staff_review_required"
+                ? "Staff review required"
+                : "After an eligible trash collection"}
           </Definition>
           <Definition label="Normal cleaning">
-            {schedule?.cleaning_day_assignments[0]
-              ? days[schedule.cleaning_day_assignments[0].normal_weekday]
+            {trashSchedule?.cleaning_day_assignments[0]
+              ? days[trashSchedule.cleaning_day_assignments[0].normal_weekday]
               : "Pending"}
           </Definition>
           <Definition label="Next service">
@@ -129,6 +154,13 @@ export default async function PortalPage({
             {address.access_instructions ?? "None"}
           </Definition>
         </dl>
+
+        {bins.some((bin) => bin.collection_stream === "recycling") && (
+          <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+            <strong>Why your service may not be on the next trash week:</strong>{" "}
+            {RECYCLING_ALIGNMENT_EXPLANATION}
+          </div>
+        )}
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -159,7 +191,10 @@ export default async function PortalPage({
             <Stat
               label="Available credit"
               value={formatCurrency(
-                credits.reduce((total, credit) => total + credit.remaining_cents, 0),
+                credits.reduce(
+                  (total, credit) => total + credit.remaining_cents,
+                  0,
+                ),
               )}
             />
           </div>
@@ -240,6 +275,56 @@ export default async function PortalPage({
               className="mt-1 w-full rounded-lg border p-3"
             />
           </label>
+
+          <fieldset className="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:col-span-2">
+            <legend className="px-2 font-black text-blue-950">
+              Recycling schedule correction
+            </legend>
+            <p className="mb-4 text-sm text-blue-950">
+              Submit all three fields only when the recorded recycling schedule
+              is missing or wrong. The date identifies which alternating week is
+              your recycling week. Staff must verify the request before it
+              changes routing.
+            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <label className="font-semibold">
+                Recycling weekday
+                <select
+                  name="recycling_weekday"
+                  defaultValue={recyclingSchedule?.weekday ?? ""}
+                  className="mt-1 w-full rounded-lg border bg-white p-3"
+                >
+                  <option value="">Select day</option>
+                  {days.map((day, index) => (
+                    <option value={index} key={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="font-semibold">
+                Pickup frequency
+                <select
+                  name="recycling_frequency_weeks"
+                  defaultValue={recyclingSchedule?.frequency_weeks ?? ""}
+                  className="mt-1 w-full rounded-lg border bg-white p-3"
+                >
+                  <option value="">Select frequency</option>
+                  <option value="1">Every week</option>
+                  <option value="2">Every other week</option>
+                </select>
+              </label>
+              <label className="font-semibold">
+                Next scheduled recycling pickup
+                <input
+                  type="date"
+                  name="recycling_next_collection_date"
+                  className="mt-1 w-full rounded-lg border bg-white p-3"
+                />
+              </label>
+            </div>
+          </fieldset>
+
           <fieldset className="rounded-xl border p-4 sm:col-span-2">
             <legend className="px-2 font-black">
               Which bins need cleaning on your next visit?
@@ -249,14 +334,17 @@ export default async function PortalPage({
               does not change the number of bins on your paid plan.
             </p>
             {bins.map((bin) => (
-              <label className="mr-4 inline-flex items-center gap-2" key={bin.id}>
+              <label
+                className="mr-4 inline-flex items-center gap-2"
+                key={bin.id}
+              >
                 <input
                   type="checkbox"
                   name="dirty_bin"
                   value={bin.id}
                   defaultChecked={bin.dirty_this_visit}
                 />
-                {bin.identifier ?? bin.description}
+                {bin.identifier ?? bin.description} ({bin.collection_stream})
               </label>
             ))}
           </fieldset>
