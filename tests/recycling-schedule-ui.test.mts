@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const signupPath = new URL(
-  "../src/app/bin-cleaning/signup/page.tsx",
+const signupFormPath = new URL(
+  "../src/components/bin-cleaning/BinCleaningSignupForm.tsx",
   import.meta.url,
 );
 const schedulingPath = new URL(
@@ -19,17 +19,20 @@ const portalRoutePath = new URL(
   import.meta.url,
 );
 
-test("signup preview collects enough information to identify alternating recycling weeks", async () => {
+test("working signup collects enough information to identify alternating recycling weeks", async () => {
   const [signup, scheduling] = await Promise.all([
-    readFile(signupPath, "utf8"),
+    readFile(signupFormPath, "utf8"),
     readFile(schedulingPath, "utf8"),
   ]);
 
-  assert.match(signup, /Which bins are being cleaned: trash, recycling, or other/);
+  assert.match(signup, /Trash bins/);
+  assert.match(signup, /Recycling bins/);
+  assert.match(signup, /Other carts/);
   assert.match(signup, /Recycling pickup day/);
-  assert.match(signup, /Recycling frequency: weekly or every other week/);
+  assert.match(signup, /Recycling frequency/);
   assert.match(signup, /Next scheduled recycling pickup date/);
-  assert.match(signup, /identify the correct alternating week/);
+  assert.match(signup, /Every-other-week service needs an exact next pickup date as its anchor/);
+  assert.match(signup, /staff scheduling review instead of automatic assignment/);
   assert.match(scheduling, /later than the next trash pickup/);
 });
 

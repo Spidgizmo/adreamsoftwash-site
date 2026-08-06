@@ -10,6 +10,10 @@ const signupPagePath = new URL(
   "../src/app/bin-cleaning/signup/page.tsx",
   import.meta.url,
 );
+const signupFormPath = new URL(
+  "../src/components/bin-cleaning/BinCleaningSignupForm.tsx",
+  import.meta.url,
+);
 const calculatorPath = new URL(
   "../src/components/BinCleaningCalculator.tsx",
   import.meta.url,
@@ -28,7 +32,7 @@ test("referral codes are normalized without confusing them with promo codes", ()
   assert.equal(isPlausibleBinCleaningReferralCode("bad code!"), false);
 });
 
-test("signup accepts separate promo and referral link parameters", async () => {
+test("working signup accepts separate promo and referral link parameters", async () => {
   const source = await readFile(signupPagePath, "utf8");
   assert.match(source, /promo\?: string \| string\[\]/);
   assert.match(source, /ref\?: string \| string\[\]/);
@@ -36,11 +40,23 @@ test("signup accepts separate promo and referral link parameters", async () => {
     source,
     /normalizeBinCleaningReferralCode\(searchParams\.ref\)/,
   );
-  assert.match(source, /enableReferralCode/);
+  assert.match(source, /initialPromoCode=\{initialPromoCode\}/);
   assert.match(source, /initialReferralCode=\{initialReferralCode\}/);
+  assert.match(source, /one discount type only/);
 });
 
-test("applying one code clears and locks the other discount type", async () => {
+test("working form clears and locks the other discount type", async () => {
+  const source = await readFile(signupFormPath, "utf8");
+  assert.match(source, /promoCode: referral \? "" : promo/);
+  assert.match(source, /referralCode: referral/);
+  assert.match(source, /disabled=\{Boolean\(normalizedReferral\)\}/);
+  assert.match(source, /disabled=\{Boolean\(normalizedPromo\)\}/);
+  assert.match(source, /promoCode: event\.target\.value, referralCode: event\.target\.value \? ""/);
+  assert.match(source, /referralCode: event\.target\.value, promoCode: event\.target\.value \? ""/);
+  assert.match(source, /Use one or the other\. They never stack\./);
+});
+
+test("existing calculator still prevents stacked submitted discounts", async () => {
   const source = await readFile(calculatorPath, "utf8");
   assert.match(source, /id="promo-code"/);
   assert.match(source, /id="referral-code"/);
@@ -48,9 +64,5 @@ test("applying one code clears and locks the other discount type", async () => {
   assert.match(source, /setSubmittedReferralCode\(""\)/);
   assert.match(source, /setPromoEntry\(""\)/);
   assert.match(source, /setSubmittedPromoCode\(""\)/);
-  assert.match(source, /disabled=\{hasSubmittedReferral\}/);
-  assert.match(source, /disabled=\{hasAppliedPromotion\}/);
-  assert.match(source, /Remove promo code/);
-  assert.match(source, /Remove referral code/);
   assert.match(source, /cannot be combined on the same signup/);
 });
