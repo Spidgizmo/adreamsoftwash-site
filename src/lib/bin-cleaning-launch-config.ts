@@ -1,7 +1,7 @@
 export const ONE45_PROMO_CODE = "ONE45" as const;
 
 export const BIN_CLEANING_LAUNCH_CONFIG = {
-  configVersion: "2026-08-04-launch-rules-v3",
+  configVersion: "2026-08-05-launch-rules-v4",
   catalogVersion: "2026-08-02-approved-pricing",
   owner: "James Gibbs",
   publicDomain: "www.acleanbin.com",
@@ -47,7 +47,13 @@ export const BIN_CLEANING_LAUNCH_CONFIG = {
     },
   },
   operations: {
-    cleaningDayRule: "next-calendar-day-after-trash-collection",
+    trashOnlyCleaningDayRule:
+      "next-calendar-day-after-eligible-trash-collection",
+    recyclingIncludedCleaningDayRule:
+      "next-calendar-day-after-next-verified-recycling-collection",
+    recyclingCadenceRequiresAnchorCollectionDate: true,
+    recyclingIncludedMayDelayFirstServicePastNextTrashPickup: true,
+    differentTrashAndRecyclingWeekdaysRequireStaffReview: true,
     holidayAdjustedCollectionMovesCleaningDay: true,
     returnToDesignatedStorageLocationIncluded: true,
     failedRecurringPaymentGraceDays: 7,
