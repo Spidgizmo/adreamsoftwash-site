@@ -1,0 +1,57 @@
+name: Temporary Next.js security bump
+
+on:
+  pull_request:
+    branches:
+      - feature/ads-bin-cleaning-launch
+    paths:
+      - ".github/workflows/temporary-next-security-bump.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-dependencies:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.head_ref == 'codex/begin-agent-2-for-ads-bin-cleaning'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/begin-agent-2-for-ads-bin-cleaning
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install patched Next.js 14 release
+        run: |
+          npm install next@14.2.35 --save-exact
+          npm install eslint-config-next@14.2.35 --save-dev --save-exact
+
+      - name: Verify application and runtime dependencies
+        run: |
+          npm test
+          npm run typecheck
+          npm run lint
+          npm run build
+          npm audit --omit=dev --audit-level=high
+
+      - name: Commit generated lockfile and remove temporary workflow
+        run: |
+          rm .github/workflows/temporary-next-security-bump.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json .github/workflows/temporary-next-security-bump.yml
+          if git diff --cached --quiet; then
+            echo "No dependency changes were needed."
+            exit 0
+          fi
+          git commit -m "Upgrade Next.js to patched 14.2.35"
+          git push origin HEAD:codex/begin-agent-2-for-ads-bin-cleaning
