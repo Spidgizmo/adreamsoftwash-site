@@ -16,12 +16,11 @@ test("customer portal navigation does not expose staff destinations", async () =
   );
   assert.match(source, /"Internal CRM": \[/);
   assert.match(source, /"Field work": \[/);
-  assert.doesNotMatch(
-    source,
-    /"Customer portal": \[[\s\S]*?\/bin-cleaning\/crm/,
-  );
-  assert.doesNotMatch(
-    source,
-    /"Customer portal": \[[\s\S]*?\/bin-cleaning\/field\/visits\/assigned/,
-  );
+
+  const portalBlock = source.match(
+    /"Customer portal": \[([\s\S]*?)\],\s*"Internal CRM"/,
+  )?.[1];
+  assert.ok(portalBlock, "customer portal navigation block exists");
+  assert.doesNotMatch(portalBlock, /\/bin-cleaning\/crm/);
+  assert.doesNotMatch(portalBlock, /\/bin-cleaning\/field\/visits\/assigned/);
 });
