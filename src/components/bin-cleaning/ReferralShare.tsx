@@ -80,6 +80,11 @@ ${senderFirstName} thought this might save you the mess of cleaning the bins you
         <p className="mt-2 text-sm font-semibold text-zinc-800">
           Invitations identify {senderFirstName} as the sender.
         </p>
+        <p className="mt-2 text-sm text-zinc-700">
+          Your first qualified referral earns 50% off one eligible Monthly base
+          cleaning. Each later qualified referral earns 25% off one eligible
+          Monthly base cleaning. Rewards apply one per invoice and do not stack.
+        </p>
         <p className="mt-2 break-all text-sm text-zinc-700">{shareUrl}</p>
       </div>
 
