@@ -57,8 +57,14 @@ test("referral invitations explain the service, sender, future code, and tiered 
   assert.match(referral, /cleans, sanitizes, and deodorizes/);
   assert.match(referral, /returns them to the designated storage spot/);
   assert.match(referral, /50% off your first eligible Monthly base cleaning/);
-  assert.match(referral, /50% for their first qualified referral/);
-  assert.match(referral, /25% for later qualified referrals/);
+  assert.match(
+    referral,
+    /50% off an eligible base cleaning for their first qualified referral/,
+  );
+  assert.match(
+    referral,
+    /25% off an eligible base cleaning for each later qualified referral/,
+  );
   assert.match(referral, /your own permanent referral code to share/);
   assert.match(referral, /Rewards apply one per invoice and do not stack/);
   assert.match(referral, /Invitations identify \{senderFirstName\} as the sender/);
