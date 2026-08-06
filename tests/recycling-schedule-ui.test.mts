@@ -6,6 +6,10 @@ const signupPath = new URL(
   "../src/app/bin-cleaning/signup/page.tsx",
   import.meta.url,
 );
+const schedulingPath = new URL(
+  "../src/lib/bin-cleaning/scheduling.ts",
+  import.meta.url,
+);
 const portalPath = new URL(
   "../src/app/bin-cleaning/portal/page.tsx",
   import.meta.url,
@@ -16,14 +20,17 @@ const portalRoutePath = new URL(
 );
 
 test("signup preview collects enough information to identify alternating recycling weeks", async () => {
-  const signup = await readFile(signupPath, "utf8");
+  const [signup, scheduling] = await Promise.all([
+    readFile(signupPath, "utf8"),
+    readFile(schedulingPath, "utf8"),
+  ]);
 
   assert.match(signup, /Which bins are being cleaned: trash, recycling, or other/);
   assert.match(signup, /Recycling pickup day/);
   assert.match(signup, /Recycling frequency: weekly or every other week/);
   assert.match(signup, /Next scheduled recycling pickup date/);
-  assert.match(signup, /weekday alone is insufficient/);
-  assert.match(signup, /first cleaning may be later than the next trash pickup/);
+  assert.match(signup, /identify the correct alternating week/);
+  assert.match(scheduling, /later than the next trash pickup/);
 });
 
 test("portal displays recycling cadence and accepts a staff-reviewed correction", async () => {
@@ -37,7 +44,10 @@ test("portal displays recycling cadence and accepts a staff-reviewed correction"
   assert.match(portal, /recycling_weekday/);
   assert.match(portal, /recycling_frequency_weeks/);
   assert.match(portal, /recycling_next_collection_date/);
-  assert.match(portal, /Staff must verify the request before it changes routing/);
+  assert.match(
+    portal,
+    /Staff must verify the request before it\s+changes routing/,
+  );
 
   assert.match(route, /request_type: "recycling_schedule"/);
   assert.match(route, /next_collection_date: recyclingDate/);
