@@ -182,14 +182,24 @@ export type SimulatedNotification = Readonly<{
   body: string;
 }>;
 
+function isFictionalRecipient(
+  channel: "email" | "sms",
+  recipient: string,
+): boolean {
+  if (channel === "email") return recipient.toLowerCase().endsWith(".test");
+  return /^\+?1555\d{7}$/.test(recipient.replace(/[()\- .]/g, ""));
+}
+
 export function simulateNotification(input: {
   channel: "email" | "sms";
   fictionalRecipient: string;
   subject?: string;
   body: string;
 }): SimulatedNotification {
-  if (!input.fictionalRecipient.endsWith(".test")) {
-    throw new Error("The notification simulator accepts fictional .test recipients only.");
+  if (!isFictionalRecipient(input.channel, input.fictionalRecipient)) {
+    throw new Error(
+      "The notification simulator accepts only fictional .test email addresses or reserved 555 test phone numbers.",
+    );
   }
 
   return {
