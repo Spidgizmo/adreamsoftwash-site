@@ -145,7 +145,7 @@ export default function HomePage() {
                   Real ADS work
                 </p>
                 <p className="mt-2 text-2xl font-black text-white">
-                  Your photographs. Your results. No stock-photo pretending.
+                  Real ADS projects. Real cleaning results.
                 </p>
                 <Link
                   href="/gallery"
@@ -222,11 +222,12 @@ export default function HomePage() {
                 Real work from ADS
               </p>
               <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
-                The photographs do not need a gimmick to prove the change.
+                Clear results without stock-photo gimmicks.
               </h2>
               <p className="mt-4 text-lg leading-8 text-sky-100">
-                These are ADS-owned project photographs displayed as clear,
-                static results. No forced slider and no outside stock imagery.
+                Every photograph shown here comes from ADS work. Browse the
+                gallery to see the real changes across roofs, siding, and
+                concrete.
               </p>
             </div>
 
