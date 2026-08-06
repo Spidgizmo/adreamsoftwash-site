@@ -14,6 +14,10 @@ const migrationPath = new URL(
   "../supabase/migrations/202608060001_fictional_signup_intake.sql",
   import.meta.url,
 );
+const serverOnlyMigrationPath = new URL(
+  "../supabase/migrations/202608060045_server_only_signup_rpc.sql",
+  import.meta.url,
+);
 
 test("Step 4 validation covers fictional data, schedules, and discount exclusivity", async () => {
   const source = await readFile(validatorPath, "utf8");
@@ -30,12 +34,12 @@ test("Step 4 validation covers fictional data, schedules, and discount exclusivi
   assert.match(source, /safetyNotes/);
 });
 
-test("signup API saves through the anon RPC boundary and stops before Stripe", async () => {
+test("signup API saves through the server-only RPC boundary and stops before Stripe", async () => {
   const source = await readFile(apiPath, "utf8");
 
   assert.match(source, /save_fictional_signup_lead/);
-  assert.match(source, /NEXT_PUBLIC_SUPABASE_ANON_KEY/);
-  assert.doesNotMatch(source, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(source, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.doesNotMatch(source, /NEXT_PUBLIC_SUPABASE_ANON_KEY/);
   assert.doesNotMatch(source, /STRIPE_SECRET_KEY/);
   assert.match(source, /stripeMode: "disabled"/);
   assert.match(source, /checkoutStarted: false/);
@@ -43,16 +47,18 @@ test("signup API saves through the anon RPC boundary and stops before Stripe", a
   assert.match(source, /isStagingEnvironment/);
 });
 
-test("database intake uses opaque token hashes, RLS, and staff-only CRM reads", async () => {
+test("database intake uses opaque token hashes, RLS, staff-only CRM reads, and server-only writes", async () => {
   const source = await readFile(migrationPath, "utf8");
+  const serverOnlySource = await readFile(serverOnlyMigrationPath, "utf8");
 
   assert.match(source, /edit_token_hash text not null/);
   assert.match(source, /digest\(v_token,'sha256'\)/);
   assert.match(source, /enable row level security/);
   assert.match(source, /signup_leads_staff_read/);
-  assert.match(source, /to anon, authenticated, service_role/);
   assert.match(source, /Promo and referral discounts cannot be combined/);
   assert.match(source, /submitted_unpaid/);
+  assert.match(serverOnlySource, /from anon, authenticated/);
+  assert.match(serverOnlySource, /to service_role/);
   assert.doesNotMatch(source, /stripe_customer_id/i);
   assert.doesNotMatch(source, /payment_intent/i);
 });
