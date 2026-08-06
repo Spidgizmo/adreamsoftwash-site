@@ -16,8 +16,24 @@ export function ReferralShare({ code }: { code: string | null | undefined }) {
 
   const signupPath = `/bin-cleaning/signup?ref=${encodeURIComponent(code)}`;
   const shareUrl = origin ? `${origin}${signupPath}` : signupPath;
-  const subject = "Get 50% off ADS Bin Cleaning";
-  const message = `I use ADS Bin Cleaning. Use my referral code ${code} when you sign up for an eligible Monthly plan. You can get 50% off your first eligible base cleaning, and I can get 50% off my next eligible base cleaning after the referral qualifies. ${shareUrl}`;
+  const subject = "Skip the dirty-bin mess — get 50% off";
+  const textMessage = `Hey! Trash and recycling bins get nasty fast. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use my referral code ${code} for 50% off your first eligible Monthly base cleaning: ${shareUrl} I get 50% off too after your referral qualifies.`;
+  const emailMessage = `Hey,
+
+Trash and recycling bins can get nasty fast—odor, grime, leaked bags, and buildup that a quick hose-off does not really fix.
+
+I use ADS Bin Cleaning. They professionally clean, sanitize, and deodorize the bins after collection, then return them to the designated storage spot.
+
+I am sharing my referral because you can get 50% off your first eligible Monthly base cleaning.
+
+Use referral code: ${code}
+
+Claim the offer here:
+${shareUrl}
+
+Full disclosure: after your referral qualifies, I receive 50% off an eligible base cleaning too.
+
+I thought this might save you the mess of cleaning the bins yourself!`;
 
   async function copy(value: string, successMessage: string) {
     try {
@@ -30,7 +46,7 @@ export function ReferralShare({ code }: { code: string | null | undefined }) {
 
   async function inviteFriends() {
     const absoluteUrl = `${window.location.origin}${signupPath}`;
-    const shareText = `Use my ADS Bin Cleaning referral code ${code}. We can each receive 50% off an eligible base cleaning after the referral qualifies.`;
+    const shareText = `Trash and recycling bins get nasty fast. ADS Bin Cleaning professionally cleans, sanitizes, deodorizes, and returns them after pickup. Use my referral code ${code} for 50% off your first eligible Monthly base cleaning. I get 50% off too after your referral qualifies.`;
 
     if (typeof navigator.share === "function") {
       try {
@@ -64,13 +80,13 @@ export function ReferralShare({ code }: { code: string | null | undefined }) {
           Invite friends
         </button>
         <a
-          href={`sms:?&body=${encodeURIComponent(message)}`}
+          href={`sms:?&body=${encodeURIComponent(textMessage)}`}
           className="rounded-lg border border-brand-300 bg-white px-4 py-3 text-center font-bold text-brand-800 hover:bg-brand-50"
         >
           Text invitation
         </a>
         <a
-          href={`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`}
+          href={`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailMessage)}`}
           className="rounded-lg border border-brand-300 bg-white px-4 py-3 text-center font-bold text-brand-800 hover:bg-brand-50"
         >
           Email invitation
