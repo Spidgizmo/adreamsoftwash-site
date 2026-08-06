@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BinCleaningCalculator } from "@/components/BinCleaningCalculator";
 import { Container } from "@/components/Container";
+import { RECYCLING_ALIGNMENT_EXPLANATION } from "@/lib/bin-cleaning/scheduling";
 import {
   NEW25_PROMO_CODE,
   ONE45_PROMO_CODE,
@@ -16,15 +17,21 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const FIELDS = [
+const CONTACT_FIELDS = [
   "Name",
   "Mobile number",
   "Email address",
   "Service address",
-  "Trash pickup day",
-  "Recycling information",
   "Designated bin-return location",
   "Access instructions",
+];
+
+const COLLECTION_FIELDS = [
+  "Trash pickup day",
+  "Which bins are being cleaned: trash, recycling, or other",
+  "Recycling pickup day",
+  "Recycling frequency: weekly or every other week",
+  "Next scheduled recycling pickup date",
 ];
 
 type SignupSearchParams = {
@@ -135,8 +142,9 @@ export default function SignupFoundationPage({
             <p className="mt-2 text-sm text-zinc-600">
               Fields are disabled because online signup is not yet available.
             </p>
+
             <div className="mt-6 grid gap-5 md:grid-cols-2">
-              {FIELDS.map((field) => (
+              {CONTACT_FIELDS.map((field) => (
                 <label
                   key={field}
                   className="text-sm font-bold text-zinc-800"
@@ -150,6 +158,39 @@ export default function SignupFoundationPage({
                 </label>
               ))}
             </div>
+
+            <div className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+              <h3 className="text-lg font-black text-blue-950">
+                Trash and recycling collection schedule
+              </h3>
+              <p className="mt-2 text-sm text-blue-950">
+                {RECYCLING_ALIGNMENT_EXPLANATION}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-blue-950">
+                To identify the correct alternating week, customers selecting a
+                recycling cart must provide the weekday and the date of their
+                next scheduled recycling pickup. If trash and recycling are
+                collected on different weekdays, the signup goes to staff review
+                instead of being scheduled automatically.
+              </p>
+
+              <div className="mt-5 grid gap-5 md:grid-cols-2">
+                {COLLECTION_FIELDS.map((field) => (
+                  <label
+                    key={field}
+                    className="text-sm font-bold text-zinc-800"
+                  >
+                    {field}
+                    <input
+                      disabled
+                      placeholder="Available when signup opens"
+                      className="mt-2 h-11 w-full cursor-not-allowed rounded-lg border border-zinc-300 bg-zinc-100 px-3 text-zinc-500 disabled:opacity-100"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-6 rounded-xl bg-zinc-100 p-4 text-sm text-zinc-700">
               <strong>Pricing summary:</strong> Choose a plan and bin count
               above, then use either one promotional code or one permanent
