@@ -186,7 +186,10 @@ export default async function PortalPage({
             base cleaning, and your reward becomes available after the referral
             qualifies.
           </p>
-          <ReferralShare code={referrals[0]?.code} />
+          <ReferralShare
+            code={referrals[0]?.code}
+            senderName={customer.full_name}
+          />
           <div className="mt-4">
             <Stat
               label="Available credit"
