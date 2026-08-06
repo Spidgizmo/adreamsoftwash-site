@@ -10,6 +10,14 @@ const routePath = new URL(
   "../src/app/api/bin-cleaning/test-integrations/route.ts",
   import.meta.url,
 );
+const verifierPath = new URL(
+  "../scripts/verify-hosted-staging.mjs",
+  import.meta.url,
+);
+const workflowPath = new URL(
+  "../.github/workflows/staging-smoke-verification.yml",
+  import.meta.url,
+);
 const envPath = new URL("../.env.example", import.meta.url);
 
 test("protected integration credentials are not named as browser-public values", async () => {
@@ -25,15 +33,24 @@ test("protected integration credentials are not named as browser-public values",
   assert.doesNotMatch(env, /NEXT_PUBLIC_TEST_SMS_API_KEY/);
 });
 
-test("Step 3 defaults to safe simulators and keeps Stripe disabled until Step 8", async () => {
+test("Step 3 requires safe simulators and keeps Stripe disabled until Step 8", async () => {
   const [integration, env] = await Promise.all([
     readFile(integrationPath, "utf8"),
     readFile(envPath, "utf8"),
   ]);
 
-  assert.match(integration, /ADDRESS_VALIDATION_MODE[\s\S]*"simulator"/);
-  assert.match(integration, /TAX_CALCULATION_MODE[\s\S]*"simulator"/);
-  assert.match(integration, /NOTIFICATION_MODE[\s\S]*"simulator"/);
+  assert.match(integration, /validateStep3IntegrationConfiguration/);
+  assert.match(
+    integration,
+    /Step 3 requires ADDRESS_VALIDATION_MODE=simulator/,
+  );
+  assert.match(integration, /Step 3 requires TAX_CALCULATION_MODE=simulator/);
+  assert.match(integration, /Step 3 requires NOTIFICATION_MODE=simulator/);
+  assert.match(
+    integration,
+    /Step 3 requires STRIPE_INTEGRATION_MODE=disabled/,
+  );
+  assert.match(integration, /STRIPE_INTEGRATION_MODE must be disabled or test/);
   assert.match(env, /STRIPE_INTEGRATION_MODE=disabled/);
   assert.match(env, /Step 8 is the first checkout step/);
 });
@@ -41,6 +58,8 @@ test("Step 3 defaults to safe simulators and keeps Stripe disabled until Step 8"
 test("simulators cannot send messages or invent authoritative tax", async () => {
   const integration = await readFile(integrationPath, "utf8");
 
+  assert.match(integration, /runStep3SimulatorProbe/);
+  assert.match(integration, /123 Fictional Avenue/);
   assert.match(integration, /delivered: false/);
   assert.match(integration, /taxCents: null/);
   assert.match(integration, /does not invent a live taxability decision or tax rate/);
@@ -48,15 +67,35 @@ test("simulators cannot send messages or invent authoritative tax", async () => 
   assert.match(integration, /reserved 555 test phone numbers/);
 });
 
-test("staging integration health response is redacted", async () => {
+test("staging integration response executes probes and remains redacted", async () => {
   const route = await readFile(routePath, "utf8");
 
-  assert.match(route, /secretValuesReturned: false/);
-  assert.match(route, /notificationSimulatorDeliversMessages: false/);
+  assert.match(route, /validateStep3IntegrationConfiguration/);
+  assert.match(route, /runStep3SimulatorProbe/);
+  assert.match(route, /sensitiveValuesReturned: false/);
+  assert.match(route, /messagesDelivered: false/);
   assert.match(route, /stripeCheckoutEnabled: false/);
+  assert.match(route, /Cache-Control/);
+  assert.doesNotMatch(route, /configured:/);
   assert.doesNotMatch(route, /STRIPE_SECRET_KEY/);
   assert.doesNotMatch(route, /ADDRESS_VALIDATION_API_KEY/);
   assert.doesNotMatch(route, /TAX_PROVIDER_API_KEY/);
   assert.doesNotMatch(route, /TEST_EMAIL_API_KEY/);
   assert.doesNotMatch(route, /TEST_SMS_API_KEY/);
+});
+
+test("hosted verification discovers the Vercel Preview and checks Step 3", async () => {
+  const [verifier, workflow] = await Promise.all([
+    readFile(verifierPath, "utf8"),
+    readFile(workflowPath, "utf8"),
+  ]);
+
+  assert.match(verifier, /deployments\?sha=/);
+  assert.match(verifier, /api\/bin-cleaning\/test-integrations/);
+  assert.match(verifier, /sensitiveValuesReturned/);
+  assert.match(verifier, /stripeCheckoutEnabled/);
+  assert.match(verifier, /ADS_STAGING_TEST_PASSWORD/);
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /deployments: read/);
+  assert.match(workflow, /EXPECTED_COMMIT_SHA/);
 });

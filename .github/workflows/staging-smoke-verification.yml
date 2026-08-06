@@ -2,12 +2,28 @@ name: Verify ADS Bin Cleaning hosted staging
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - feature/ads-bin-cleaning-launch
+    paths:
+      - ".github/workflows/staging-smoke-verification.yml"
+      - "scripts/verify-hosted-staging.mjs"
+      - "src/app/api/bin-cleaning/test-integrations/**"
+      - "src/lib/bin-cleaning/test-integrations.ts"
+      - "tests/secure-test-integrations.test.mts"
+      - ".env.example"
+      - "package.json"
+      - "package-lock.json"
 
 permissions:
   contents: read
+  deployments: read
 
 jobs:
   verify-hosted-staging:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.head_ref == 'codex/begin-agent-2-for-ads-bin-cleaning'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: ads-bin-cleaning-staging
@@ -16,6 +32,9 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       ADS_STAGING_TEST_PASSWORD: ${{ secrets.ADS_STAGING_TEST_PASSWORD }}
+      EXPECTED_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_TOKEN: ${{ github.token }}
 
     steps:
       - uses: actions/checkout@v4

@@ -2,6 +2,7 @@ import "server-only";
 
 export const INTEGRATION_MODES = ["disabled", "simulator", "test"] as const;
 export type IntegrationMode = (typeof INTEGRATION_MODES)[number];
+export type StripeIntegrationMode = "disabled" | "test";
 
 type EnvironmentValues = Readonly<Record<string, string | undefined>>;
 
@@ -9,7 +10,7 @@ export type TestIntegrationStatus = Readonly<{
   addressValidation: IntegrationMode;
   taxCalculation: IntegrationMode;
   notifications: IntegrationMode;
-  stripe: "disabled" | "test";
+  stripe: StripeIntegrationMode;
   configured: Readonly<{
     supabaseServerCredential: boolean;
     addressValidationCredential: boolean;
@@ -18,6 +19,13 @@ export type TestIntegrationStatus = Readonly<{
     smsCredential: boolean;
     stripeTestCredentials: boolean;
   }>;
+}>;
+
+export type Step3IntegrationStatus = Readonly<{
+  addressValidation: "simulator";
+  taxCalculation: "simulator";
+  notifications: "simulator";
+  stripe: "disabled";
 }>;
 
 function integrationMode(
@@ -30,6 +38,14 @@ function integrationMode(
     throw new Error(`${label} must be disabled, simulator, or test.`);
   }
   return normalized as IntegrationMode;
+}
+
+function stripeIntegrationMode(value: string | undefined): StripeIntegrationMode {
+  const normalized = (value ?? "disabled").trim().toLowerCase();
+  if (normalized !== "disabled" && normalized !== "test") {
+    throw new Error("STRIPE_INTEGRATION_MODE must be disabled or test.");
+  }
+  return normalized;
 }
 
 function present(value: string | undefined): boolean {
@@ -64,11 +80,7 @@ export function validateTestIntegrationConfiguration(
     "simulator",
     "NOTIFICATION_MODE",
   );
-  const stripe =
-    (environment.STRIPE_INTEGRATION_MODE ?? "disabled").trim().toLowerCase() ===
-    "test"
-      ? "test"
-      : "disabled";
+  const stripe = stripeIntegrationMode(environment.STRIPE_INTEGRATION_MODE);
 
   requireWhenTest(
     addressValidation,
@@ -120,6 +132,40 @@ export function validateTestIntegrationConfiguration(
         environment.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith("pk_test_") ===
           true,
     },
+  };
+}
+
+export function validateStep3IntegrationConfiguration(
+  environment: EnvironmentValues = process.env,
+): Step3IntegrationStatus {
+  const status = validateTestIntegrationConfiguration(environment);
+
+  if (status.addressValidation !== "simulator") {
+    throw new Error(
+      "Step 3 requires ADDRESS_VALIDATION_MODE=simulator on hosted staging.",
+    );
+  }
+  if (status.taxCalculation !== "simulator") {
+    throw new Error(
+      "Step 3 requires TAX_CALCULATION_MODE=simulator on hosted staging.",
+    );
+  }
+  if (status.notifications !== "simulator") {
+    throw new Error(
+      "Step 3 requires NOTIFICATION_MODE=simulator on hosted staging.",
+    );
+  }
+  if (status.stripe !== "disabled") {
+    throw new Error(
+      "Step 3 requires STRIPE_INTEGRATION_MODE=disabled. Stripe test checkout begins at Step 8.",
+    );
+  }
+
+  return {
+    addressValidation: status.addressValidation,
+    taxCalculation: status.taxCalculation,
+    notifications: status.notifications,
+    stripe: status.stripe,
   };
 }
 
@@ -209,5 +255,39 @@ export function simulateNotification(input: {
     fictionalRecipient: input.fictionalRecipient,
     subject: input.subject?.trim() || null,
     body: input.body,
+  };
+}
+
+export type Step3SimulatorProbe = Readonly<{
+  addressValidation: SimulatedAddressResult;
+  taxCalculation: SimulatedTaxResult;
+  notifications: Readonly<{
+    email: SimulatedNotification;
+    sms: SimulatedNotification;
+  }>;
+}>;
+
+export function runStep3SimulatorProbe(): Step3SimulatorProbe {
+  return {
+    addressValidation: simulateAddressValidation({
+      line1: "123 Fictional Avenue",
+      city: "Toledo",
+      region: "OH",
+      postalCode: "43604",
+    }),
+    taxCalculation: simulateTaxReview(),
+    notifications: {
+      email: simulateNotification({
+        channel: "email",
+        fictionalRecipient: "step3-verification@example.test",
+        subject: "ADS Bin Cleaning Step 3 simulator verification",
+        body: "Fictional staging verification only. Nothing was delivered.",
+      }),
+      sms: simulateNotification({
+        channel: "sms",
+        fictionalRecipient: "+1 (555) 010-0123",
+        body: "ADS fictional staging verification only.",
+      }),
+    },
   };
 }
