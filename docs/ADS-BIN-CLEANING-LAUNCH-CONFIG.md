@@ -1,8 +1,8 @@
 # ADS Bin Cleaning authoritative launch configuration
 
 **Owner:** James Gibbs  
-**Effective date:** 2026-08-04  
-**Configuration version:** `2026-08-04-launch-rules-v3`  
+**Effective date:** 2026-08-05  
+**Configuration version:** `2026-08-05-launch-rules-v4`  
 **System:** ADS Bin Cleaning at `www.acleanbin.com`
 
 This is the single owner-approved launch-rule reference for the website, signup, CRM, Stripe configuration, portal, reporting, scheduling, and tests. Code mirrors these rules in `src/lib/bin-cleaning-launch-config.ts`. Service-plan prices remain sourced only from the versioned central plan catalog.
@@ -65,9 +65,15 @@ The exact promo code is **`ONE45`**: the letters `O-N-E`, followed by the digits
 
 ## 6. Service scheduling and bin return
 
-- Trash pickup day and ADS cleaning day are separate values.
-- Normal ADS cleaning day is the next calendar day after collection.
-- A holiday collection shift moves the ADS cleaning day to the next calendar day after the adjusted collection date.
+- Trash pickup day, recycling pickup schedule, and ADS cleaning day are separate values.
+- Each enrolled bin is identified as trash, recycling, or other.
+- Trash-only service is normally cleaned on the next calendar day after an eligible trash collection.
+- Any service that includes a recycling cart is aligned to the next verified recycling collection so the trash and recycling carts are expected to be empty and available together.
+- Because recycling may be collected every other week, a customer who signs up before a non-recycling trash week waits until the next eligible recycling week. The first cleaning may therefore occur later than the next trash pickup.
+- Signup must collect the recycling weekday, frequency, and an actual next or recent recycling collection date. The date anchors which alternating week is the recycling week; weekday alone is insufficient.
+- If trash and recycling are collected on different weekdays, or the recycling schedule cannot be verified, the signup requires staff review instead of automatic route assignment.
+- The ADS cleaning day remains the next calendar day after the eligible collection date.
+- A holiday collection shift moves the ADS cleaning day to the next calendar day after the adjusted eligible collection date.
 - Cleaned bins are returned to the customer’s designated storage location as part of standard service.
 
 ## 7. Failed recurring payment
