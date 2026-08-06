@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 import {
   MAX_BIN_COUNT,
   PUBLIC_BIN_CLEANING_PLANS,
@@ -26,6 +34,7 @@ const WEEKDAYS = [
 
 type LeadIdentity = Readonly<{ id: string; editToken: string }>;
 type SaveStatus = "incomplete" | "abandoned" | "submitted_unpaid";
+type SaveState = "idle" | "saving" | "saved" | "error" | "submitted";
 
 type FormState = {
   fictionalDataConfirmed: boolean;
@@ -58,6 +67,32 @@ type FormState = {
   termsAccepted: boolean;
 };
 
+type TextFieldKey =
+  | "fullName"
+  | "email"
+  | "phone"
+  | "line1"
+  | "line2"
+  | "city"
+  | "region"
+  | "postalCode"
+  | "trashWeekday"
+  | "recyclingWeekday"
+  | "recyclingFrequencyWeeks"
+  | "recyclingAnchorCollectionDate"
+  | "preferredReturnLocation"
+  | "accessInstructions"
+  | "gateInformation"
+  | "animalWarning"
+  | "safetyNotes";
+
+type BooleanFieldKey =
+  | "fictionalDataConfirmed"
+  | "emailAllowed"
+  | "smsAllowed"
+  | "phoneAllowed"
+  | "termsAccepted";
+
 type SavedState = Readonly<{
   form?: Partial<FormState>;
   lead?: LeadIdentity;
@@ -68,6 +103,36 @@ type SignupFormProps = Readonly<{
   initialBinCount: number;
   initialPromoCode: string;
   initialReferralCode: string;
+}>;
+
+type DraftPayload = Readonly<{
+  fictionalDataConfirmed: boolean;
+  fullName: string;
+  email: string;
+  phone: string;
+  line1: string;
+  line2: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  planId: PlanId;
+  binStreams: Readonly<{ trash: number; recycling: number; other: number }>;
+  trashWeekday: number | null;
+  recyclingWeekday: number | null;
+  recyclingFrequencyWeeks: number | null;
+  recyclingAnchorCollectionDate: string;
+  promoCode: string;
+  referralCode: string;
+  preferredReturnLocation: string;
+  accessInstructions: string;
+  gateInformation: string;
+  animalWarning: string;
+  safetyNotes: string;
+  emailAllowed: boolean;
+  smsAllowed: boolean;
+  phoneAllowed: boolean;
+  termsAccepted: boolean;
+  sourcePath: string;
 }>;
 
 function initialForm(props: SignupFormProps): FormState {
@@ -116,11 +181,7 @@ function Field({
   label,
   children,
   hint,
-}: Readonly<{
-  label: string;
-  children: React.ReactNode;
-  hint?: string;
-}>) {
+}: Readonly<{ label: string; children: ReactNode; hint?: string }>) {
   return (
     <label className="block text-sm font-bold text-zinc-900">
       {label}
@@ -139,17 +200,73 @@ const inputClass =
 const areaClass =
   "mt-2 min-h-24 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-200";
 
+function buildPayload(form: FormState): DraftPayload {
+  return {
+    fictionalDataConfirmed: form.fictionalDataConfirmed,
+    fullName: form.fullName,
+    email: form.email,
+    phone: form.phone,
+    line1: form.line1,
+    line2: form.line2,
+    city: form.city,
+    region: form.region,
+    postalCode: form.postalCode,
+    planId: form.planId,
+    binStreams: {
+      trash: form.trashBins,
+      recycling: form.recyclingBins,
+      other: form.otherBins,
+    },
+    trashWeekday: form.trashWeekday === "" ? null : Number(form.trashWeekday),
+    recyclingWeekday:
+      form.recyclingWeekday === "" ? null : Number(form.recyclingWeekday),
+    recyclingFrequencyWeeks:
+      form.recyclingFrequencyWeeks === ""
+        ? null
+        : Number(form.recyclingFrequencyWeeks),
+    recyclingAnchorCollectionDate: form.recyclingAnchorCollectionDate,
+    promoCode: normalizeBinCleaningPromoCode(form.promoCode),
+    referralCode: normalizeBinCleaningReferralCode(form.referralCode),
+    preferredReturnLocation: form.preferredReturnLocation,
+    accessInstructions: form.accessInstructions,
+    gateInformation: form.gateInformation,
+    animalWarning: form.animalWarning,
+    safetyNotes: form.safetyNotes,
+    emailAllowed: form.emailAllowed,
+    smsAllowed: form.smsAllowed,
+    phoneAllowed: form.phoneAllowed,
+    termsAccepted: form.termsAccepted,
+    sourcePath: window.location.pathname + window.location.search,
+  };
+}
+
 export function BinCleaningSignupForm(props: SignupFormProps) {
   const [form, setForm] = useState<FormState>(() => initialForm(props));
   const [lead, setLead] = useState<LeadIdentity | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [saveState, setSaveState] = useState<
-    "idle" | "saving" | "saved" | "error" | "submitted"
-  >("idle");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+
+  const formRef = useRef(form);
+  const leadRef = useRef<LeadIdentity | null>(null);
+  const submittedRef = useRef(false);
   const saveInFlight = useRef(false);
-  const submitted = useRef(false);
+  const lastSavedFingerprint = useRef("");
+  const abandonSent = useRef(false);
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
+  useEffect(() => {
+    leadRef.current = lead;
+  }, [lead]);
+
+  useEffect(() => {
+    submittedRef.current = submitted;
+  }, [submitted]);
 
   useEffect(() => {
     try {
@@ -163,12 +280,15 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
             planId: props.initialPlanId,
             promoCode: props.initialReferralCode
               ? ""
-              : props.initialPromoCode || saved.form?.promoCode || "",
+              : props.initialPromoCode || saved.form.promoCode || "",
             referralCode:
-              props.initialReferralCode || saved.form?.referralCode || "",
+              props.initialReferralCode || saved.form.referralCode || "",
           }));
         }
-        if (saved.lead?.id && saved.lead.editToken) setLead(saved.lead);
+        if (saved.lead?.id && saved.lead.editToken) {
+          leadRef.current = saved.lead;
+          setLead(saved.lead);
+        }
       }
     } catch {
       window.localStorage.removeItem(STORAGE_KEY);
@@ -218,50 +338,23 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       : price.subtotalCents - referralDiscountCents
     : null;
 
-  const payload = useCallback(
-    () => ({
-      fictionalDataConfirmed: form.fictionalDataConfirmed,
-      fullName: form.fullName,
-      email: form.email,
-      phone: form.phone,
-      line1: form.line1,
-      line2: form.line2,
-      city: form.city,
-      region: form.region,
-      postalCode: form.postalCode,
-      planId: form.planId,
-      binStreams: {
-        trash: form.trashBins,
-        recycling: form.recyclingBins,
-        other: form.otherBins,
-      },
-      trashWeekday: form.trashWeekday === "" ? null : Number(form.trashWeekday),
-      recyclingWeekday:
-        form.recyclingWeekday === "" ? null : Number(form.recyclingWeekday),
-      recyclingFrequencyWeeks:
-        form.recyclingFrequencyWeeks === ""
-          ? null
-          : Number(form.recyclingFrequencyWeeks),
-      recyclingAnchorCollectionDate: form.recyclingAnchorCollectionDate,
-      promoCode: normalizedPromo,
-      referralCode: normalizedReferral,
-      preferredReturnLocation: form.preferredReturnLocation,
-      accessInstructions: form.accessInstructions,
-      gateInformation: form.gateInformation,
-      animalWarning: form.animalWarning,
-      safetyNotes: form.safetyNotes,
-      emailAllowed: form.emailAllowed,
-      smsAllowed: form.smsAllowed,
-      phoneAllowed: form.phoneAllowed,
-      termsAccepted: form.termsAccepted,
-      sourcePath: window.location.pathname + window.location.search,
-    }),
-    [form, normalizedPromo, normalizedReferral],
-  );
-
-  const save = useCallback(
+  const saveDraft = useCallback(
     async (status: SaveStatus, keepalive = false) => {
-      if (!form.fictionalDataConfirmed || saveInFlight.current) return false;
+      const currentForm = formRef.current;
+      if (!currentForm.fictionalDataConfirmed || saveInFlight.current) {
+        return false;
+      }
+
+      const draftPayload = buildPayload(currentForm);
+      const fingerprint = JSON.stringify(draftPayload);
+      if (
+        status === "incomplete" &&
+        leadRef.current &&
+        fingerprint === lastSavedFingerprint.current
+      ) {
+        return true;
+      }
+
       saveInFlight.current = true;
       if (status !== "abandoned") setSaveState("saving");
       try {
@@ -271,10 +364,10 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           cache: "no-store",
           keepalive,
           body: JSON.stringify({
-            leadId: lead?.id ?? null,
-            editToken: lead?.editToken ?? null,
+            leadId: leadRef.current?.id ?? null,
+            editToken: leadRef.current?.editToken ?? null,
             status,
-            payload: payload(),
+            payload: draftPayload,
           }),
         });
         const result = (await response.json()) as {
@@ -284,19 +377,31 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           lead?: { id: string; editToken: string; status: string };
         };
         if (!response.ok || !result.ok || !result.lead) {
-          setSaveState("error");
-          setMessage(result.error || "The fictional signup could not be saved.");
-          setErrors(result.errors ?? []);
+          if (status !== "abandoned") {
+            setSaveState("error");
+            setMessage(result.error || "The fictional signup could not be saved.");
+            setErrors(result.errors ?? []);
+          }
           return false;
         }
-        const identity = {
+
+        const identity: LeadIdentity = {
           id: result.lead.id,
           editToken: result.lead.editToken,
         };
-        setLead(identity);
+        leadRef.current = identity;
+        setLead((current) =>
+          current?.id === identity.id &&
+          current.editToken === identity.editToken
+            ? current
+            : identity,
+        );
+        lastSavedFingerprint.current = fingerprint;
         setErrors([]);
+
         if (status === "submitted_unpaid") {
-          submitted.current = true;
+          submittedRef.current = true;
+          setSubmitted(true);
           setSaveState("submitted");
           setMessage(
             "Fictional signup submitted to the staging CRM. No payment was collected and Stripe Checkout did not start.",
@@ -309,65 +414,66 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       } catch {
         if (status !== "abandoned") {
           setSaveState("error");
-          setMessage("The staging CRM could not be reached. Your browser copy remains saved.");
+          setMessage(
+            "The staging CRM could not be reached. Your browser copy remains saved.",
+          );
         }
         return false;
       } finally {
         saveInFlight.current = false;
       }
-    }, [form.fictionalDataConfirmed, lead, payload],
+    },
+    [],
   );
 
   useEffect(() => {
-    if (!hydrated || !form.fictionalDataConfirmed || submitted.current) return;
-    const timer = window.setTimeout(() => void save("incomplete"), 900);
+    if (!hydrated || !form.fictionalDataConfirmed || submitted) return;
+    const timer = window.setTimeout(() => void saveDraft("incomplete"), 900);
     return () => window.clearTimeout(timer);
-  }, [form, hydrated, save]);
+  }, [form, hydrated, saveDraft, submitted]);
 
   useEffect(() => {
-    const markAbandoned = () => {
+    const sendAbandoned = () => {
       if (
-        !form.fictionalDataConfirmed ||
-        submitted.current ||
-        document.visibilityState === "visible"
+        !formRef.current.fictionalDataConfirmed ||
+        submittedRef.current ||
+        abandonSent.current ||
+        !leadRef.current
       ) {
         return;
       }
-      const body = JSON.stringify({
-        leadId: lead?.id ?? null,
-        editToken: lead?.editToken ?? null,
-        status: "abandoned",
-        payload: payload(),
-      });
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(
-          "/api/bin-cleaning/signup-draft",
-          new Blob([body], { type: "application/json" }),
-        );
-      } else {
-        void save("abandoned", true);
-      }
+      abandonSent.current = true;
+      void saveDraft("abandoned", true);
     };
-    document.addEventListener("visibilitychange", markAbandoned);
-    window.addEventListener("pagehide", markAbandoned);
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") sendAbandoned();
+      if (document.visibilityState === "visible") abandonSent.current = false;
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pagehide", sendAbandoned);
     return () => {
-      document.removeEventListener("visibilitychange", markAbandoned);
-      window.removeEventListener("pagehide", markAbandoned);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pagehide", sendAbandoned);
     };
-  }, [form.fictionalDataConfirmed, lead, payload, save]);
+  }, [saveDraft]);
 
   const setText =
-    (key: keyof FormState) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    (key: TextFieldKey) =>
+    (
+      event: ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >,
+    ) =>
       setForm((current) => ({ ...current, [key]: event.target.value }));
 
   const setChecked =
-    (key: keyof FormState) => (event: React.ChangeEvent<HTMLInputElement>) =>
+    (key: BooleanFieldKey) => (event: ChangeEvent<HTMLInputElement>) =>
       setForm((current) => ({ ...current, [key]: event.target.checked }));
 
   const setCount =
     (key: "trashBins" | "recyclingBins" | "otherBins") =>
-    (event: React.ChangeEvent<HTMLInputElement>) =>
+    (event: ChangeEvent<HTMLInputElement>) =>
       setForm((current) => ({
         ...current,
         [key]: boundedCount(event.target.value),
@@ -378,7 +484,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       className="space-y-8"
       onSubmit={(event) => {
         event.preventDefault();
-        void save("submitted_unpaid");
+        void saveDraft("submitted_unpaid");
       }}
     >
       <section className="rounded-3xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm sm:p-7">
@@ -403,7 +509,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       </section>
 
       <fieldset
-        disabled={!form.fictionalDataConfirmed || submitted.current}
+        disabled={!form.fictionalDataConfirmed || submitted}
         className="space-y-8 disabled:opacity-60"
       >
         <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-8">
@@ -454,12 +560,20 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
                   value={item.id}
                   disabled={item.status === "future"}
                   checked={form.planId === item.id}
-                  onChange={() => setForm((current) => ({ ...current, planId: item.id }))}
+                  onChange={() =>
+                    setForm((current) => ({ ...current, planId: item.id }))
+                  }
                   className="mr-2 accent-blue-700"
                 />
                 <span className="font-black">{item.name}</span>
-                <span className="mt-2 block text-sm text-zinc-700">{item.priceLines.join(" · ")}</span>
-                {item.status === "future" ? <span className="mt-2 block text-xs font-bold uppercase">Coming later</span> : null}
+                <span className="mt-2 block text-sm text-zinc-700">
+                  {item.priceLines.join(" · ")}
+                </span>
+                {item.status === "future" ? (
+                  <span className="mt-2 block text-xs font-bold uppercase">
+                    Coming later
+                  </span>
+                ) : null}
               </label>
             ))}
           </div>
@@ -616,10 +730,10 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
             type="submit"
-            disabled={saveState === "saving" || submitted.current}
+            disabled={saveState === "saving" || submitted}
             className="rounded-xl bg-brand-700 px-6 py-4 text-base font-black text-white shadow hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-zinc-400"
           >
-            {saveState === "saving" ? "Saving fictional signup…" : submitted.current ? "Submitted — no payment collected" : "Submit fictional signup — stop before payment"}
+            {saveState === "saving" ? "Saving fictional signup…" : submitted ? "Submitted — no payment collected" : "Submit fictional signup — stop before payment"}
           </button>
           <span className="text-sm font-semibold text-zinc-600">
             {saveState === "saved" ? "Draft saved" : lead ? "CRM draft created" : "Draft saves after fictional-data confirmation"}
