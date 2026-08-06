@@ -2,7 +2,7 @@
 
 **Owner:** James Gibbs  
 **Effective date:** 2026-08-05  
-**Configuration version:** `2026-08-05-launch-rules-v4`  
+**Configuration version:** `2026-08-05-launch-rules-v5`  
 **System:** ADS Bin Cleaning at `www.acleanbin.com`
 
 This is the single owner-approved launch-rule reference for the website, signup, CRM, Stripe configuration, portal, reporting, scheduling, and tests. Code mirrors these rules in `src/lib/bin-cleaning-launch-config.ts`. Service-plan prices remain sourced only from the versioned central plan catalog.
@@ -57,11 +57,25 @@ The exact promo code is **`ONE45`**: the letters `O-N-E`, followed by the digits
 
 ## 5. Referral program
 
-- **Share 50%. Get 50%.** applies to eligible Monthly residential subscriptions only.
-- The new customer receives 50% off the eligible first Monthly base cleaning.
-- The referrer earns 50% off their own next eligible Monthly base cleaning after the referred cleaning is paid, completed, in good standing, and past the seven-day review hold.
-- Every customer receives one permanent unique referral code.
+- Eligible Monthly residential subscriptions receive one permanent referral code after the customer account becomes active.
+- Every qualifying referred new customer receives 50% off the eligible base price of their first Monthly cleaning. Additional-bin charges, taxes, add-ons, and specialty charges remain at their normal price.
+- The referring customer’s **first lifetime qualified referral** earns 50% off one next eligible Monthly base cleaning.
+- The referring customer’s **second and every later qualified referral** earns 25% off one next eligible Monthly base cleaning.
+- There is no hard limit on legitimate referral count.
+- Only one earned referral reward may apply to an invoice. Earned referral rewards do not stack together on the same invoice and cannot make a Monthly base cleaning free.
+- Rewards are queued in qualification order and apply to separate eligible Monthly invoices.
+- A referral becomes qualified only after the referred customer’s eligible first service is completed, payment is settled, the account remains in good standing, and the seven-day review hold passes.
+- Reversed, fraudulent, duplicate-account, self-referral, refunded, or chargeback referrals do not count toward the referrer’s qualified-referral tier.
+- Earned rewards expire 12 months after issuance.
 - The new-customer referral discount cannot stack with `NEW25`, `ONE45`, or another promotion.
+- ADS may pause or modify the program for future referrals. Qualified rewards already earned remain valid under the terms in effect when earned, subject to expiration, fraud, refund, and reversal rules.
+
+### Referral examples at the launch Monthly price
+
+- One-bin customer, first qualified referral: $20 base becomes $10 for one invoice.
+- One-bin customer, later qualified referral: $20 base becomes $15 for one invoice.
+- Two-bin customer, first qualified referral: $20 base becomes $10, plus the regular $5 second-bin charge, for a $15 subtotal before tax.
+- Two-bin customer, later qualified referral: $20 base becomes $15, plus the regular $5 second-bin charge, for a $20 subtotal before tax.
 
 ## 6. Service scheduling and bin return
 
