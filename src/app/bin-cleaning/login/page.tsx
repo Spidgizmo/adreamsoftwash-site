@@ -1,4 +1,5 @@
 import { TestBanner } from "@/components/bin-cleaning/AppShell";
+import { PasswordField } from "@/components/bin-cleaning/PasswordField";
 
 type LoginSearchParams = {
   expired?: string;
@@ -48,17 +49,7 @@ export default function LoginPage({
               placeholder="customer@example.test"
             />
           </label>
-          <label className="block font-semibold">
-            Password
-            <input
-              required
-              minLength={12}
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              className="mt-2 w-full rounded-lg border p-3"
-            />
-          </label>
+          <PasswordField />
           <button
             className="w-full rounded-lg bg-brand-700 p-3 font-bold text-white"
             type="submit"
