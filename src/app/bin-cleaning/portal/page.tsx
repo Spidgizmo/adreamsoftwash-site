@@ -1,3 +1,270 @@
-import { AppShell,Definition,Stat } from "@/components/bin-cleaning/AppShell";import { portalCustomer } from "@/lib/bin-cleaning/queries";import { databaseRequest } from "@/lib/supabase/server";import { formatCurrency } from "@/lib/bin-cleaning-plans";
-export const dynamic="force-dynamic";const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-export default async function PortalPage({searchParams}:{searchParams:{saved?:string}}){const c=await portalCustomer();const a=c.service_addresses[0];const schedule=a?.trash_pickup_schedules[0];const subscription=c.subscriptions[0];const bins=await databaseRequest<{id:string;identifier:string|null;description:string|null;dirty_this_visit:boolean}[]>(`bins?service_address_id=eq.${a.id}&select=id,identifier,description,dirty_this_visit`);const preferences=(await databaseRequest<{email_allowed:boolean;sms_allowed:boolean;phone_allowed:boolean}[]>(`customer_contact_preferences?customer_id=eq.${c.id}&select=email_allowed,sms_allowed,phone_allowed`))[0];const referrals=await databaseRequest<{code:string;share_url:string}[]>(`referral_codes?customer_id=eq.${c.id}&select=code,share_url`);const now=encodeURIComponent(new Date().toISOString());const credits=await databaseRequest<{remaining_cents:number}[]>(`referral_credits?customer_id=eq.${c.id}&status=in.(issued,partially_applied)&expires_at=gt.${now}&remaining_cents=gt.0&select=remaining_cents`);const visits=await databaseRequest<{id:string;status:string;scheduled_for:string|null;visit_photographs:{kind:string;storage_path:string}[]}[]>(`service_visits?customer_id=eq.${c.id}&select=id,status,scheduled_for,visit_photographs(kind,storage_path)&order=scheduled_for.desc.nullslast`);const actionableVisits=await databaseRequest<{id:string;status:string;scheduled_for:string|null}[]>(`service_visits?customer_id=eq.${c.id}&select=id,status,scheduled_for&status=not.in.(completed,skipped,refused)&order=scheduled_for.asc.nullslast`);const nextVisit=actionableVisits[0];return <AppShell area="Customer portal">{searchParams.saved&&<p role="status" className="mb-4 rounded-lg bg-green-50 p-3">Your test changes were saved; route-affecting requests await staff review.</p>}<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Stat label="Account" value={c.account_status}/><Stat label="Current plan" value={subscription?.service_plan_versions.service_plans.display_name??"None"}/><Stat label="Bins" value={bins.length}/><Stat label="Base estimate" value={formatCurrency(subscription?.service_plan_versions.base_price_cents??0)}/></div><section className="card mt-6 p-5"><h2 className="text-xl font-black">Hello, {c.full_name}</h2><dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"><Definition label="Service address">{a.line1}, {a.city}, {a.region} {a.postal_code}</Definition><Definition label="Trash pickup">{schedule?.weekday==null?"Unverified":days[schedule.weekday]} · {schedule?.source}</Definition><Definition label="Normal cleaning">{schedule?.cleaning_day_assignments[0]?days[schedule.cleaning_day_assignments[0].normal_weekday]:"Pending"}</Definition><Definition label="Next service">{nextVisit?.scheduled_for??"Not scheduled"}</Definition><Definition label="Return location">{a.preferred_return_location??"Not provided"}</Definition><Definition label="Access">{a.access_instructions??"None"}</Definition></dl></section><div className="mt-6 grid gap-6 lg:grid-cols-2"><section className="card p-5"><h2 className="text-xl font-black">Service history</h2>{visits.map(v=><div className="mt-3 rounded-xl bg-zinc-50 p-4" key={v.id}><strong>{v.status}</strong><p className="text-sm">{v.scheduled_for??"Unscheduled"} · {v.visit_photographs.map(p=>p.kind).join(" / ")||"No photo records"}</p></div>)}</section><section className="card p-5"><h2 className="text-xl font-black">Share 50%. Get 50%.</h2><Definition label="Permanent code">{referrals[0]?.code??"Not eligible"}</Definition><p className="break-all text-sm">{referrals[0]?.share_url}</p><Stat label="Available credit" value={formatCurrency(credits.reduce((n,x)=>n+x.remaining_cents,0))}/></section></div><section className="card mt-6 p-5"><h2 className="text-xl font-black">Update account / request route changes</h2><form action="/api/bin-cleaning/portal" method="post" className="mt-4 grid gap-4 sm:grid-cols-2"><input type="hidden" name="customer_id" value={c.id}/><label>Phone<input required pattern="[+()\- .0-9]{7,24}" name="phone" className="mt-1 w-full rounded-lg border p-3" defaultValue={c.phone??""}/></label><fieldset><legend>Contact preferences</legend><input type="hidden" name="preferences_present" value="1"/>{(["email","sms","phone"] as const).map(x=><label className="mr-3" key={x}><input type="checkbox" name={`${x}_allowed`} defaultChecked={preferences?.[`${x}_allowed`]??false}/> {x}</label>)}</fieldset><label>Return location request<input name="return_location" className="mt-1 w-full rounded-lg border p-3"/></label><label>Gate information request<input name="gate_information" className="mt-1 w-full rounded-lg border p-3"/></label><label>Animal warning request<input name="animal_warning" className="mt-1 w-full rounded-lg border p-3"/></label><label>Bin-count request<input type="number" min="1" max="20" name="bin_count" className="mt-1 w-full rounded-lg border p-3"/></label><label className="sm:col-span-2">Access instructions request<textarea name="access_instructions" className="mt-1 w-full rounded-lg border p-3"/></label><fieldset className="sm:col-span-2"><legend>Dirty this visit</legend>{bins.map(b=><label className="mr-4" key={b.id}><input type="checkbox" name="dirty_bin" value={b.id} defaultChecked={b.dirty_this_visit}/> {b.identifier??b.description}</label>)}</fieldset><button className="rounded-lg bg-brand-700 p-3 font-bold text-white sm:col-span-2">Save test changes</button></form></section></AppShell>}
+import {
+  AppShell,
+  Definition,
+  Stat,
+} from "@/components/bin-cleaning/AppShell";
+import { ReferralShare } from "@/components/bin-cleaning/ReferralShare";
+import { portalCustomer } from "@/lib/bin-cleaning/queries";
+import { databaseRequest } from "@/lib/supabase/server";
+import { formatCurrency } from "@/lib/bin-cleaning-plans";
+
+export const dynamic = "force-dynamic";
+
+const days = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+export default async function PortalPage({
+  searchParams,
+}: {
+  searchParams: { saved?: string };
+}) {
+  const customer = await portalCustomer();
+  const address = customer.service_addresses[0];
+  const schedule = address?.trash_pickup_schedules[0];
+  const subscription = customer.subscriptions[0];
+
+  const bins = await databaseRequest<
+    {
+      id: string;
+      identifier: string | null;
+      description: string | null;
+      dirty_this_visit: boolean;
+    }[]
+  >(
+    `bins?service_address_id=eq.${address.id}&select=id,identifier,description,dirty_this_visit`,
+  );
+
+  const preferences = (
+    await databaseRequest<
+      {
+        email_allowed: boolean;
+        sms_allowed: boolean;
+        phone_allowed: boolean;
+      }[]
+    >(
+      `customer_contact_preferences?customer_id=eq.${customer.id}&select=email_allowed,sms_allowed,phone_allowed`,
+    )
+  )[0];
+
+  const referrals = await databaseRequest<{ code: string }[]>(
+    `referral_codes?customer_id=eq.${customer.id}&select=code`,
+  );
+  const now = encodeURIComponent(new Date().toISOString());
+  const credits = await databaseRequest<{ remaining_cents: number }[]>(
+    `referral_credits?customer_id=eq.${customer.id}&status=in.(issued,partially_applied)&expires_at=gt.${now}&remaining_cents=gt.0&select=remaining_cents`,
+  );
+  const visits = await databaseRequest<
+    {
+      id: string;
+      status: string;
+      scheduled_for: string | null;
+      visit_photographs: { kind: string; storage_path: string }[];
+    }[]
+  >(
+    `service_visits?customer_id=eq.${customer.id}&select=id,status,scheduled_for,visit_photographs(kind,storage_path)&order=scheduled_for.desc.nullslast`,
+  );
+  const actionableVisits = await databaseRequest<
+    { id: string; status: string; scheduled_for: string | null }[]
+  >(
+    `service_visits?customer_id=eq.${customer.id}&select=id,status,scheduled_for&status=not.in.(completed,skipped,refused)&order=scheduled_for.asc.nullslast`,
+  );
+  const nextVisit = actionableVisits[0];
+
+  return (
+    <AppShell area="Customer portal">
+      {searchParams.saved && (
+        <p role="status" className="mb-4 rounded-lg bg-green-50 p-3">
+          Your test changes were saved; route-affecting requests await staff
+          review.
+        </p>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Account" value={customer.account_status} />
+        <Stat
+          label="Current plan"
+          value={
+            subscription?.service_plan_versions.service_plans.display_name ??
+            "None"
+          }
+        />
+        <Stat label="Bins" value={bins.length} />
+        <Stat
+          label="Base estimate"
+          value={formatCurrency(
+            subscription?.service_plan_versions.base_price_cents ?? 0,
+          )}
+        />
+      </div>
+
+      <section className="card mt-6 p-5">
+        <h2 className="text-xl font-black">Hello, {customer.full_name}</h2>
+        <dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Definition label="Service address">
+            {address.line1}, {address.city}, {address.region} {address.postal_code}
+          </Definition>
+          <Definition label="Trash pickup">
+            {schedule?.weekday == null ? "Unverified" : days[schedule.weekday]} ·{" "}
+            {schedule?.source}
+          </Definition>
+          <Definition label="Normal cleaning">
+            {schedule?.cleaning_day_assignments[0]
+              ? days[schedule.cleaning_day_assignments[0].normal_weekday]
+              : "Pending"}
+          </Definition>
+          <Definition label="Next service">
+            {nextVisit?.scheduled_for ?? "Not scheduled"}
+          </Definition>
+          <Definition label="Return location">
+            {address.preferred_return_location ?? "Not provided"}
+          </Definition>
+          <Definition label="Access">
+            {address.access_instructions ?? "None"}
+          </Definition>
+        </dl>
+      </section>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <section className="card p-5">
+          <h2 className="text-xl font-black">Service history</h2>
+          {visits.map((visit) => (
+            <div className="mt-3 rounded-xl bg-zinc-50 p-4" key={visit.id}>
+              <strong>{visit.status}</strong>
+              <p className="text-sm">
+                {visit.scheduled_for ?? "Unscheduled"} ·{" "}
+                {visit.visit_photographs.map((photo) => photo.kind).join(" / ") ||
+                  "No photo records"}
+              </p>
+            </div>
+          ))}
+        </section>
+
+        <section className="card p-5">
+          <h2 className="text-xl font-black">Share 50%. Get 50%.</h2>
+          <p className="mt-2 text-sm text-zinc-600">
+            Share your permanent referral code or link with friends. The new
+            eligible Monthly customer can receive 50% off their first eligible
+            base cleaning, and your reward becomes available after the referral
+            qualifies.
+          </p>
+          <ReferralShare code={referrals[0]?.code} />
+          <div className="mt-4">
+            <Stat
+              label="Available credit"
+              value={formatCurrency(
+                credits.reduce((total, credit) => total + credit.remaining_cents, 0),
+              )}
+            />
+          </div>
+        </section>
+      </div>
+
+      <section className="card mt-6 p-5">
+        <h2 className="text-xl font-black">
+          Update account / request route changes
+        </h2>
+        <form
+          action="/api/bin-cleaning/portal"
+          method="post"
+          className="mt-4 grid gap-4 sm:grid-cols-2"
+        >
+          <input type="hidden" name="customer_id" value={customer.id} />
+          <label>
+            Phone
+            <input
+              required
+              pattern="[+()\- .0-9]{7,24}"
+              name="phone"
+              className="mt-1 w-full rounded-lg border p-3"
+              defaultValue={customer.phone ?? ""}
+            />
+          </label>
+          <fieldset>
+            <legend>Contact preferences</legend>
+            <input type="hidden" name="preferences_present" value="1" />
+            {(["email", "sms", "phone"] as const).map((channel) => (
+              <label className="mr-3" key={channel}>
+                <input
+                  type="checkbox"
+                  name={`${channel}_allowed`}
+                  defaultChecked={
+                    preferences?.[`${channel}_allowed`] ?? false
+                  }
+                />{" "}
+                {channel}
+              </label>
+            ))}
+          </fieldset>
+          <label>
+            Return location request
+            <input
+              name="return_location"
+              className="mt-1 w-full rounded-lg border p-3"
+            />
+          </label>
+          <label>
+            Gate information request
+            <input
+              name="gate_information"
+              className="mt-1 w-full rounded-lg border p-3"
+            />
+          </label>
+          <label>
+            Animal warning request
+            <input
+              name="animal_warning"
+              className="mt-1 w-full rounded-lg border p-3"
+            />
+          </label>
+          <label>
+            Bin-count request
+            <input
+              type="number"
+              min="1"
+              max="20"
+              name="bin_count"
+              className="mt-1 w-full rounded-lg border p-3"
+            />
+          </label>
+          <label className="sm:col-span-2">
+            Access instructions request
+            <textarea
+              name="access_instructions"
+              className="mt-1 w-full rounded-lg border p-3"
+            />
+          </label>
+          <fieldset className="rounded-xl border p-4 sm:col-span-2">
+            <legend className="px-2 font-black">
+              Which bins need cleaning on your next visit?
+            </legend>
+            <p className="mb-3 text-sm text-zinc-600">
+              Check each bin that will be available and needs cleaning. This
+              does not change the number of bins on your paid plan.
+            </p>
+            {bins.map((bin) => (
+              <label className="mr-4 inline-flex items-center gap-2" key={bin.id}>
+                <input
+                  type="checkbox"
+                  name="dirty_bin"
+                  value={bin.id}
+                  defaultChecked={bin.dirty_this_visit}
+                />
+                {bin.identifier ?? bin.description}
+              </label>
+            ))}
+          </fieldset>
+          <button className="rounded-lg bg-brand-700 p-3 font-bold text-white sm:col-span-2">
+            Save test changes
+          </button>
+        </form>
+      </section>
+    </AppShell>
+  );
+}
