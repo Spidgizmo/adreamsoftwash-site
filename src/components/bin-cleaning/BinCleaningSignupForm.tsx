@@ -31,6 +31,10 @@ const WEEKDAYS = [
   "Friday",
   "Saturday",
 ] as const;
+const inputClass =
+  "mt-2 h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base text-zinc-950 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-200";
+const areaClass =
+  "mt-2 min-h-24 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-200";
 
 type LeadIdentity = Readonly<{ id: string; editToken: string }>;
 type SaveStatus = "incomplete" | "abandoned" | "submitted_unpaid";
@@ -67,36 +71,25 @@ type FormState = {
   termsAccepted: boolean;
 };
 
-type TextFieldKey =
-  | "fullName"
-  | "email"
-  | "phone"
-  | "line1"
-  | "line2"
-  | "city"
-  | "region"
-  | "postalCode"
-  | "trashWeekday"
-  | "recyclingWeekday"
-  | "recyclingFrequencyWeeks"
-  | "recyclingAnchorCollectionDate"
-  | "preferredReturnLocation"
-  | "accessInstructions"
-  | "gateInformation"
-  | "animalWarning"
-  | "safetyNotes";
-
-type BooleanFieldKey =
+type TextKey = Exclude<
+  keyof FormState,
+  | "fictionalDataConfirmed"
+  | "planId"
+  | "trashBins"
+  | "recyclingBins"
+  | "otherBins"
+  | "emailAllowed"
+  | "smsAllowed"
+  | "phoneAllowed"
+  | "termsAccepted"
+>;
+type BooleanKey =
   | "fictionalDataConfirmed"
   | "emailAllowed"
   | "smsAllowed"
   | "phoneAllowed"
   | "termsAccepted";
-
-type SavedState = Readonly<{
-  form?: Partial<FormState>;
-  lead?: LeadIdentity;
-}>;
+type CountKey = "trashBins" | "recyclingBins" | "otherBins";
 
 type SignupFormProps = Readonly<{
   initialPlanId: PlanId;
@@ -104,36 +97,39 @@ type SignupFormProps = Readonly<{
   initialPromoCode: string;
   initialReferralCode: string;
 }>;
-
-type DraftPayload = Readonly<{
-  fictionalDataConfirmed: boolean;
-  fullName: string;
-  email: string;
-  phone: string;
-  line1: string;
-  line2: string;
-  city: string;
-  region: string;
-  postalCode: string;
-  planId: PlanId;
-  binStreams: Readonly<{ trash: number; recycling: number; other: number }>;
-  trashWeekday: number | null;
-  recyclingWeekday: number | null;
-  recyclingFrequencyWeeks: number | null;
-  recyclingAnchorCollectionDate: string;
-  promoCode: string;
-  referralCode: string;
-  preferredReturnLocation: string;
-  accessInstructions: string;
-  gateInformation: string;
-  animalWarning: string;
-  safetyNotes: string;
-  emailAllowed: boolean;
-  smsAllowed: boolean;
-  phoneAllowed: boolean;
-  termsAccepted: boolean;
-  sourcePath: string;
+type SavedState = Readonly<{
+  form?: Partial<FormState>;
+  lead?: LeadIdentity;
 }>;
+
+function Field({
+  label,
+  hint,
+  children,
+}: Readonly<{ label: string; hint?: string; children: ReactNode }>) {
+  return (
+    <label className="block text-sm font-bold text-zinc-900">
+      {label}
+      {children}
+      {hint ? (
+        <span className="mt-1 block text-xs font-normal leading-relaxed text-zinc-600">
+          {hint}
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
+function section(title: string, children: ReactNode, className = "") {
+  return (
+    <section
+      className={`rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-8 ${className}`}
+    >
+      <h2 className="text-2xl font-black">{title}</h2>
+      {children}
+    </section>
+  );
+}
 
 function initialForm(props: SignupFormProps): FormState {
   const promo = normalizeBinCleaningPromoCode(props.initialPromoCode);
@@ -170,37 +166,14 @@ function initialForm(props: SignupFormProps): FormState {
   };
 }
 
-function boundedCount(value: string): number {
+function boundedCount(value: string) {
   const parsed = Number(value);
   return Number.isInteger(parsed)
     ? Math.min(MAX_BIN_COUNT, Math.max(0, parsed))
     : 0;
 }
 
-function Field({
-  label,
-  children,
-  hint,
-}: Readonly<{ label: string; children: ReactNode; hint?: string }>) {
-  return (
-    <label className="block text-sm font-bold text-zinc-900">
-      {label}
-      {children}
-      {hint ? (
-        <span className="mt-1 block text-xs font-normal leading-relaxed text-zinc-600">
-          {hint}
-        </span>
-      ) : null}
-    </label>
-  );
-}
-
-const inputClass =
-  "mt-2 h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base text-zinc-950 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-200";
-const areaClass =
-  "mt-2 min-h-24 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-200";
-
-function buildPayload(form: FormState): DraftPayload {
+function buildPayload(form: FormState) {
   return {
     fictionalDataConfirmed: form.fictionalDataConfirmed,
     fullName: form.fullName,
@@ -244,26 +217,24 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
   const [form, setForm] = useState<FormState>(() => initialForm(props));
   const [lead, setLead] = useState<LeadIdentity | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
-  const [submitted, setSubmitted] = useState(false);
 
   const formRef = useRef(form);
   const leadRef = useRef<LeadIdentity | null>(null);
   const submittedRef = useRef(false);
-  const saveInFlight = useRef(false);
+  const savingRef = useRef(false);
   const lastSavedFingerprint = useRef("");
-  const abandonSent = useRef(false);
+  const abandonmentSent = useRef(false);
 
   useEffect(() => {
     formRef.current = form;
   }, [form]);
-
   useEffect(() => {
     leadRef.current = lead;
   }, [lead]);
-
   useEffect(() => {
     submittedRef.current = submitted;
   }, [submitted]);
@@ -273,16 +244,17 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw) as SavedState;
-        if (saved.form) {
+        const savedForm = saved.form;
+        if (savedForm) {
           setForm((current) => ({
             ...current,
-            ...saved.form,
+            ...savedForm,
             planId: props.initialPlanId,
             promoCode: props.initialReferralCode
               ? ""
-              : props.initialPromoCode || saved.form.promoCode || "",
+              : props.initialPromoCode || savedForm.promoCode || "",
             referralCode:
-              props.initialReferralCode || saved.form.referralCode || "",
+              props.initialReferralCode || savedForm.referralCode || "",
           }));
         }
         if (saved.lead?.id && saved.lead.editToken) {
@@ -309,10 +281,13 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
   const plan =
     PUBLIC_BIN_CLEANING_PLANS.find((item) => item.id === form.planId) ??
     PUBLIC_BIN_CLEANING_PLANS[0];
-  const price = useMemo(() => {
-    if (!plan || binCount < 1 || binCount > MAX_BIN_COUNT) return null;
-    return calculateBinCleaningPrice(plan, binCount);
-  }, [binCount, plan]);
+  const price = useMemo(
+    () =>
+      plan && binCount > 0 && binCount <= MAX_BIN_COUNT
+        ? calculateBinCleaningPrice(plan, binCount)
+        : null,
+    [binCount, plan],
+  );
   const normalizedPromo = normalizeBinCleaningPromoCode(form.promoCode);
   const normalizedReferral = normalizeBinCleaningReferralCode(form.referralCode);
   const promotion =
@@ -338,93 +313,84 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       : price.subtotalCents - referralDiscountCents
     : null;
 
-  const saveDraft = useCallback(
-    async (status: SaveStatus, keepalive = false) => {
-      const currentForm = formRef.current;
-      if (!currentForm.fictionalDataConfirmed || saveInFlight.current) {
-        return false;
-      }
+  const saveDraft = useCallback(async (status: SaveStatus, keepalive = false) => {
+    const currentForm = formRef.current;
+    if (!currentForm.fictionalDataConfirmed || savingRef.current) return false;
 
-      const draftPayload = buildPayload(currentForm);
-      const fingerprint = JSON.stringify(draftPayload);
-      if (
-        status === "incomplete" &&
-        leadRef.current &&
-        fingerprint === lastSavedFingerprint.current
-      ) {
-        return true;
-      }
+    const payload = buildPayload(currentForm);
+    const fingerprint = JSON.stringify(payload);
+    if (
+      status === "incomplete" &&
+      leadRef.current &&
+      fingerprint === lastSavedFingerprint.current
+    ) {
+      return true;
+    }
 
-      saveInFlight.current = true;
-      if (status !== "abandoned") setSaveState("saving");
-      try {
-        const response = await fetch("/api/bin-cleaning/signup-draft", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          keepalive,
-          body: JSON.stringify({
-            leadId: leadRef.current?.id ?? null,
-            editToken: leadRef.current?.editToken ?? null,
-            status,
-            payload: draftPayload,
-          }),
-        });
-        const result = (await response.json()) as {
-          ok?: boolean;
-          error?: string;
-          errors?: string[];
-          lead?: { id: string; editToken: string; status: string };
-        };
-        if (!response.ok || !result.ok || !result.lead) {
-          if (status !== "abandoned") {
-            setSaveState("error");
-            setMessage(result.error || "The fictional signup could not be saved.");
-            setErrors(result.errors ?? []);
-          }
-          return false;
-        }
-
-        const identity: LeadIdentity = {
-          id: result.lead.id,
-          editToken: result.lead.editToken,
-        };
-        leadRef.current = identity;
-        setLead((current) =>
-          current?.id === identity.id &&
-          current.editToken === identity.editToken
-            ? current
-            : identity,
-        );
-        lastSavedFingerprint.current = fingerprint;
-        setErrors([]);
-
-        if (status === "submitted_unpaid") {
-          submittedRef.current = true;
-          setSubmitted(true);
-          setSaveState("submitted");
-          setMessage(
-            "Fictional signup submitted to the staging CRM. No payment was collected and Stripe Checkout did not start.",
-          );
-        } else if (status !== "abandoned") {
-          setSaveState("saved");
-          setMessage("Fictional draft saved to the staging CRM.");
-        }
-        return true;
-      } catch {
+    savingRef.current = true;
+    if (status !== "abandoned") setSaveState("saving");
+    try {
+      const response = await fetch("/api/bin-cleaning/signup-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        keepalive,
+        body: JSON.stringify({
+          leadId: leadRef.current?.id ?? null,
+          editToken: leadRef.current?.editToken ?? null,
+          status,
+          payload,
+        }),
+      });
+      const result = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        errors?: string[];
+        lead?: { id: string; editToken: string };
+      };
+      if (!response.ok || !result.ok || !result.lead) {
         if (status !== "abandoned") {
           setSaveState("error");
-          setMessage(
-            "The staging CRM could not be reached. Your browser copy remains saved.",
-          );
+          setMessage(result.error || "The fictional signup could not be saved.");
+          setErrors(result.errors ?? []);
         }
         return false;
-      } finally {
-        saveInFlight.current = false;
       }
-    },
-    [],
-  );
+
+      const identity: LeadIdentity = result.lead;
+      leadRef.current = identity;
+      setLead((current) =>
+        current?.id === identity.id && current.editToken === identity.editToken
+          ? current
+          : identity,
+      );
+      lastSavedFingerprint.current = fingerprint;
+      setErrors([]);
+
+      if (status === "submitted_unpaid") {
+        submittedRef.current = true;
+        setSubmitted(true);
+        setSaveState("submitted");
+        setMessage(
+          "Fictional signup submitted to the staging CRM. No payment was collected and Stripe Checkout did not start.",
+        );
+      } else if (status !== "abandoned") {
+        setSaveState("saved");
+        setMessage("Fictional draft saved to the staging CRM.");
+      }
+      return true;
+    } catch {
+      if (status !== "abandoned") {
+        setSaveState("error");
+        setMessage(
+          "The staging CRM could not be reached. Your browser copy remains saved.",
+        );
+      }
+      return false;
+    } finally {
+      savingRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     if (!hydrated || !form.fictionalDataConfirmed || submitted) return;
@@ -437,47 +403,48 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       if (
         !formRef.current.fictionalDataConfirmed ||
         submittedRef.current ||
-        abandonSent.current ||
+        abandonmentSent.current ||
         !leadRef.current
       ) {
         return;
       }
-      abandonSent.current = true;
+      abandonmentSent.current = true;
       void saveDraft("abandoned", true);
     };
-    const handleVisibility = () => {
+    const visibilityChanged = () => {
       if (document.visibilityState === "hidden") sendAbandoned();
-      if (document.visibilityState === "visible") abandonSent.current = false;
+      if (document.visibilityState === "visible") abandonmentSent.current = false;
     };
-
-    document.addEventListener("visibilitychange", handleVisibility);
+    document.addEventListener("visibilitychange", visibilityChanged);
     window.addEventListener("pagehide", sendAbandoned);
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
+      document.removeEventListener("visibilitychange", visibilityChanged);
       window.removeEventListener("pagehide", sendAbandoned);
     };
   }, [saveDraft]);
 
   const setText =
-    (key: TextFieldKey) =>
+    (key: TextKey) =>
     (
       event: ChangeEvent<
         HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
       >,
-    ) =>
-      setForm((current) => ({ ...current, [key]: event.target.value }));
-
+    ) => setForm((current) => ({ ...current, [key]: event.target.value }));
   const setChecked =
-    (key: BooleanFieldKey) => (event: ChangeEvent<HTMLInputElement>) =>
+    (key: BooleanKey) => (event: ChangeEvent<HTMLInputElement>) =>
       setForm((current) => ({ ...current, [key]: event.target.checked }));
-
   const setCount =
-    (key: "trashBins" | "recyclingBins" | "otherBins") =>
-    (event: ChangeEvent<HTMLInputElement>) =>
+    (key: CountKey) => (event: ChangeEvent<HTMLInputElement>) =>
       setForm((current) => ({
         ...current,
         [key]: boundedCount(event.target.value),
       }));
+
+  const weekdayOptions = WEEKDAYS.map((day, index) => (
+    <option value={index} key={day}>
+      {day}
+    </option>
+  ));
 
   return (
     <form
@@ -492,10 +459,9 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           Fictional staging data only
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-amber-950">
-          This form saves test signups into the staging CRM. Use invented names,
-          an email ending in <strong>.test</strong>, a reserved 555 phone number,
-          and an invented service address. Stripe is disabled and no payment can
-          be accepted here.
+          Use invented names, an email ending in <strong>.test</strong>, a
+          reserved 555 phone number, and an invented address. Stripe is disabled
+          and no payment can be accepted here.
         </p>
         <label className="mt-4 flex items-start gap-3 font-bold text-amber-950">
           <input
@@ -512,200 +478,103 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         disabled={!form.fictionalDataConfirmed || submitted}
         className="space-y-8 disabled:opacity-60"
       >
-        <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-8">
-          <h2 className="text-2xl font-black">1. Contact and service address</h2>
+        {section(
+          "1. Contact and service address",
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <Field label="Full name">
-              <input value={form.fullName} onChange={setText("fullName")} className={inputClass} autoComplete="off" />
-            </Field>
-            <Field label="Email address" hint="Use an invented address ending in .test, such as avery@example.test.">
-              <input type="email" value={form.email} onChange={setText("email")} className={inputClass} autoComplete="off" />
-            </Field>
-            <Field label="Mobile number" hint="Use a reserved fictional number, such as +1 (555) 010-0123.">
-              <input type="tel" value={form.phone} onChange={setText("phone")} className={inputClass} autoComplete="off" />
-            </Field>
-            <Field label="Street address">
-              <input value={form.line1} onChange={setText("line1")} className={inputClass} autoComplete="off" />
-            </Field>
-            <Field label="Apartment or unit">
-              <input value={form.line2} onChange={setText("line2")} className={inputClass} autoComplete="off" />
-            </Field>
-            <Field label="City">
-              <input value={form.city} onChange={setText("city")} className={inputClass} autoComplete="off" />
-            </Field>
-            <Field label="State">
-              <input value={form.region} onChange={setText("region")} className={inputClass} maxLength={2} autoComplete="off" />
-            </Field>
-            <Field label="ZIP code">
-              <input value={form.postalCode} onChange={setText("postalCode")} className={inputClass} inputMode="numeric" autoComplete="off" />
-            </Field>
-          </div>
-        </section>
+            <Field label="Full name"><input value={form.fullName} onChange={setText("fullName")} className={inputClass} autoComplete="off" /></Field>
+            <Field label="Email address" hint="Use a fictional address such as avery@example.test."><input type="email" value={form.email} onChange={setText("email")} className={inputClass} autoComplete="off" /></Field>
+            <Field label="Mobile number" hint="Use a reserved number such as +1 (555) 010-0123."><input type="tel" value={form.phone} onChange={setText("phone")} className={inputClass} autoComplete="off" /></Field>
+            <Field label="Street address"><input value={form.line1} onChange={setText("line1")} className={inputClass} autoComplete="off" /></Field>
+            <Field label="Apartment or unit"><input value={form.line2} onChange={setText("line2")} className={inputClass} autoComplete="off" /></Field>
+            <Field label="City"><input value={form.city} onChange={setText("city")} className={inputClass} autoComplete="off" /></Field>
+            <Field label="State"><input value={form.region} onChange={setText("region")} className={inputClass} maxLength={2} autoComplete="off" /></Field>
+            <Field label="ZIP code"><input value={form.postalCode} onChange={setText("postalCode")} className={inputClass} inputMode="numeric" autoComplete="off" /></Field>
+          </div>,
+        )}
 
-        <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-8">
-          <h2 className="text-2xl font-black">2. Plan and bins</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {PUBLIC_BIN_CLEANING_PLANS.map((item) => (
-              <label
-                key={item.id}
-                className={`rounded-2xl border p-4 ${
-                  form.planId === item.id
-                    ? "border-brand-700 bg-brand-50 ring-2 ring-brand-200"
-                    : "border-zinc-200"
-                } ${item.status === "future" ? "opacity-60" : "cursor-pointer"}`}
-              >
-                <input
-                  type="radio"
-                  name="plan"
-                  value={item.id}
-                  disabled={item.status === "future"}
-                  checked={form.planId === item.id}
-                  onChange={() =>
-                    setForm((current) => ({ ...current, planId: item.id }))
-                  }
-                  className="mr-2 accent-blue-700"
-                />
-                <span className="font-black">{item.name}</span>
-                <span className="mt-2 block text-sm text-zinc-700">
-                  {item.priceLines.join(" · ")}
-                </span>
-                {item.status === "future" ? (
-                  <span className="mt-2 block text-xs font-bold uppercase">
-                    Coming later
-                  </span>
-                ) : null}
-              </label>
-            ))}
-          </div>
-
-          <div className="mt-7 grid gap-5 sm:grid-cols-3">
-            <Field label="Trash bins">
-              <input type="number" min={0} max={MAX_BIN_COUNT} value={form.trashBins} onChange={setCount("trashBins")} className={inputClass} />
-            </Field>
-            <Field label="Recycling bins">
-              <input type="number" min={0} max={MAX_BIN_COUNT} value={form.recyclingBins} onChange={setCount("recyclingBins")} className={inputClass} />
-            </Field>
-            <Field label="Other carts">
-              <input type="number" min={0} max={MAX_BIN_COUNT} value={form.otherBins} onChange={setCount("otherBins")} className={inputClass} />
-            </Field>
-          </div>
-          <p className={`mt-3 text-sm font-bold ${binCount > MAX_BIN_COUNT || binCount < 1 ? "text-red-700" : "text-zinc-700"}`}>
-            Total: {binCount} {binCount === 1 ? "bin" : "bins"}. The staging maximum is {MAX_BIN_COUNT}.
-          </p>
-        </section>
-
-        <section className="rounded-3xl border border-blue-200 bg-blue-50 p-5 shadow-sm sm:p-8">
-          <h2 className="text-2xl font-black text-blue-950">3. Trash and recycling schedule</h2>
-          <p className="mt-2 text-sm leading-relaxed text-blue-950">
-            ADS cleaning is normally the calendar day after collection. When a recycling bin is included, the first service aligns to a recycling pickup so both carts should be empty. Every-other-week service needs an exact next pickup date as its anchor.
-          </p>
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <Field label="Trash pickup day">
-              <select value={form.trashWeekday} onChange={setText("trashWeekday")} className={inputClass}>
-                <option value="">Select a day</option>
-                {WEEKDAYS.map((day, index) => <option value={index} key={day}>{day}</option>)}
-              </select>
-            </Field>
-            {form.recyclingBins > 0 ? (
-              <>
-                <Field label="Recycling pickup day">
-                  <select value={form.recyclingWeekday} onChange={setText("recyclingWeekday")} className={inputClass}>
-                    <option value="">Select a day</option>
-                    {WEEKDAYS.map((day, index) => <option value={index} key={day}>{day}</option>)}
-                  </select>
-                </Field>
-                <Field label="Recycling frequency">
-                  <select value={form.recyclingFrequencyWeeks} onChange={setText("recyclingFrequencyWeeks")} className={inputClass}>
-                    <option value="">Select frequency</option>
-                    <option value="1">Every week</option>
-                    <option value="2">Every other week</option>
-                  </select>
-                </Field>
-                <Field label="Next scheduled recycling pickup date" hint="The date must fall on the recycling weekday selected above.">
-                  <input type="date" value={form.recyclingAnchorCollectionDate} onChange={setText("recyclingAnchorCollectionDate")} className={inputClass} />
-                </Field>
-              </>
-            ) : null}
-          </div>
-          {form.recyclingBins > 0 && form.trashWeekday && form.recyclingWeekday && form.trashWeekday !== form.recyclingWeekday ? (
-            <p className="mt-4 rounded-xl bg-amber-100 p-3 text-sm font-bold text-amber-950">
-              Trash and recycling are on different weekdays. This signup will be saved for staff scheduling review instead of automatic assignment.
-            </p>
-          ) : null}
-        </section>
-
-        <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-8">
-          <h2 className="text-2xl font-black">4. Promo or referral code</h2>
-          <p className="mt-2 text-sm text-zinc-700">Use one or the other. They never stack.</p>
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <Field label="Promo code">
-              <input
-                value={form.promoCode}
-                disabled={Boolean(normalizedReferral)}
-                onChange={(event) => setForm((current) => ({ ...current, promoCode: event.target.value, referralCode: event.target.value ? "" : current.referralCode }))}
-                className={inputClass}
-                autoCapitalize="characters"
-                autoComplete="off"
-              />
-            </Field>
-            <Field label="Referral code" hint="Short /r/ADS-XXXX-XXXX links automatically place the code here.">
-              <input
-                value={form.referralCode}
-                disabled={Boolean(normalizedPromo)}
-                onChange={(event) => setForm((current) => ({ ...current, referralCode: event.target.value, promoCode: event.target.value ? "" : current.promoCode }))}
-                className={inputClass}
-                autoCapitalize="characters"
-                autoComplete="off"
-              />
-            </Field>
-          </div>
-          {normalizedReferral && !referralFormatValid ? <p className="mt-3 text-sm font-bold text-red-700">Referral code format is not valid.</p> : null}
-          {normalizedReferral && plan && !plan.referralEligible ? <p className="mt-3 text-sm font-bold text-amber-800">Referral discounts apply only to an eligible new Monthly signup.</p> : null}
-          {promotion && promotion.status !== "empty" && promotion.status !== "applied" ? <p className="mt-3 text-sm font-bold text-amber-800">That promo is not recognized or is not eligible for this plan and bin count.</p> : null}
-        </section>
-
-        <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-8">
-          <h2 className="text-2xl font-black">5. Return, access, and safety details</h2>
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <Field label="Designated bin-return location" hint="Standard service includes returning cleaned bins to this chosen location.">
-              <input value={form.preferredReturnLocation} onChange={setText("preferredReturnLocation")} className={inputClass} />
-            </Field>
-            <Field label="Gate information">
-              <input value={form.gateInformation} onChange={setText("gateInformation")} className={inputClass} />
-            </Field>
-            <Field label="Access instructions">
-              <textarea value={form.accessInstructions} onChange={setText("accessInstructions")} className={areaClass} />
-            </Field>
-            <Field label="Animals or pets">
-              <textarea value={form.animalWarning} onChange={setText("animalWarning")} className={areaClass} />
-            </Field>
-            <div className="md:col-span-2">
-              <Field label="Other safety or accessibility details">
-                <textarea value={form.safetyNotes} onChange={setText("safetyNotes")} className={areaClass} />
-              </Field>
+        {section(
+          "2. Plan and bins",
+          <>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {PUBLIC_BIN_CLEANING_PLANS.map((item) => (
+                <label key={item.id} className={`rounded-2xl border p-4 ${form.planId === item.id ? "border-brand-700 bg-brand-50 ring-2 ring-brand-200" : "border-zinc-200"} ${item.status === "future" ? "opacity-60" : "cursor-pointer"}`}>
+                  <input type="radio" name="plan" disabled={item.status === "future"} checked={form.planId === item.id} onChange={() => setForm((current) => ({ ...current, planId: item.id }))} className="mr-2 accent-blue-700" />
+                  <strong>{item.name}</strong>
+                  <span className="mt-2 block text-sm text-zinc-700">{item.priceLines.join(" · ")}</span>
+                  {item.status === "future" ? <span className="mt-2 block text-xs font-bold uppercase">Coming later</span> : null}
+                </label>
+              ))}
             </div>
-          </div>
-        </section>
+            <div className="mt-7 grid gap-5 sm:grid-cols-3">
+              <Field label="Trash bins"><input type="number" min={0} max={MAX_BIN_COUNT} value={form.trashBins} onChange={setCount("trashBins")} className={inputClass} /></Field>
+              <Field label="Recycling bins"><input type="number" min={0} max={MAX_BIN_COUNT} value={form.recyclingBins} onChange={setCount("recyclingBins")} className={inputClass} /></Field>
+              <Field label="Other carts"><input type="number" min={0} max={MAX_BIN_COUNT} value={form.otherBins} onChange={setCount("otherBins")} className={inputClass} /></Field>
+            </div>
+            <p className={`mt-3 text-sm font-bold ${binCount > MAX_BIN_COUNT || binCount < 1 ? "text-red-700" : "text-zinc-700"}`}>
+              Total: {binCount} {binCount === 1 ? "bin" : "bins"}. The staging maximum is {MAX_BIN_COUNT}.
+            </p>
+          </>,
+        )}
 
-        <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-8">
-          <h2 className="text-2xl font-black">6. Contact permissions and confirmation</h2>
-          <div className="mt-5 space-y-3">
-            {([
-              ["emailAllowed", "Email updates"],
-              ["smsAllowed", "Text-message updates"],
-              ["phoneAllowed", "Phone calls when needed"],
-            ] as const).map(([key, label]) => (
-              <label key={key} className="flex items-center gap-3 font-semibold">
-                <input type="checkbox" checked={form[key]} onChange={setChecked(key)} className="h-5 w-5 accent-blue-700" />
-                {label}
-              </label>
-            ))}
-          </div>
-          <label className="mt-6 flex items-start gap-3 rounded-xl bg-zinc-100 p-4 font-bold">
-            <input type="checkbox" checked={form.termsAccepted} onChange={setChecked("termsAccepted")} className="mt-1 h-5 w-5 accent-blue-700" />
-            I confirm this fictional staging signup may be saved as submitted but unpaid. No account becomes active and no service is scheduled until later launch steps are completed and approved.
-          </label>
-        </section>
+        {section(
+          "3. Trash and recycling schedule",
+          <>
+            <p className="mt-2 text-sm leading-relaxed text-blue-950">
+              ADS cleaning is normally the calendar day after collection. When a recycling bin is included, the first service aligns to a recycling pickup so both carts should be empty. Every-other-week service needs an exact next pickup date as its anchor.
+            </p>
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <Field label="Trash pickup day"><select value={form.trashWeekday} onChange={setText("trashWeekday")} className={inputClass}><option value="">Select a day</option>{weekdayOptions}</select></Field>
+              {form.recyclingBins > 0 ? (
+                <>
+                  <Field label="Recycling pickup day"><select value={form.recyclingWeekday} onChange={setText("recyclingWeekday")} className={inputClass}><option value="">Select a day</option>{weekdayOptions}</select></Field>
+                  <Field label="Recycling frequency"><select value={form.recyclingFrequencyWeeks} onChange={setText("recyclingFrequencyWeeks")} className={inputClass}><option value="">Select frequency</option><option value="1">Every week</option><option value="2">Every other week</option></select></Field>
+                  <Field label="Next scheduled recycling pickup date" hint="The date must fall on the selected recycling weekday."><input type="date" value={form.recyclingAnchorCollectionDate} onChange={setText("recyclingAnchorCollectionDate")} className={inputClass} /></Field>
+                </>
+              ) : null}
+            </div>
+            {form.recyclingBins > 0 && form.trashWeekday && form.recyclingWeekday && form.trashWeekday !== form.recyclingWeekday ? (
+              <p className="mt-4 rounded-xl bg-amber-100 p-3 text-sm font-bold text-amber-950">Trash and recycling are on different weekdays. This signup will be saved for staff scheduling review instead of automatic assignment.</p>
+            ) : null}
+          </>,
+          "border-blue-200 bg-blue-50",
+        )}
+
+        {section(
+          "4. Promo or referral code",
+          <>
+            <p className="mt-2 text-sm text-zinc-700">Use one or the other. They never stack.</p>
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <Field label="Promo code"><input value={form.promoCode} disabled={Boolean(normalizedReferral)} onChange={(event) => setForm((current) => ({ ...current, promoCode: event.target.value, referralCode: event.target.value ? "" : current.referralCode }))} className={inputClass} autoCapitalize="characters" autoComplete="off" /></Field>
+              <Field label="Referral code" hint="Short /r/ADS-XXXX-XXXX links automatically place the code here."><input value={form.referralCode} disabled={Boolean(normalizedPromo)} onChange={(event) => setForm((current) => ({ ...current, referralCode: event.target.value, promoCode: event.target.value ? "" : current.promoCode }))} className={inputClass} autoCapitalize="characters" autoComplete="off" /></Field>
+            </div>
+            {normalizedReferral && !referralFormatValid ? <p className="mt-3 text-sm font-bold text-red-700">Referral code format is not valid.</p> : null}
+            {normalizedReferral && plan && !plan.referralEligible ? <p className="mt-3 text-sm font-bold text-amber-800">Referral discounts apply only to an eligible new Monthly signup.</p> : null}
+            {promotion && promotion.status !== "empty" && promotion.status !== "applied" ? <p className="mt-3 text-sm font-bold text-amber-800">That promo is not recognized or is not eligible for this plan and bin count.</p> : null}
+          </>,
+        )}
+
+        {section(
+          "5. Return, access, and safety details",
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <Field label="Designated bin-return location" hint="Standard service includes returning cleaned bins to this chosen location."><input value={form.preferredReturnLocation} onChange={setText("preferredReturnLocation")} className={inputClass} /></Field>
+            <Field label="Gate information"><input value={form.gateInformation} onChange={setText("gateInformation")} className={inputClass} /></Field>
+            <Field label="Access instructions"><textarea value={form.accessInstructions} onChange={setText("accessInstructions")} className={areaClass} /></Field>
+            <Field label="Animals or pets"><textarea value={form.animalWarning} onChange={setText("animalWarning")} className={areaClass} /></Field>
+            <div className="md:col-span-2"><Field label="Other safety or accessibility details"><textarea value={form.safetyNotes} onChange={setText("safetyNotes")} className={areaClass} /></Field></div>
+          </div>,
+        )}
+
+        {section(
+          "6. Contact permissions and confirmation",
+          <>
+            <div className="mt-5 space-y-3">
+              {([ ["emailAllowed", "Email updates"], ["smsAllowed", "Text-message updates"], ["phoneAllowed", "Phone calls when needed"] ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-3 font-semibold"><input type="checkbox" checked={form[key]} onChange={setChecked(key)} className="h-5 w-5 accent-blue-700" />{label}</label>
+              ))}
+            </div>
+            <label className="mt-6 flex items-start gap-3 rounded-xl bg-zinc-100 p-4 font-bold"><input type="checkbox" checked={form.termsAccepted} onChange={setChecked("termsAccepted")} className="mt-1 h-5 w-5 accent-blue-700" />I confirm this fictional staging signup may be saved as submitted but unpaid. No account becomes active and no service is scheduled until later launch steps are completed and approved.</label>
+          </>,
+        )}
 
         <aside className="rounded-3xl bg-zinc-950 p-6 text-white shadow-xl sm:p-8">
           <p className="text-sm font-bold uppercase tracking-wider text-brand-300">Fictional estimate</p>
@@ -728,16 +597,10 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         ) : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            type="submit"
-            disabled={saveState === "saving" || submitted}
-            className="rounded-xl bg-brand-700 px-6 py-4 text-base font-black text-white shadow hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-zinc-400"
-          >
+          <button type="submit" disabled={saveState === "saving" || submitted} className="rounded-xl bg-brand-700 px-6 py-4 text-base font-black text-white shadow hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-zinc-400">
             {saveState === "saving" ? "Saving fictional signup…" : submitted ? "Submitted — no payment collected" : "Submit fictional signup — stop before payment"}
           </button>
-          <span className="text-sm font-semibold text-zinc-600">
-            {saveState === "saved" ? "Draft saved" : lead ? "CRM draft created" : "Draft saves after fictional-data confirmation"}
-          </span>
+          <span className="text-sm font-semibold text-zinc-600">{saveState === "saved" ? "Draft saved" : lead ? "CRM draft created" : "Draft saves after fictional-data confirmation"}</span>
         </div>
       </fieldset>
     </form>
