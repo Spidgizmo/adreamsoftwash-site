@@ -11,9 +11,11 @@ test("submitted fictional signup releases its edit identity so the next signup c
   assert.doesNotMatch(source, /localStorage/);
   assert.match(source, /leadRef\.current = null/);
   assert.match(source, /setLead\(null\)/);
+  assert.match(source, /const startAnother = \(\) =>/);
+  assert.match(source, /const fresh = initialForm\(props\)/);
+  assert.match(source, /submittedRef\.current = false/);
+  assert.match(source, /lastSavedFingerprint\.current = ""/);
   assert.match(source, /Start another fictional signup/);
-  assert.match(source, /Starting another signup will create a new record instead of changing this customer/);
-  assert.match(source, /Fresh page loads intentionally start a new signup/);
 });
 
 test("CRM signup pipeline stays compact and links to a separate detail page", async () => {
