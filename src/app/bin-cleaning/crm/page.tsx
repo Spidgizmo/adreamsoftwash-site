@@ -27,6 +27,14 @@ function displayDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function yesNo(value: boolean) {
+  return value ? "Yes" : "No";
+}
+
+function valueOrDash(value: string | null | undefined) {
+  return value?.trim() || "—";
+}
+
 export default async function CRM({
   searchParams,
 }: {
@@ -72,114 +80,143 @@ export default async function CRM({
         <div className="border-b p-5">
           <h2 className="text-xl font-black">Fictional signup pipeline</h2>
           <p className="mt-1 text-sm text-zinc-600">
-            Step 4 records incomplete, abandoned, and submitted-but-unpaid
-            signups here. No row represents a paid or active customer.
+            Every field collected by the Step 4 signup is shown below so the
+            staging intake can be verified end to end. No row represents a paid
+            or active customer.
           </p>
         </div>
 
         {!signupResult.available ? (
           <div className="m-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950">
             The Step 4 signup table is not available in this hosted staging
-            database yet. Existing CRM functions remain available while the
-            fictional signup migration is pending.
+            database yet.
           </div>
         ) : signupLeads.length === 0 ? (
           <p className="p-5 text-sm text-zinc-600">
             No fictional signup drafts have been saved yet.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-left text-sm">
-              <thead>
-                <tr>
-                  {[
-                    "Status",
-                    "Fictional customer",
-                    "Plan / bins",
-                    "Collection",
-                    "Discount",
-                    "Return / safety",
-                    "Estimate",
-                    "Last activity",
-                  ].map((heading) => (
-                    <th className="p-3" key={heading}>
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {signupLeads.map((lead) => (
-                  <tr key={lead.id} className="border-t align-top">
-                    <td className="p-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-black uppercase tracking-wide ${
-                          lead.status === "submitted_unpaid"
-                            ? "bg-emerald-100 text-emerald-900"
-                            : lead.status === "abandoned"
-                              ? "bg-amber-100 text-amber-950"
-                              : "bg-blue-100 text-blue-900"
-                        }`}
-                      >
-                        {lead.status.replaceAll("_", " ")}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <p className="font-black">{lead.full_name || "Incomplete name"}</p>
-                      <p className="mt-1 text-xs text-zinc-600">{lead.email || "No email"}</p>
-                      <p className="text-xs text-zinc-600">{lead.phone || "No phone"}</p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        {[lead.line1, lead.city, lead.region, lead.postal_code]
-                          .filter(Boolean)
-                          .join(", ") || "Address incomplete"}
+          <div className="space-y-4 p-4 sm:p-5">
+            {signupLeads.map((lead) => (
+              <details
+                key={lead.id}
+                className="rounded-2xl border border-zinc-200 bg-white shadow-sm"
+                open={signupLeads.length === 1}
+              >
+                <summary className="cursor-pointer list-none p-4 sm:p-5">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-1 text-xs font-black uppercase tracking-wide ${
+                            lead.status === "submitted_unpaid"
+                              ? "bg-emerald-100 text-emerald-900"
+                              : lead.status === "abandoned"
+                                ? "bg-amber-100 text-amber-950"
+                                : "bg-blue-100 text-blue-900"
+                          }`}
+                        >
+                          {lead.status.replaceAll("_", " ")}
+                        </span>
+                        <span className="text-xs font-bold uppercase tracking-wide text-zinc-500">
+                          {lead.is_test ? "Fictional test record" : "Unexpected non-test record"}
+                        </span>
+                      </div>
+                      <h3 className="mt-2 text-lg font-black">
+                        {lead.full_name || "Incomplete name"}
+                      </h3>
+                      <p className="mt-1 text-sm text-zinc-600">
+                        {lead.plan_id || "Plan incomplete"} · {lead.bin_count} total bin{lead.bin_count === 1 ? "" : "s"} · {valueOrDash(lead.email)} · {valueOrDash(lead.phone)}
                       </p>
-                    </td>
-                    <td className="p-3">
-                      <p className="font-bold">{lead.plan_id || "Plan incomplete"}</p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        {lead.bin_count} total · {lead.bin_streams?.trash ?? 0} trash · {lead.bin_streams?.recycling ?? 0} recycling · {lead.bin_streams?.other ?? 0} other
+                    </div>
+                    <div className="text-sm lg:text-right">
+                      <p className="font-black">
+                        {lead.estimated_first_charge_cents == null
+                          ? "Estimate pending"
+                          : `${formatCurrency(lead.estimated_first_charge_cents)} before tax`}
                       </p>
-                    </td>
-                    <td className="p-3">
-                      <p>Trash: {lead.trash_weekday == null ? "—" : days[lead.trash_weekday]}</p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        Recycling: {lead.recycling_weekday == null ? "—" : days[lead.recycling_weekday]}
-                        {lead.recycling_frequency_weeks ? ` · every ${lead.recycling_frequency_weeks} week${lead.recycling_frequency_weeks === 1 ? "" : "s"}` : ""}
+                      <p className="mt-1 text-xs text-zinc-500">
+                        Last activity {displayDate(lead.last_activity_at)}
                       </p>
-                      <p className="text-xs text-zinc-600">
-                        Anchor: {lead.recycling_anchor_collection_date || "—"}
-                      </p>
-                    </td>
-                    <td className="p-3">
-                      <p>{lead.promo_code ? `Promo ${lead.promo_code}` : lead.referral_code ? `Referral ${lead.referral_code}` : "None"}</p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        {lead.discount_kind} · {lead.discount_status}
-                      </p>
-                    </td>
-                    <td className="max-w-64 p-3">
-                      <p className="font-semibold">{lead.preferred_return_location || "Return location incomplete"}</p>
-                      <p className="mt-1 line-clamp-2 text-xs text-zinc-600">
-                        {[lead.access_instructions, lead.gate_information, lead.animal_warning, lead.safety_notes]
-                          .filter(Boolean)
-                          .join(" · ") || "No access or safety details yet"}
-                      </p>
-                    </td>
-                    <td className="p-3 font-bold">
-                      {lead.estimated_first_charge_cents == null
-                        ? "Pending"
-                        : `${formatCurrency(lead.estimated_first_charge_cents)} before tax`}
-                      <p className="mt-1 text-xs font-normal text-zinc-600">Unpaid</p>
-                    </td>
-                    <td className="p-3">
-                      {displayDate(lead.last_activity_at)}
-                      <p className="mt-1 text-xs text-zinc-600">
-                        Submitted: {displayDate(lead.submitted_at)}
-                      </p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                </summary>
+
+                <div className="grid gap-4 border-t bg-zinc-50 p-4 sm:p-5 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="rounded-xl border bg-white p-4">
+                    <h4 className="font-black">Customer & service address</h4>
+                    <dl className="mt-3 space-y-2 text-sm">
+                      <div><dt className="font-bold">Name</dt><dd>{valueOrDash(lead.full_name)}</dd></div>
+                      <div><dt className="font-bold">Email</dt><dd>{valueOrDash(lead.email)}</dd></div>
+                      <div><dt className="font-bold">Phone</dt><dd>{valueOrDash(lead.phone)}</dd></div>
+                      <div><dt className="font-bold">Street</dt><dd>{valueOrDash(lead.line1)}</dd></div>
+                      <div><dt className="font-bold">Unit</dt><dd>{valueOrDash(lead.line2)}</dd></div>
+                      <div><dt className="font-bold">City / State / ZIP</dt><dd>{[lead.city, lead.region, lead.postal_code].filter(Boolean).join(", ") || "—"}</dd></div>
+                    </dl>
+                  </div>
+
+                  <div className="rounded-xl border bg-white p-4">
+                    <h4 className="font-black">Plan & bins</h4>
+                    <dl className="mt-3 space-y-2 text-sm">
+                      <div><dt className="font-bold">Plan</dt><dd>{valueOrDash(lead.plan_id)}</dd></div>
+                      <div><dt className="font-bold">Total bins</dt><dd>{lead.bin_count}</dd></div>
+                      <div><dt className="font-bold">Trash bins</dt><dd>{lead.bin_streams?.trash ?? 0}</dd></div>
+                      <div><dt className="font-bold">Recycling bins</dt><dd>{lead.bin_streams?.recycling ?? 0}</dd></div>
+                      <div><dt className="font-bold">Other carts</dt><dd>{lead.bin_streams?.other ?? 0}</dd></div>
+                    </dl>
+                  </div>
+
+                  <div className="rounded-xl border bg-white p-4">
+                    <h4 className="font-black">Collection schedule</h4>
+                    <dl className="mt-3 space-y-2 text-sm">
+                      <div><dt className="font-bold">Trash pickup</dt><dd>{lead.trash_weekday == null ? "—" : days[lead.trash_weekday]}</dd></div>
+                      <div><dt className="font-bold">Recycling pickup</dt><dd>{lead.recycling_weekday == null ? "—" : days[lead.recycling_weekday]}</dd></div>
+                      <div><dt className="font-bold">Recycling frequency</dt><dd>{lead.recycling_frequency_weeks ? `Every ${lead.recycling_frequency_weeks} week${lead.recycling_frequency_weeks === 1 ? "" : "s"}` : "—"}</dd></div>
+                      <div><dt className="font-bold">Recycling anchor</dt><dd>{valueOrDash(lead.recycling_anchor_collection_date)}</dd></div>
+                    </dl>
+                  </div>
+
+                  <div className="rounded-xl border bg-white p-4">
+                    <h4 className="font-black">Promo / referral & estimate</h4>
+                    <dl className="mt-3 space-y-2 text-sm">
+                      <div><dt className="font-bold">Promo code</dt><dd>{valueOrDash(lead.promo_code)}</dd></div>
+                      <div><dt className="font-bold">Referral code</dt><dd>{valueOrDash(lead.referral_code)}</dd></div>
+                      <div><dt className="font-bold">Discount kind</dt><dd>{valueOrDash(lead.discount_kind)}</dd></div>
+                      <div><dt className="font-bold">Discount status</dt><dd>{valueOrDash(lead.discount_status)}</dd></div>
+                      <div><dt className="font-bold">Regular subtotal</dt><dd>{lead.estimated_subtotal_cents == null ? "—" : formatCurrency(lead.estimated_subtotal_cents)}</dd></div>
+                      <div><dt className="font-bold">Discount</dt><dd>{formatCurrency(lead.estimated_discount_cents)}</dd></div>
+                      <div><dt className="font-bold">Estimated first charge</dt><dd>{lead.estimated_first_charge_cents == null ? "—" : `${formatCurrency(lead.estimated_first_charge_cents)} before tax`}</dd></div>
+                    </dl>
+                  </div>
+
+                  <div className="rounded-xl border bg-white p-4">
+                    <h4 className="font-black">Return, access & safety</h4>
+                    <dl className="mt-3 space-y-2 text-sm">
+                      <div><dt className="font-bold">Return location</dt><dd>{valueOrDash(lead.preferred_return_location)}</dd></div>
+                      <div><dt className="font-bold">Access instructions</dt><dd className="whitespace-pre-wrap">{valueOrDash(lead.access_instructions)}</dd></div>
+                      <div><dt className="font-bold">Gate information</dt><dd className="whitespace-pre-wrap">{valueOrDash(lead.gate_information)}</dd></div>
+                      <div><dt className="font-bold">Animal warning</dt><dd className="whitespace-pre-wrap">{valueOrDash(lead.animal_warning)}</dd></div>
+                      <div><dt className="font-bold">Safety notes</dt><dd className="whitespace-pre-wrap">{valueOrDash(lead.safety_notes)}</dd></div>
+                    </dl>
+                  </div>
+
+                  <div className="rounded-xl border bg-white p-4">
+                    <h4 className="font-black">Contact permissions & tracking</h4>
+                    <dl className="mt-3 space-y-2 text-sm">
+                      <div><dt className="font-bold">Email allowed</dt><dd>{yesNo(lead.email_allowed)}</dd></div>
+                      <div><dt className="font-bold">SMS allowed</dt><dd>{yesNo(lead.sms_allowed)}</dd></div>
+                      <div><dt className="font-bold">Phone allowed</dt><dd>{yesNo(lead.phone_allowed)}</dd></div>
+                      <div><dt className="font-bold">Terms accepted</dt><dd>{yesNo(lead.terms_accepted)}</dd></div>
+                      <div><dt className="font-bold">Source</dt><dd className="break-all">{valueOrDash(lead.source_path)}</dd></div>
+                      <div><dt className="font-bold">Created</dt><dd>{displayDate(lead.created_at)}</dd></div>
+                      <div><dt className="font-bold">Updated</dt><dd>{displayDate(lead.updated_at)}</dd></div>
+                      <div><dt className="font-bold">Submitted</dt><dd>{displayDate(lead.submitted_at)}</dd></div>
+                      <div><dt className="font-bold">Payment</dt><dd>Unpaid — Stripe disabled</dd></div>
+                    </dl>
+                  </div>
+                </div>
+              </details>
+            ))}
           </div>
         )}
       </section>
