@@ -46,7 +46,7 @@ export default async function SignupDetail({ params }: { params: { id: string } 
   if (!lead) notFound();
 
   return (
-    <AppShell area="Signup record">
+    <AppShell area="Internal CRM">
       <div className="mb-5">
         <Link href="/bin-cleaning/crm" className="text-sm font-bold text-brand-700 hover:underline">← Back to CRM</Link>
       </div>
@@ -83,7 +83,6 @@ export default async function SignupDetail({ params }: { params: { id: string } 
           <Item label="Total bins" value={lead.bin_count} />
           <Item label="Trash bins" value={lead.bin_streams?.trash ?? 0} />
           <Item label="Recycling bins" value={lead.bin_streams?.recycling ?? 0} />
-          <Item label="Other carts" value={lead.bin_streams?.other ?? 0} />
         </Card>
 
         <Card title="Collection schedule">
