@@ -21,9 +21,9 @@ import {
   type PlanId,
 } from "@/lib/bin-cleaning-plans";
 
-// v2 intentionally ignores old browser state that could point at an already-submitted
-// signup. Each completed signup must remain its own CRM record.
-const STORAGE_KEY = "ads-bin-cleaning-fictional-signup-v2";
+// v3 discards every older browser draft identity. Submitted records are also
+// protected in the database so a stale browser token can never overwrite one.
+const STORAGE_KEY = "ads-bin-cleaning-fictional-signup-v3";
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 const inputClass = "mt-2 h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base text-zinc-950 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-200";
 const areaClass = "mt-2 min-h-24 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-200";
@@ -111,7 +111,7 @@ function buildPayload(form: FormState) {
     fullName: form.fullName, email: form.email, phone: form.phone,
     line1: form.line1, line2: form.line2, city: form.city, region: form.region, postalCode: form.postalCode,
     planId: form.planId,
-    binStreams: { trash: form.trashBins, recycling: form.recyclingBins, other: form.otherBins },
+    binStreams: { trash: form.trashBins, recycling: form.recyclingBins, other: 0 },
     trashWeekday: form.trashWeekday === "" ? null : Number(form.trashWeekday),
     recyclingWeekday: form.recyclingBins === 0 || form.recyclingWeekday === "" ? null : Number(form.recyclingWeekday),
     recyclingFrequencyWeeks: form.recyclingBins === 0 || form.recyclingFrequencyWeeks === "" ? null : Number(form.recyclingFrequencyWeeks),
@@ -158,6 +158,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           setForm((current) => ({
             ...current,
             ...saved.form,
+            otherBins: 0,
             planId: props.initialPlanId,
             promoCode: props.initialReferralCode ? "" : props.initialPromoCode || saved.form?.promoCode || "",
             referralCode: props.initialReferralCode || saved.form?.referralCode || "",
@@ -177,10 +178,10 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
 
   useEffect(() => {
     if (!hydrated || submittedRef.current) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, lead: lead ?? undefined }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ form: { ...form, otherBins: 0 }, lead: lead ?? undefined }));
   }, [form, hydrated, lead]);
 
-  const binCount = form.trashBins + form.recyclingBins + form.otherBins;
+  const binCount = form.trashBins + form.recyclingBins;
   const plan = PUBLIC_BIN_CLEANING_PLANS.find((item) => item.id === form.planId) ?? PUBLIC_BIN_CLEANING_PLANS[0];
   const price = useMemo(() => plan && binCount > 0 && binCount <= MAX_BIN_COUNT ? calculateBinCleaningPrice(plan, binCount) : null, [binCount, plan]);
   const normalizedPromo = normalizeBinCleaningPromoCode(form.promoCode);
@@ -220,8 +221,6 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
 
       setErrors([]);
       if (status === "submitted_unpaid") {
-        // The submitted row is now permanent. Never retain its edit token in the
-        // browser, otherwise the next customer could overwrite this record.
         submittedRef.current = true;
         leadRef.current = null;
         setLead(null);
@@ -352,10 +351,9 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
               </label>
             ))}
           </div>
-          <div className="mt-7 grid gap-5 sm:grid-cols-3">
+          <div className="mt-7 grid gap-5 sm:grid-cols-2">
             <Field label="Trash bins"><input type="number" min={0} max={MAX_BIN_COUNT} value={form.trashBins} onChange={setCount("trashBins")} className={inputClass} /></Field>
             <Field label="Recycling bins"><input type="number" min={0} max={MAX_BIN_COUNT} value={form.recyclingBins} onChange={setCount("recyclingBins")} className={inputClass} /></Field>
-            <Field label="Other carts"><input type="number" min={0} max={MAX_BIN_COUNT} value={form.otherBins} onChange={setCount("otherBins")} className={inputClass} /></Field>
           </div>
           <p className={`mt-3 text-sm font-bold ${binCount > MAX_BIN_COUNT || binCount < 1 ? "text-red-700" : "text-zinc-700"}`}>Total: {binCount} {binCount === 1 ? "bin" : "bins"}. The staging maximum is {MAX_BIN_COUNT}.</p>
         </Section>
