@@ -27,7 +27,8 @@ test("working signup collects enough information to identify alternating recycli
 
   assert.match(signup, /Trash bins/);
   assert.match(signup, /Recycling bins/);
-  assert.match(signup, /Other carts/);
+  assert.doesNotMatch(signup, /Other carts/);
+  assert.match(signup, /other: 0/);
   assert.match(signup, /Recycling pickup day/);
   assert.match(signup, /Recycling frequency/);
   assert.match(signup, /Next scheduled recycling pickup date/);
