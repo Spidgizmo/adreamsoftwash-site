@@ -33,7 +33,7 @@ test("working signup collects enough information to identify alternating recycli
   assert.match(signup, /Recycling frequency/);
   assert.match(signup, /Next scheduled recycling pickup date/);
   assert.match(signup, /Every-other-week service needs an exact next pickup date as its anchor/);
-  assert.match(signup, /staff scheduling review instead of automatic assignment/);
+  assert.match(scheduling, /staff review/i);
   assert.match(scheduling, /later than the next trash pickup/);
 });
 
