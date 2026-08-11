@@ -51,13 +51,24 @@ export type SignupLeadResult = Readonly<{
   leads: readonly SignupLeadRow[];
 }>;
 
+const SIGNUP_LEAD_SELECT =
+  "id,status,full_name,email,phone,line1,line2,city,region,postal_code,plan_id,bin_count,bin_streams,trash_weekday,recycling_weekday,recycling_frequency_weeks,recycling_anchor_collection_date,promo_code,referral_code,preferred_return_location,access_instructions,gate_information,animal_warning,safety_notes,email_allowed,sms_allowed,phone_allowed,terms_accepted,source_path,estimated_subtotal_cents,estimated_discount_cents,estimated_first_charge_cents,discount_kind,discount_status,is_test,last_activity_at,submitted_at,created_at,updated_at";
+
 export async function crmSignupLeads(): Promise<SignupLeadResult> {
   try {
     const leads = await databaseRequest<SignupLeadRow[]>(
-      "signup_leads?select=id,status,full_name,email,phone,line1,line2,city,region,postal_code,plan_id,bin_count,bin_streams,trash_weekday,recycling_weekday,recycling_frequency_weeks,recycling_anchor_collection_date,promo_code,referral_code,preferred_return_location,access_instructions,gate_information,animal_warning,safety_notes,email_allowed,sms_allowed,phone_allowed,terms_accepted,source_path,estimated_subtotal_cents,estimated_discount_cents,estimated_first_charge_cents,discount_kind,discount_status,is_test,last_activity_at,submitted_at,created_at,updated_at&order=last_activity_at.desc&limit=100",
+      `signup_leads?select=${SIGNUP_LEAD_SELECT}&order=last_activity_at.desc&limit=100`,
     );
     return { available: true, leads };
   } catch {
     return { available: false, leads: [] };
   }
+}
+
+export async function crmSignupLead(id: string): Promise<SignupLeadRow | null> {
+  const safeId = encodeURIComponent(id);
+  const leads = await databaseRequest<SignupLeadRow[]>(
+    `signup_leads?select=${SIGNUP_LEAD_SELECT}&id=eq.${safeId}&limit=1`,
+  );
+  return leads[0] ?? null;
 }
