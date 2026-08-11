@@ -40,7 +40,8 @@ export async function databaseRequest<T>(
   suppliedToken?: string,
 ) {
   const { url, key } = config();
-  const token = suppliedToken ?? cookies().get(ACCESS_COOKIE)?.value;
+  const cookieStore = suppliedToken ? null : await cookies();
+  const token = suppliedToken ?? cookieStore?.get(ACCESS_COOKIE)?.value;
   if (!token) throw new Error("Authentication required");
   const response = await fetch(`${url}/rest/v1/${path}`, {
     ...init,
@@ -119,12 +120,12 @@ async function rotateSession(refreshToken: string) {
   });
   if (!response.ok) return null;
   const tokens = (await response.json()) as SessionTokens;
-  storeSession(tokens);
+  await storeSession(tokens);
   return tokens;
 }
 
 export async function currentSession(): Promise<SessionUser | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_COOKIE)?.value;
   if (accessToken) {
     const session = await sessionFromToken(accessToken);
@@ -141,7 +142,7 @@ export async function currentSession(): Promise<SessionUser | null> {
   }
 }
 
-export function storeSession(value: SessionTokens) {
+export async function storeSession(value: SessionTokens) {
   const options = {
     httpOnly: true,
     sameSite: "lax" as const,
@@ -149,16 +150,18 @@ export function storeSession(value: SessionTokens) {
     path: "/",
     maxAge: value.expires_in,
   };
-  cookies().set(ACCESS_COOKIE, value.access_token, options);
-  cookies().set(REFRESH_COOKIE, value.refresh_token, {
+  const cookieStore = await cookies();
+  cookieStore.set(ACCESS_COOKIE, value.access_token, options);
+  cookieStore.set(REFRESH_COOKIE, value.refresh_token, {
     ...options,
     maxAge: REFRESH_MAX_AGE,
   });
 }
 
-export function clearSession() {
-  cookies().delete(ACCESS_COOKIE);
-  cookies().delete(REFRESH_COOKIE);
+export async function clearSession() {
+  const cookieStore = await cookies();
+  cookieStore.delete(ACCESS_COOKIE);
+  cookieStore.delete(REFRESH_COOKIE);
 }
 
 export function destinationForRole(role: AppRole) {
