@@ -8,12 +8,12 @@ const detailPath = new URL("../src/app/bin-cleaning/crm/signups/[id]/page.tsx", 
 
 test("submitted fictional signup releases its edit identity so the next signup cannot overwrite it", async () => {
   const source = await readFile(formPath, "utf8");
-  assert.match(source, /ads-bin-cleaning-fictional-signup-v2/);
-  assert.match(source, /window\.localStorage\.removeItem\(STORAGE_KEY\)/);
+  assert.doesNotMatch(source, /localStorage/);
   assert.match(source, /leadRef\.current = null/);
   assert.match(source, /setLead\(null\)/);
   assert.match(source, /Start another fictional signup/);
   assert.match(source, /Starting another signup will create a new record instead of changing this customer/);
+  assert.match(source, /Fresh page loads intentionally start a new signup/);
 });
 
 test("CRM signup pipeline stays compact and links to a separate detail page", async () => {
