@@ -7,6 +7,7 @@ export type SignupLeadRow = Readonly<{
   email: string | null;
   phone: string | null;
   line1: string | null;
+  line2: string | null;
   city: string | null;
   region: string | null;
   postal_code: string | null;
@@ -28,9 +29,17 @@ export type SignupLeadRow = Readonly<{
   gate_information: string | null;
   animal_warning: string | null;
   safety_notes: string | null;
+  email_allowed: boolean;
+  sms_allowed: boolean;
+  phone_allowed: boolean;
+  terms_accepted: boolean;
+  source_path: string;
+  estimated_subtotal_cents: number | null;
+  estimated_discount_cents: number;
+  estimated_first_charge_cents: number | null;
   discount_kind: string;
   discount_status: string;
-  estimated_first_charge_cents: number | null;
+  is_test: boolean;
   last_activity_at: string;
   submitted_at: string | null;
   created_at: string;
@@ -45,7 +54,7 @@ export type SignupLeadResult = Readonly<{
 export async function crmSignupLeads(): Promise<SignupLeadResult> {
   try {
     const leads = await databaseRequest<SignupLeadRow[]>(
-      "signup_leads?select=id,status,full_name,email,phone,line1,city,region,postal_code,plan_id,bin_count,bin_streams,trash_weekday,recycling_weekday,recycling_frequency_weeks,recycling_anchor_collection_date,promo_code,referral_code,preferred_return_location,access_instructions,gate_information,animal_warning,safety_notes,discount_kind,discount_status,estimated_first_charge_cents,last_activity_at,submitted_at,created_at,updated_at&order=last_activity_at.desc&limit=100",
+      "signup_leads?select=id,status,full_name,email,phone,line1,line2,city,region,postal_code,plan_id,bin_count,bin_streams,trash_weekday,recycling_weekday,recycling_frequency_weeks,recycling_anchor_collection_date,promo_code,referral_code,preferred_return_location,access_instructions,gate_information,animal_warning,safety_notes,email_allowed,sms_allowed,phone_allowed,terms_accepted,source_path,estimated_subtotal_cents,estimated_discount_cents,estimated_first_charge_cents,discount_kind,discount_status,is_test,last_activity_at,submitted_at,created_at,updated_at&order=last_activity_at.desc&limit=100",
     );
     return { available: true, leads };
   } catch {
