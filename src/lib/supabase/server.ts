@@ -62,6 +62,36 @@ export async function databaseRequest<T>(
   return response.status === 204 ? ([] as T) : (await response.json()) as T;
 }
 
+/**
+ * Server-only administrative read/write boundary. Never import this module into
+ * a client component and never return the service-role credential to a browser.
+ */
+export async function serviceRoleDatabaseRequest<T>(
+  path: string,
+  init: RequestInit = {},
+) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !serviceRoleKey) {
+    throw new Error("Server-only staging database configuration is unavailable");
+  }
+  const response = await fetch(`${url}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...init.headers,
+    },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Server database request failed (${response.status})`);
+  }
+  return response.status === 204 ? ([] as T) : (await response.json()) as T;
+}
+
 async function profileRole(userId: string, token?: string): Promise<AppRole> {
   const profiles = await databaseRequest<{ login_status: string }[]>(
     `user_profiles?id=eq.${userId}&select=login_status`,
