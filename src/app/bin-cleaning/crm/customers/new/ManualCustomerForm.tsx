@@ -3,6 +3,25 @@
 import { FormEvent, useState } from "react";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const leadSources = [
+  ["unknown", "Not asked / unknown"],
+  ["flyer", "Flyer"],
+  ["door-hanger", "Door hanger / bin tag"],
+  ["yard-sign", "Yard sign"],
+  ["friend-family", "Friend or family"],
+  ["customer-referral", "Customer referral / buddy referred me"],
+  ["google", "Google search / Google Maps"],
+  ["facebook", "Facebook"],
+  ["instagram", "Instagram"],
+  ["yelp", "Yelp"],
+  ["nextdoor", "Nextdoor"],
+  ["truck-vehicle", "ADS truck / vehicle"],
+  ["existing-ads-customer", "Existing ADS exterior-cleaning customer"],
+  ["repeat-bin-customer", "Previous bin-cleaning customer"],
+  ["local-event", "Local event / community event"],
+  ["word-of-mouth", "Other word of mouth"],
+  ["other", "Other"],
+] as const;
 
 type Errors = Record<string, string>;
 
@@ -128,6 +147,17 @@ export function ManualCustomerForm() {
           {serverError && <p className={Object.keys(errors).length > 0 ? "mt-2" : ""}><strong>Save problem:</strong> {serverError}</p>}
         </div>
       )}
+
+      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:col-span-2">
+        <p className="font-black text-blue-950">Signup method: Manual / staff entry</p>
+        <p className="mt-1 text-sm text-blue-900">This is recorded automatically because staff is creating the customer. Use the source dropdown below to record how the customer heard about ADS.</p>
+      </div>
+
+      <label className="font-semibold sm:col-span-2">How did they hear about us?
+        <select name="lead_source" defaultValue="unknown" className={fieldClass(false)}>
+          {leadSources.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </label>
 
       <label data-field-error={invalid("full_name")} className="font-semibold">Full name *<input name="full_name" className={fieldClass(invalid("full_name"))} /><ErrorText message={errors.full_name} /></label>
       <label data-field-error={invalid("email")} className="font-semibold">Email *<input name="email" placeholder="Any fictional test email/value" className={fieldClass(invalid("email"))} /><ErrorText message={errors.email} /></label>
