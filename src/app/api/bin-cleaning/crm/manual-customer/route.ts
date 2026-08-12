@@ -9,6 +9,25 @@ import { currentSession } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const allowedLeadSources = new Set([
+  "unknown",
+  "flyer",
+  "door-hanger",
+  "yard-sign",
+  "friend-family",
+  "customer-referral",
+  "google",
+  "facebook",
+  "instagram",
+  "yelp",
+  "nextdoor",
+  "truck-vehicle",
+  "existing-ads-customer",
+  "repeat-bin-customer",
+  "local-event",
+  "word-of-mouth",
+  "other",
+]);
 
 function text(form: FormData, key: string) {
   const value = form.get(key);
@@ -50,6 +69,8 @@ export async function POST(request: NextRequest) {
   const region = text(form, "region").toUpperCase().slice(0, 32);
   const postalCode = text(form, "postal_code").slice(0, 32);
   const planId = text(form, "plan_id");
+  const requestedLeadSource = text(form, "lead_source").slice(0, 64);
+  const leadSource = allowedLeadSources.has(requestedLeadSource) ? requestedLeadSource : "unknown";
   const trashBins = integer(form, "trash_bins");
   const recyclingBins = integer(form, "recycling_bins");
   const trashWeekday = integer(form, "trash_weekday");
@@ -141,7 +162,13 @@ export async function POST(request: NextRequest) {
     estimated_first_charge_cents: price.subtotalCents,
     discount_kind: "none",
     discount_status: "none",
-    form_data: { entered_by_staff_user_id: session.id, staff_note: staffNote || null, manual_intake: true },
+    form_data: {
+      entered_by_staff_user_id: session.id,
+      staff_note: staffNote || null,
+      manual_intake: true,
+      signup_method: "manual",
+      lead_source: leadSource,
+    },
     is_test: true,
     last_activity_at: now,
     submitted_at: now,
