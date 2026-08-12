@@ -1,4 +1,4 @@
-import { databaseRequest } from "@/lib/supabase/server";
+import { currentSession, databaseRequest } from "@/lib/supabase/server";
 
 export type CustomerRow = {
   id: string;
@@ -44,9 +44,11 @@ export type CustomerRow = {
 const customerSelect = "id,full_name,email,phone,account_status,last_portal_activity_at,last_portal_login_at,service_addresses(id,is_current,line1,line2,city,region,postal_code,preferred_return_location,access_instructions,gate_information,animal_warning,municipalities(name),bins(id,collection_stream,active),trash_pickup_schedules(weekday,source,verification_status,cleaning_day_assignments(normal_weekday,cleaning_date)),recycling_pickup_schedules(weekday,frequency_weeks,anchor_collection_date,source,verification_status,is_current)),subscriptions(id,payment_status,subscription_status,service_status,service_alignment,service_plan_versions(base_price_cents,additional_bin_price_cents,bins_included,service_plans(id,display_name)))";
 
 export async function portalCustomer() {
-  const rows = await databaseRequest<CustomerRow[]>(`customers?select=${customerSelect}&service_addresses.is_current=eq.true&service_addresses.recycling_pickup_schedules.is_current=eq.true&subscriptions.ended_at=is.null&subscriptions.order=started_at.desc.nullslast&subscriptions.limit=1&limit=1`);
+  const session = await currentSession();
+  if (!session || session.role !== "customer") throw new Error("Customer authentication required");
+  const rows = await databaseRequest<CustomerRow[]>(`customers?user_id=eq.${session.id}&select=${customerSelect}&service_addresses.is_current=eq.true&service_addresses.recycling_pickup_schedules.is_current=eq.true&subscriptions.ended_at=is.null&subscriptions.order=started_at.desc.nullslast&subscriptions.limit=1&limit=1`);
   if (!rows[0]) throw new Error("No customer is linked to this test identity");
-  await databaseRequest("rpc/record_my_portal_activity", { method: "POST", body: JSON.stringify({ p_kind: "view" }) }).catch(() => null);
+  await databaseRequest("rpc/record_my_portal_activity", { method: "POST", body: JSON.stringify({ p_kind: "view" }) });
   return rows[0];
 }
 
