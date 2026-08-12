@@ -73,7 +73,7 @@ export function SiteHeader() {
               target="_blank"
               rel="noreferrer"
             >
-              {isBinCleaning ? "Exterior Cleaning Quote" : "Quick Quote"}
+              {isBinCleaning ? "Exterior Quote" : "Quick Quote"}
             </a>
           </div>
         </div>
