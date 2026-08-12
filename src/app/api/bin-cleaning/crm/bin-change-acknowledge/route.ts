@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentSession, databaseRequest } from "@/lib/supabase/server";
+import {
+  currentSession,
+  serviceRoleDatabaseRequest,
+} from "@/lib/supabase/server";
 
 function safeId(value: string) {
   return /^[0-9a-f-]{36}$/i.test(value) ? value : null;
@@ -15,13 +18,27 @@ export async function POST(request: NextRequest) {
   const requestId = safeId(String(form.get("request_id") ?? ""));
   if (!requestId) return NextResponse.json({ ok: false }, { status: 400 });
 
-  await databaseRequest(`customer_bin_change_requests?id=eq.${requestId}&acknowledged_at=is.null`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      acknowledged_at: new Date().toISOString(),
-      acknowledged_by: session.id,
-    }),
-  });
+  const rows = await serviceRoleDatabaseRequest<{ id: string }[]>(
+    `customer_bin_change_requests?id=eq.${requestId}&acknowledged_at=is.null`,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        acknowledged_at: new Date().toISOString(),
+        acknowledged_by: session.id,
+      }),
+    },
+  );
 
-  return NextResponse.redirect(new URL("/bin-cleaning/crm?bin_change=acknowledged", request.url), 303);
+  if (!rows.length) {
+    return NextResponse.redirect(
+      new URL("/bin-cleaning/crm?bin_change=already_acknowledged", request.url),
+      303,
+    );
+  }
+
+  return NextResponse.redirect(
+    new URL("/bin-cleaning/crm?bin_change=acknowledged", request.url),
+    303,
+  );
 }
