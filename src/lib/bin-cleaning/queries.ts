@@ -129,6 +129,45 @@ export async function crmCustomers(filters: {
   );
 }
 
+export type ReferralCodeRow = {
+  code: string;
+  customer_id: string;
+};
+
+export type ReferralRelationshipRow = {
+  referrer_customer_id: string;
+  status: string;
+};
+
+export type ReferralOwnerRow = {
+  id: string;
+  full_name: string;
+};
+
+export async function crmReferralTracking() {
+  try {
+    const [codes, relationships, owners] = await Promise.all([
+      databaseRequest<ReferralCodeRow[]>(
+        "referral_codes?select=code,customer_id&active=eq.true",
+      ),
+      databaseRequest<ReferralRelationshipRow[]>(
+        "referral_relationships?select=referrer_customer_id,status",
+      ),
+      databaseRequest<ReferralOwnerRow[]>(
+        "customers?select=id,full_name&order=full_name",
+      ),
+    ]);
+    return { available: true, codes, relationships, owners } as const;
+  } catch {
+    return {
+      available: false,
+      codes: [] as ReferralCodeRow[],
+      relationships: [] as ReferralRelationshipRow[],
+      owners: [] as ReferralOwnerRow[],
+    } as const;
+  }
+}
+
 export async function crmCustomer(id: string) {
   const safe = /^[0-9a-f-]{36}$/i.test(id)
     ? id
