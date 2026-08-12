@@ -3,6 +3,7 @@ import {
   Definition,
   Stat,
 } from "@/components/bin-cleaning/AppShell";
+import { ManageBinsForm } from "@/components/bin-cleaning/ManageBinsForm";
 import { ReferralShare } from "@/components/bin-cleaning/ReferralShare";
 import { customerAccountSummary } from "@/lib/bin-cleaning/customer-account-summary";
 import { portalCustomer } from "@/lib/bin-cleaning/queries";
@@ -33,7 +34,7 @@ function cadenceLabel(frequencyWeeks: number) {
 export default async function PortalPage({
   searchParams,
 }: {
-  searchParams: { saved?: string };
+  searchParams: { saved?: string; bins?: string };
 }) {
   const customer = await portalCustomer();
   const address = customer.service_addresses[0];
@@ -50,10 +51,53 @@ export default async function PortalPage({
       dirty_this_visit: boolean;
     }[]
   >(
-    `bins?service_address_id=eq.${address.id}&select=id,identifier,description,collection_stream,dirty_this_visit`,
+    `bins?service_address_id=eq.${address.id}&active=eq.true&select=id,identifier,description,collection_stream,dirty_this_visit`,
   );
 
-  const accountSummary = await customerAccountSummary(customer, bins.length);
+  const currentBinConfiguration = (
+    await databaseRequest<
+      {
+        id: string;
+        trash_bin_count: number;
+        recycling_bin_count: number;
+        recurring_price_cents: number | null;
+        effective_service_at: string;
+      }[]
+    >(
+      `customer_bin_configurations?customer_id=eq.${customer.id}&service_address_id=eq.${address.id}&effective_service_at=lte.${encodeURIComponent(new Date().toISOString())}&select=id,trash_bin_count,recycling_bin_count,recurring_price_cents,effective_service_at&order=effective_service_at.desc,created_at.desc&limit=1`,
+    ).catch(() => [])
+  )[0];
+  const currentTrashBins =
+    currentBinConfiguration?.trash_bin_count ??
+    bins.filter((bin) => bin.collection_stream !== "recycling").length;
+  const currentRecyclingBins =
+    currentBinConfiguration?.recycling_bin_count ??
+    bins.filter((bin) => bin.collection_stream === "recycling").length;
+  const currentTotalBins = currentTrashBins + currentRecyclingBins;
+
+  const binChanges = await databaseRequest<
+    {
+      id: string;
+      old_trash_bin_count: number;
+      old_recycling_bin_count: number;
+      new_trash_bin_count: number;
+      new_recycling_bin_count: number;
+      old_recurring_price_cents: number | null;
+      new_recurring_price_cents: number | null;
+      requested_at: string;
+      service_effective_at: string;
+      billing_effective_policy: string;
+      locked_visit_id: string | null;
+      status: string;
+    }[]
+  >(
+    `customer_bin_change_requests?customer_id=eq.${customer.id}&select=id,old_trash_bin_count,old_recycling_bin_count,new_trash_bin_count,new_recycling_bin_count,old_recurring_price_cents,new_recurring_price_cents,requested_at,service_effective_at,billing_effective_policy,locked_visit_id,status&order=requested_at.desc&limit=12`,
+  ).catch(() => []);
+
+  const accountSummary = await customerAccountSummary(
+    customer,
+    currentTotalBins,
+  );
 
   const preferences = (
     await databaseRequest<
@@ -88,12 +132,29 @@ export default async function PortalPage({
       ? "No recurring charge"
       : `${formatCurrency(accountSummary.nextChargeCents)}*`;
 
+  const planVersion = subscription?.service_plan_versions;
+  const canManageBinPricing = Boolean(
+    planVersion &&
+      planVersion.base_price_cents != null &&
+      planVersion.additional_bin_price_cents != null,
+  );
+
   return (
     <AppShell area="Customer portal">
       {searchParams.saved && (
         <p role="status" className="mb-4 rounded-lg bg-green-50 p-3">
           Your test changes were saved; route-affecting requests await staff
           review.
+        </p>
+      )}
+      {searchParams.bins === "changed" && (
+        <p role="status" className="mb-4 rounded-lg bg-green-50 p-3 font-semibold text-green-900">
+          Your bin change was recorded. Future unlocked service uses the new bin configuration. Your next billing renewal will use the new recurring price once payment integration is connected. Any already-locked visit keeps the configuration recorded for that visit.
+        </p>
+      )}
+      {searchParams.bins === "unchanged" && (
+        <p role="status" className="mb-4 rounded-lg bg-blue-50 p-3 text-blue-950">
+          No bin-count change was needed.
         </p>
       )}
 
@@ -106,7 +167,7 @@ export default async function PortalPage({
             "None"
           }
         />
-        <Stat label="Bins" value={bins.length} />
+        <Stat label="Bins" value={currentTotalBins} />
         <Stat label={accountSummary.nextChargeLabel} value={nextChargeValue} />
       </div>
       <p className="mt-2 text-xs text-zinc-500">
@@ -153,7 +214,7 @@ export default async function PortalPage({
           </Definition>
         </dl>
 
-        {bins.some((bin) => bin.collection_stream === "recycling") && (
+        {currentRecyclingBins > 0 && (
           <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
             <strong>Why your service may not be on the next trash week:</strong>{" "}
             {RECYCLING_ALIGNMENT_EXPLANATION}
@@ -213,6 +274,54 @@ export default async function PortalPage({
       </div>
 
       <section className="card mt-6 p-5">
+        <h2 className="text-xl font-black">Manage your bins</h2>
+        <p className="mt-2 text-sm leading-6 text-zinc-600">
+          Add or remove trash and recycling bins here. Every change is time-stamped and kept in account history. A route-locked visit keeps its own immutable bin snapshot, so later changes cannot rewrite what ADS was scheduled to clean.
+        </p>
+        {canManageBinPricing && planVersion ? (
+          <ManageBinsForm
+            customerId={customer.id}
+            currentTrashBins={currentTrashBins}
+            currentRecyclingBins={currentRecyclingBins}
+            basePriceCents={planVersion.base_price_cents ?? 0}
+            includedBins={planVersion.bins_included ?? 1}
+            additionalBinPriceCents={planVersion.additional_bin_price_cents ?? 0}
+            currentRecyclingWeekday={recyclingSchedule?.weekday}
+            currentRecyclingFrequencyWeeks={recyclingSchedule?.frequency_weeks}
+            currentRecyclingAnchor={recyclingSchedule?.anchor_collection_date}
+          />
+        ) : (
+          <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+            Bin changes need staff help for this plan.
+          </p>
+        )}
+
+        {binChanges.length > 0 && (
+          <div className="mt-6 border-t pt-5">
+            <h3 className="font-black">Bin change history</h3>
+            <div className="mt-3 space-y-3">
+              {binChanges.map((change) => (
+                <div key={change.id} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm">
+                  <strong>{new Date(change.requested_at).toLocaleString()}</strong>
+                  <p className="mt-1">
+                    {change.old_trash_bin_count} trash + {change.old_recycling_bin_count} recycling → {change.new_trash_bin_count} trash + {change.new_recycling_bin_count} recycling
+                  </p>
+                  <p className="text-zinc-600">
+                    {change.old_recurring_price_cents == null ? "Prior price unavailable" : formatCurrency(change.old_recurring_price_cents)} → {change.new_recurring_price_cents == null ? "new price unavailable" : formatCurrency(change.new_recurring_price_cents)} · billing: next renewal
+                  </p>
+                  {change.locked_visit_id && (
+                    <p className="mt-1 font-semibold text-blue-900">
+                      An already-locked visit keeps its earlier bin snapshot; this change applies to future unlocked service.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="card mt-6 p-5">
         <h2 className="text-xl font-black">
           Update account / request route changes
         </h2>
@@ -269,16 +378,6 @@ export default async function PortalPage({
               className="mt-1 w-full rounded-lg border p-3"
             />
           </label>
-          <label>
-            Bin-count request
-            <input
-              type="number"
-              min="1"
-              max="20"
-              name="bin_count"
-              className="mt-1 w-full rounded-lg border p-3"
-            />
-          </label>
           <label className="sm:col-span-2">
             Access instructions request
             <textarea
@@ -292,10 +391,7 @@ export default async function PortalPage({
               Recycling schedule correction
             </legend>
             <p className="mb-4 text-sm text-blue-950">
-              Submit all three fields only when the recorded recycling schedule
-              is missing or wrong. The date identifies which alternating week is
-              your recycling week. Staff must verify the request before it
-              changes routing.
+              Use this only to correct an existing recycling schedule without changing your number of bins. Use Manage your bins above when adding or removing a recycling bin.
             </p>
             <div className="grid gap-4 md:grid-cols-3">
               <label className="font-semibold">
@@ -341,8 +437,7 @@ export default async function PortalPage({
               Which bins need cleaning on your next visit?
             </legend>
             <p className="mb-3 text-sm text-zinc-600">
-              Check each bin that will be available and needs cleaning. This
-              does not change the number of bins on your paid plan.
+              Check each active bin that will be available and needs cleaning. This does not add or remove a bin from your plan.
             </p>
             {bins.map((bin) => (
               <label
