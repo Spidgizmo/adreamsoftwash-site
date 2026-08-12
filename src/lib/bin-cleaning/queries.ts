@@ -43,6 +43,8 @@ export type CustomerRow = {
     service_alignment: string;
     service_plan_versions: {
       base_price_cents: number | null;
+      additional_bin_price_cents: number | null;
+      bins_included: number | null;
       service_plans: { id: string; display_name: string };
     };
   }[];
@@ -50,7 +52,7 @@ export type CustomerRow = {
 };
 
 const customerSelect =
-  "id,full_name,email,phone,account_status,service_addresses(id,is_current,line1,city,region,postal_code,preferred_return_location,access_instructions,gate_information,animal_warning,municipalities(name),trash_pickup_schedules(weekday,source,verification_status,cleaning_day_assignments(normal_weekday,cleaning_date)),recycling_pickup_schedules(weekday,frequency_weeks,anchor_collection_date,source,verification_status,is_current)),subscriptions(payment_status,subscription_status,service_status,service_alignment,service_plan_versions(base_price_cents,service_plans(id,display_name)))";
+  "id,full_name,email,phone,account_status,service_addresses(id,is_current,line1,city,region,postal_code,preferred_return_location,access_instructions,gate_information,animal_warning,municipalities(name),trash_pickup_schedules(weekday,source,verification_status,cleaning_day_assignments(normal_weekday,cleaning_date)),recycling_pickup_schedules(weekday,frequency_weeks,anchor_collection_date,source,verification_status,is_current)),subscriptions(payment_status,subscription_status,service_status,service_alignment,service_plan_versions(base_price_cents,additional_bin_price_cents,bins_included,service_plans(id,display_name)))";
 
 export async function portalCustomer() {
   const rows = await databaseRequest<CustomerRow[]>(
