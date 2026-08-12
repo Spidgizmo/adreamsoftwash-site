@@ -90,10 +90,15 @@ export default async function Customer({ params, searchParams }: { params: { id:
         </dl>
       </section>
 
-      <section className="card mt-5 p-5">
-        <h3 className="text-xl font-black">Admin edit customer</h3>
-        <p className="mt-1 text-sm text-zinc-600">Staff can correct customer details, plan, bin counts, pickup information, return/access instructions, and add internal notes. This staging form never collects payment.</p>
-        <form action="/api/bin-cleaning/crm/customer-update" method="post" className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <details className="card mt-5 p-5">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-black">Customer account & service details</h3>
+            <p className="mt-1 text-sm text-zinc-600">Open this section when staff needs to change customer information, service details, or add an internal note.</p>
+          </div>
+          <span className="rounded-lg border px-3 py-2 text-xs font-black">Open / close</span>
+        </summary>
+        <form action="/api/bin-cleaning/crm/customer-update" method="post" className="mt-5 grid gap-4 border-t pt-5 sm:grid-cols-2 lg:grid-cols-3">
           <input type="hidden" name="customer_id" value={customer.id} />
           <input type="hidden" name="address_id" value={address?.id ?? ""} />
           <input type="hidden" name="subscription_id" value={subscription?.id ?? ""} />
@@ -119,9 +124,9 @@ export default async function Customer({ params, searchParams }: { params: { id:
           <label className="font-semibold">Animal warning<input name="animal_warning" defaultValue={address?.animal_warning ?? ""} className="mt-1 w-full rounded-lg border p-3" /></label>
           <label className="font-semibold lg:col-span-3">Add staff-only note<textarea name="staff_note" placeholder="Add a new internal note; existing notes are preserved below." className="mt-1 w-full rounded-lg border p-3" /></label>
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm lg:col-span-3"><strong>Payment controls are intentionally unavailable here.</strong> Stripe is still disabled in staging; payment activation remains a later approved launch step.</div>
-          <button className="rounded-xl bg-brand-700 p-3 font-black text-white lg:col-span-3">Save admin changes</button>
+          <button className="rounded-xl bg-brand-700 p-3 font-black text-white lg:col-span-3">Save customer changes</button>
         </form>
-      </section>
+      </details>
 
       <section className="card mt-5 p-5"><h3 className="text-xl font-black">Staff notes</h3>{notes.length === 0 ? <p className="mt-2 text-sm text-zinc-500">No notes.</p> : notes.map((note) => <div key={note.id} className="mt-3 border-t pt-3"><p>{note.body}</p><p className="text-xs text-zinc-500">{displayDate(note.created_at)}</p></div>)}</section>
       <CustomerHistoryPanels
