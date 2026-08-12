@@ -56,6 +56,7 @@ type FormState = {
   emailAllowed: boolean;
   smsAllowed: boolean;
   phoneAllowed: boolean;
+  marketingAllowed: boolean;
   termsAccepted: boolean;
 };
 
@@ -68,9 +69,10 @@ type TextKey = Exclude<
   | "emailAllowed"
   | "smsAllowed"
   | "phoneAllowed"
+  | "marketingAllowed"
   | "termsAccepted"
 >;
-type BooleanKey = "fictionalDataConfirmed" | "emailAllowed" | "smsAllowed" | "phoneAllowed" | "termsAccepted";
+type BooleanKey = "fictionalDataConfirmed" | "emailAllowed" | "smsAllowed" | "phoneAllowed" | "marketingAllowed" | "termsAccepted";
 type CountKey = "trashBins" | "recyclingBins";
 type SignupFormProps = Readonly<{ initialPlanId: PlanId; initialBinCount: number; initialPromoCode: string; initialReferralCode: string }>;
 
@@ -131,6 +133,7 @@ function initialForm(props: SignupFormProps): FormState {
     emailAllowed: false,
     smsAllowed: false,
     phoneAllowed: false,
+    marketingAllowed: false,
     termsAccepted: false,
   };
 }
@@ -167,6 +170,7 @@ function buildPayload(form: FormState) {
     emailAllowed: form.emailAllowed,
     smsAllowed: form.smsAllowed,
     phoneAllowed: form.phoneAllowed,
+    marketingAllowed: form.marketingAllowed,
     termsAccepted: form.termsAccepted,
     sourcePath: window.location.pathname + window.location.search,
   };
@@ -192,6 +196,7 @@ function validateForSubmit(form: FormState): FieldErrors {
     if (!form.recyclingAnchorCollectionDate) result.recyclingAnchorCollectionDate = "Next recycling pickup date is required.";
   }
   if (!form.preferredReturnLocation.trim()) result.preferredReturnLocation = "Bin return location is required.";
+  if (!form.smsAllowed) result.smsAllowed = "Text-message service permission is required so ADS can send service notices and before/after completion photos.";
   if (!form.termsAccepted) result.termsAccepted = "You must accept the staging confirmation.";
   return result;
 }
@@ -423,10 +428,24 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           </div>
         </Section>
 
-        <Section title="6. Contact permissions and confirmation">
-          <div className="mt-5 space-y-3">
-            {([ ["emailAllowed", "Email updates"], ["smsAllowed", "Text-message updates"], ["phoneAllowed", "Phone calls when needed"] ] as const).map(([key, label]) => <label key={key} className="flex items-center gap-3 font-semibold"><input type="checkbox" checked={form[key]} onChange={setChecked(key)} className="h-5 w-5 accent-blue-700" />{label}</label>)}
+        <Section title="6. Service communications, privacy, and confirmation">
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-blue-950">
+            <p className="font-black">Service communications are part of ADS Bin Cleaning.</p>
+            <p className="mt-2">We may need to contact you about scheduling, weather or service changes, access problems, billing or account issues, questions about your bins, and other information needed to complete your service. After a completed visit, ADS plans to send before-and-after service photos as part of the completion notice.</p>
+            <p className="mt-2"><strong>Your privacy matters.</strong> American Dream Softwash (ADS Bin Cleaning) does not sell or rent customer personal information or customer contact lists. Information is used to operate your account, provide your requested services, communicate with you, and work with service providers needed to operate the service.</p>
           </div>
+
+          <div className="mt-5 space-y-3">
+            <label className="flex items-start gap-3 font-semibold"><input type="checkbox" checked={form.emailAllowed} onChange={setChecked("emailAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span><strong>Email service updates</strong><span className="block text-sm font-normal text-zinc-600">Account, scheduling, billing, and service information.</span></span></label>
+            <label data-field="smsAllowed" className={`flex items-start gap-3 rounded-xl p-3 font-semibold ${fieldErrors.smsAllowed ? "border-2 border-red-600 bg-red-50 text-red-900" : ""}`}><input type="checkbox" checked={form.smsAllowed} onChange={setChecked("smsAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span><strong>Text-message service updates & before/after photos</strong><span className="block text-sm font-normal text-zinc-600">Required for service completion photos and important text notices.</span>{fieldErrors.smsAllowed ? <span className="mt-1 block text-xs font-black text-red-700">{fieldErrors.smsAllowed}</span> : null}</span></label>
+            <label className="flex items-start gap-3 font-semibold"><input type="checkbox" checked={form.phoneAllowed} onChange={setChecked("phoneAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span><strong>Phone calls when needed</strong><span className="block text-sm font-normal text-zinc-600">For time-sensitive service or access issues when a call is appropriate.</span></span></label>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+            <p className="font-black text-zinc-950">Optional marketing offers</p>
+            <label className="mt-3 flex items-start gap-3 font-semibold"><input type="checkbox" checked={form.marketingAllowed} onChange={setChecked("marketingAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span>Yes, I would like to receive occasional promotions and special offers from <strong>American Dream Softwash (ADS Bin Cleaning)</strong>, including offers for house washing, roof washing, concrete cleaning, bin cleaning, and other exterior-cleaning services.<span className="mt-1 block text-sm font-normal text-zinc-600">Marketing consent is optional and is not required to purchase ADS Bin Cleaning services.</span></span></label>
+          </div>
+
           <label data-field="termsAccepted" className={`mt-6 flex items-start gap-3 rounded-xl p-4 font-bold ${fieldErrors.termsAccepted ? "border-2 border-red-600 bg-red-50 text-red-900" : "bg-zinc-100"}`}><input type="checkbox" checked={form.termsAccepted} onChange={setChecked("termsAccepted")} className="mt-1 h-5 w-5 accent-blue-700" />I confirm this fictional staging signup may be saved as submitted but unpaid. No account becomes active and no service is scheduled until later launch steps are completed and approved.</label>
           {fieldErrors.termsAccepted ? <p className="mt-2 text-sm font-black text-red-700">{fieldErrors.termsAccepted}</p> : null}
         </Section>
