@@ -12,6 +12,14 @@ const RESPONSE_HEADERS = {
 };
 const MAX_BODY_BYTES = 64 * 1024;
 
+function rawPayloadFrom(input: unknown): Record<string, unknown> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  const payload = (input as Record<string, unknown>).payload;
+  return payload && typeof payload === "object" && !Array.isArray(payload)
+    ? (payload as Record<string, unknown>)
+    : {};
+}
+
 export async function POST(request: NextRequest) {
   if (!isStagingEnvironment()) {
     return NextResponse.json(
@@ -60,6 +68,8 @@ export async function POST(request: NextRequest) {
   }
 
   const { value } = validation;
+  const rawPayload = rawPayloadFrom(input);
+  const marketingAllowed = rawPayload.marketingAllowed === true;
   const databaseResponse = await fetch(
     `${supabaseUrl}/rest/v1/rpc/save_fictional_signup_lead`,
     {
@@ -76,6 +86,8 @@ export async function POST(request: NextRequest) {
           ...value.payload,
           signup_method: "online",
           lead_source: "website-online",
+          marketingAllowed,
+          marketingConsentVersion: "ads-marketing-v1",
           estimate: value.estimate,
         },
         p_lead_id: value.leadId,
