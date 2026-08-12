@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
   const line1 = text(form, "line1").slice(0, 180);
   const line2 = text(form, "line2").slice(0, 80);
   const city = text(form, "city").slice(0, 100);
-  const region = text(form, "region").toUpperCase().slice(0, 2);
-  const postalCode = text(form, "postal_code").slice(0, 12);
+  const region = text(form, "region").toUpperCase().slice(0, 32);
+  const postalCode = text(form, "postal_code").slice(0, 32);
   const planId = text(form, "plan_id");
   const trashBins = integer(form, "trash_bins");
   const recyclingBins = integer(form, "recycling_bins");
@@ -48,18 +48,17 @@ export async function POST(request: NextRequest) {
   const animalWarning = text(form, "animal_warning").slice(0, 500);
   const staffNote = text(form, "staff_note").slice(0, 1500);
   const binCount = trashBins + recyclingBins;
-  const digits = phone.replace(/\D/g, "");
   const plan = BIN_CLEANING_PLANS.find((item) => item.id === planId && item.publiclyVisible);
 
   const valid =
-    fullName.length >= 2 &&
-    email.endsWith(".test") &&
-    /^1555\d{7}$/.test(digits) &&
-    line1.length >= 2 && city.length >= 2 && /^[A-Z]{2}$/.test(region) && postalCode.length >= 5 &&
-    plan && Number.isInteger(trashBins) && Number.isInteger(recyclingBins) && trashBins >= 0 && recyclingBins >= 0 && binCount >= 1 && binCount <= 20 &&
+    fullName.length >= 1 &&
+    email.length >= 1 &&
+    phone.length >= 1 &&
+    line1.length >= 1 && city.length >= 1 && region.length >= 1 && postalCode.length >= 1 &&
+    plan && Number.isInteger(trashBins) && Number.isInteger(recyclingBins) && trashBins >= 0 && recyclingBins >= 0 && binCount >= 1 &&
     Number.isInteger(trashWeekday) && trashWeekday >= 0 && trashWeekday <= 6 &&
     (recyclingBins === 0 || (Number.isInteger(recyclingWeekday) && recyclingWeekday >= 0 && recyclingWeekday <= 6 && [1, 2].includes(recyclingFrequencyWeeks))) &&
-    preferredReturnLocation.length >= 2;
+    preferredReturnLocation.length >= 1;
   if (!valid || !plan) return redirect(request, "error=validation");
 
   const price = calculateBinCleaningPrice(plan, binCount);
