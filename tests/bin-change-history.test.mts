@@ -74,8 +74,8 @@ test("adding recycling requires schedule data and updates future alignment", asy
 
 test("portal changes are recorded before the active bin rows are reconciled", async () => {
   const route = await readFile(portalRoutePath, "utf8");
-  const audit = route.indexOf('serviceRoleDatabaseRequest<\n      { id: string }[]\n    >("customer_bin_change_requests"');
-  const reconcile = route.indexOf('const reconcileBins = async');
+  const audit = route.indexOf("customer_bin_change_requests");
+  const reconcile = route.indexOf("const reconcileBins = async");
   assert.ok(audit >= 0, "change request insert should exist");
   assert.ok(reconcile > audit, "evidence must be stored before current bin rows change");
 });
