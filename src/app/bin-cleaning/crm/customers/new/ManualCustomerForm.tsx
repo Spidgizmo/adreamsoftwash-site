@@ -24,44 +24,30 @@ export function ManualCustomerForm() {
     const number = (name: string) => Number(value(name));
     const next: Errors = {};
 
-    if (value("full_name").length < 2) next.full_name = "Enter the customer's full name.";
-
-    const email = value("email").toLowerCase();
-    if (!email || !email.includes("@") || !email.endsWith(".test")) {
-      next.email = "Use a fictional email ending in .test.";
-    }
-
-    const phoneDigits = value("phone").replace(/\D/g, "");
-    if (!/^1555\d{7}$/.test(phoneDigits)) next.phone = "Use a reserved 1-555-XXX-XXXX test number.";
-
-    if (value("line1").length < 2) next.line1 = "Enter the service street address.";
-    if (value("city").length < 2) next.city = "Enter the city.";
-    if (!/^[A-Za-z]{2}$/.test(value("region"))) next.region = "Enter a 2-letter state abbreviation.";
-    if (value("postal_code").length < 5) next.postal_code = "Enter the ZIP code.";
+    if (!value("full_name")) next.full_name = "Enter a customer name.";
+    if (!value("email")) next.email = "Enter an email value.";
+    if (!value("phone")) next.phone = "Enter a phone value.";
+    if (!value("line1")) next.line1 = "Enter the service street address.";
+    if (!value("city")) next.city = "Enter the city.";
+    if (!value("region")) next.region = "Enter the state.";
+    if (!value("postal_code")) next.postal_code = "Enter the ZIP code.";
 
     const trash = number("trash_bins");
     const recycling = number("recycling_bins");
-    if (!Number.isInteger(trash) || trash < 0 || trash > 20) next.trash_bins = "Enter 0–20 trash bins.";
-    if (!Number.isInteger(recycling) || recycling < 0 || recycling > 20) next.recycling_bins = "Enter 0–20 recycling bins.";
+    if (!Number.isInteger(trash) || trash < 0) next.trash_bins = "Enter 0 or more trash bins.";
+    if (!Number.isInteger(recycling) || recycling < 0) next.recycling_bins = "Enter 0 or more recycling bins.";
     if (!next.trash_bins && !next.recycling_bins && trash + recycling < 1) {
       next.trash_bins = "At least one total bin is required.";
       next.recycling_bins = "At least one total bin is required.";
-    }
-    if (!next.trash_bins && !next.recycling_bins && trash + recycling > 20) {
-      next.trash_bins = "Maximum 20 total bins in testing.";
-      next.recycling_bins = "Maximum 20 total bins in testing.";
     }
 
     if (!value("trash_weekday")) next.trash_weekday = "Choose the trash pickup day.";
     if (recycling > 0) {
       if (!value("recycling_weekday")) next.recycling_weekday = "Choose the recycling pickup day.";
       if (!["1", "2"].includes(value("recycling_frequency_weeks"))) next.recycling_frequency_weeks = "Choose the recycling frequency.";
-      if (value("recycling_frequency_weeks") === "2" && !value("recycling_anchor_collection_date")) {
-        next.recycling_anchor_collection_date = "Enter the next recycling pickup date so the every-other-week cycle is anchored correctly.";
-      }
     }
 
-    if (value("preferred_return_location").length < 2) next.preferred_return_location = "Enter where ADS should return the bins.";
+    if (!value("preferred_return_location")) next.preferred_return_location = "Enter where ADS should return the bins.";
 
     return next;
   }
@@ -92,27 +78,27 @@ export function ManualCustomerForm() {
       )}
 
       <label data-field-error={invalid("full_name")} className="font-semibold">Full name *<input name="full_name" className={fieldClass(invalid("full_name"))} /><ErrorText message={errors.full_name} /></label>
-      <label data-field-error={invalid("email")} className="font-semibold">Email *<input type="email" name="email" placeholder="manual.customer@example.test" className={fieldClass(invalid("email"))} /><ErrorText message={errors.email} /><span className="mt-1 block text-xs font-normal text-zinc-500">Testing only: must end in .test</span></label>
-      <label data-field-error={invalid("phone")} className="font-semibold">Phone *<input name="phone" placeholder="1-555-123-4567" className={fieldClass(invalid("phone"))} /><ErrorText message={errors.phone} /><span className="mt-1 block text-xs font-normal text-zinc-500">Testing only: use the reserved 1-555 range</span></label>
+      <label data-field-error={invalid("email")} className="font-semibold">Email *<input name="email" placeholder="Any fictional test email/value" className={fieldClass(invalid("email"))} /><ErrorText message={errors.email} /></label>
+      <label data-field-error={invalid("phone")} className="font-semibold">Phone *<input name="phone" placeholder="Any fictional test phone/value" className={fieldClass(invalid("phone"))} /><ErrorText message={errors.phone} /></label>
       <label className="font-semibold">Plan *<select name="plan_id" defaultValue="monthly" className={fieldClass(false)}><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="twice-yearly">Twice a Year</option><option value="one-time">One-Time</option></select></label>
       <label data-field-error={invalid("line1")} className="font-semibold sm:col-span-2">Street address *<input name="line1" className={fieldClass(invalid("line1"))} /><ErrorText message={errors.line1} /></label>
       <label className="font-semibold">Unit / Apt<input name="line2" className={fieldClass(false)} /></label>
       <label data-field-error={invalid("city")} className="font-semibold">City *<input name="city" className={fieldClass(invalid("city"))} /><ErrorText message={errors.city} /></label>
-      <label data-field-error={invalid("region")} className="font-semibold">State *<input name="region" defaultValue="OH" maxLength={2} className={fieldClass(invalid("region"))} /><ErrorText message={errors.region} /></label>
+      <label data-field-error={invalid("region")} className="font-semibold">State *<input name="region" defaultValue="OH" className={fieldClass(invalid("region"))} /><ErrorText message={errors.region} /></label>
       <label data-field-error={invalid("postal_code")} className="font-semibold">ZIP *<input name="postal_code" className={fieldClass(invalid("postal_code"))} /><ErrorText message={errors.postal_code} /></label>
-      <label data-field-error={invalid("trash_bins")} className="font-semibold">Trash bins *<input type="number" min="0" max="20" name="trash_bins" defaultValue="1" className={fieldClass(invalid("trash_bins"))} /><ErrorText message={errors.trash_bins} /></label>
-      <label data-field-error={invalid("recycling_bins")} className="font-semibold">Recycling bins *<input type="number" min="0" max="20" name="recycling_bins" defaultValue="1" className={fieldClass(invalid("recycling_bins"))} /><ErrorText message={errors.recycling_bins} /></label>
-      <p className="-mt-2 text-xs text-zinc-500 sm:col-span-2">At least one total bin is required; maximum 20 total bins in testing.</p>
+      <label data-field-error={invalid("trash_bins")} className="font-semibold">Trash bins *<input type="number" min="0" name="trash_bins" defaultValue="1" className={fieldClass(invalid("trash_bins"))} /><ErrorText message={errors.trash_bins} /></label>
+      <label data-field-error={invalid("recycling_bins")} className="font-semibold">Recycling bins *<input type="number" min="0" name="recycling_bins" defaultValue="1" className={fieldClass(invalid("recycling_bins"))} /><ErrorText message={errors.recycling_bins} /></label>
+      <p className="-mt-2 text-xs text-zinc-500 sm:col-span-2">At least one total bin is required.</p>
       <label data-field-error={invalid("trash_weekday")} className="font-semibold">Trash pickup day *<select name="trash_weekday" defaultValue="1" className={fieldClass(invalid("trash_weekday"))}>{days.map((day, index) => <option key={day} value={index}>{day}</option>)}</select><ErrorText message={errors.trash_weekday} /></label>
       <label data-field-error={invalid("recycling_weekday")} className="font-semibold">Recycling pickup day<select name="recycling_weekday" defaultValue="1" className={fieldClass(invalid("recycling_weekday"))}>{days.map((day, index) => <option key={day} value={index}>{day}</option>)}</select><ErrorText message={errors.recycling_weekday} /></label>
       <label data-field-error={invalid("recycling_frequency_weeks")} className="font-semibold">Recycling frequency<select name="recycling_frequency_weeks" defaultValue="2" className={fieldClass(invalid("recycling_frequency_weeks"))}><option value="1">Every week</option><option value="2">Every other week</option></select><ErrorText message={errors.recycling_frequency_weeks} /></label>
-      <label data-field-error={invalid("recycling_anchor_collection_date")} className="font-semibold">Next recycling pickup<input type="date" name="recycling_anchor_collection_date" className={fieldClass(invalid("recycling_anchor_collection_date"))} /><ErrorText message={errors.recycling_anchor_collection_date} /><span className="mt-1 block text-xs font-normal text-zinc-500">Required when testing every-other-week recycling.</span></label>
+      <label className="font-semibold">Next recycling pickup<input type="date" name="recycling_anchor_collection_date" className={fieldClass(false)} /><span className="mt-1 block text-xs font-normal text-zinc-500">Optional during manual testing; add it when you want to test every-other-week schedule anchoring.</span></label>
       <label data-field-error={invalid("preferred_return_location")} className="font-semibold sm:col-span-2">Return location *<input name="preferred_return_location" placeholder="Behind side gate / garage / etc." className={fieldClass(invalid("preferred_return_location"))} /><ErrorText message={errors.preferred_return_location} /></label>
       <label className="font-semibold sm:col-span-2">Access instructions<textarea name="access_instructions" className={fieldClass(false)} /></label>
       <label className="font-semibold">Gate information<input name="gate_information" className={fieldClass(false)} /></label>
       <label className="font-semibold">Animal warning<input name="animal_warning" className={fieldClass(false)} /></label>
       <label className="font-semibold sm:col-span-2">Staff note<textarea name="staff_note" placeholder="Anything you learned on the phone that staff should know." className={fieldClass(false)} /></label>
-      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:col-span-2"><strong>Payment:</strong> Not collected yet. Stripe remains disabled while we finish non-payment testing. This record is saved as submitted unpaid so we can verify the complete manual-intake path before payment testing begins.</div>
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:col-span-2"><strong>Payment:</strong> Not collected yet. Stripe remains disabled while we finish non-payment testing.</div>
       <button className="rounded-xl bg-brand-700 p-3 font-black text-white sm:col-span-2">Save manual customer intake</button>
     </form>
   );
