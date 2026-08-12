@@ -45,6 +45,7 @@ const customerSelect = "id,full_name,email,phone,account_status,last_portal_acti
 export async function portalCustomer() {
   const rows = await databaseRequest<CustomerRow[]>(`customers?select=${customerSelect}&service_addresses.is_current=eq.true&service_addresses.recycling_pickup_schedules.is_current=eq.true&subscriptions.ended_at=is.null&subscriptions.order=started_at.desc.nullslast&subscriptions.limit=1&limit=1`);
   if (!rows[0]) throw new Error("No customer is linked to this test identity");
+  await databaseRequest("rpc/record_my_portal_activity", { method: "POST", body: JSON.stringify({ p_kind: "view" }) }).catch(() => null);
   return rows[0];
 }
 
