@@ -19,6 +19,21 @@ type PendingChange = {
   customers: { full_name: string } | null;
 };
 
+type RecentBinChange = {
+  id: string;
+  customer_id: string;
+  old_trash_bin_count: number;
+  old_recycling_bin_count: number;
+  new_trash_bin_count: number;
+  new_recycling_bin_count: number;
+  old_recurring_price_cents: number | null;
+  new_recurring_price_cents: number | null;
+  billing_effective_policy: string;
+  requested_at: string;
+  status: string;
+  customers: { full_name: string } | null;
+};
+
 function displayDate(value: string | null) {
   if (!value) return "Never";
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }).format(new Date(value));
@@ -40,12 +55,16 @@ function customerEstimate(customer: Awaited<ReturnType<typeof crmCustomers>>[num
   const extra = Math.max(0, binCount - included);
   return `${formatCurrency(version.base_price_cents + extra * Math.max(0, version.additional_bin_price_cents ?? 0))} before tax`;
 }
+function binSummary(trash: number, recycling: number) {
+  return `${trash} trash + ${recycling} recycling`;
+}
 
 export default async function CRM({ searchParams }: { searchParams: { q?: string; plan?: string; status?: string; municipality?: string; pickup?: string } }) {
-  const [customers, signupResult, pendingChanges] = await Promise.all([
+  const [customers, signupResult, pendingChanges, recentBinChanges] = await Promise.all([
     crmCustomers(searchParams),
     crmSignupLeads(),
     databaseRequest<PendingChange[]>("customer_change_requests?status=eq.pending_staff_review&select=id,customer_id,request_type,requested_value,status,created_at,customers(full_name)&order=created_at.desc&limit=25").catch(() => []),
+    databaseRequest<RecentBinChange[]>("customer_bin_change_requests?select=id,customer_id,old_trash_bin_count,old_recycling_bin_count,new_trash_bin_count,new_recycling_bin_count,old_recurring_price_cents,new_recurring_price_cents,billing_effective_policy,requested_at,status,customers(full_name)&order=requested_at.desc&limit=10").catch(() => []),
   ]);
   const signupLeads = signupResult.leads;
   const referralNotifications = signupLeads.filter((lead) => lead.status === "submitted_unpaid" && Boolean(lead.referral_code)).map((lead) => ({ id: lead.id, customerName: lead.full_name || "Incomplete name", referralCode: lead.referral_code || "Referral", submittedAt: lead.submitted_at || lead.last_activity_at }));
@@ -78,6 +97,28 @@ export default async function CRM({ searchParams }: { searchParams: { q?: string
                 <span className="text-sm font-semibold capitalize">{change.request_type.replaceAll("_", " ")}</span>
                 <span className="text-sm">Requested: <strong>{requestedText(change.requested_value)}</strong></span>
                 <span className="text-xs text-zinc-500">{displayDate(change.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {recentBinChanges.length > 0 && (
+        <section className="card mt-6 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b p-5">
+            <div>
+              <h2 className="text-xl font-black">Recent automatic account changes</h2>
+              <p className="mt-1 text-sm text-zinc-600">Bin additions and removals do not need approval, but ADS is notified here and the full history is kept permanently.</p>
+            </div>
+            <Link href="/bin-cleaning/crm/activity" className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-black text-white">Open full history</Link>
+          </div>
+          <div className="divide-y">
+            {recentBinChanges.slice(0, 5).map((change) => (
+              <div className="grid gap-1 p-4 md:grid-cols-[1.2fr_2fr_1fr_auto] md:items-center" key={change.id}>
+                <Link className="font-black text-brand-700" href={`/bin-cleaning/crm/customers/${change.customer_id}`}>{change.customers?.full_name ?? "Customer"}</Link>
+                <span className="text-sm"><strong>{binSummary(change.old_trash_bin_count, change.old_recycling_bin_count)}</strong> → <strong>{binSummary(change.new_trash_bin_count, change.new_recycling_bin_count)}</strong></span>
+                <span className="text-sm font-semibold">{change.old_recurring_price_cents == null || change.new_recurring_price_cents == null ? "Price history saved" : `${formatCurrency(change.old_recurring_price_cents)} → ${formatCurrency(change.new_recurring_price_cents)}`}<span className="block text-xs font-normal text-zinc-500">Billing: {change.billing_effective_policy.replaceAll("_", " ")}</span></span>
+                <span className="text-xs text-zinc-500">{displayDate(change.requested_at)}</span>
               </div>
             ))}
           </div>
