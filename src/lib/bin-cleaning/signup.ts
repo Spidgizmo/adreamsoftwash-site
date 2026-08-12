@@ -26,6 +26,7 @@ export type SignupLeadPayload = Readonly<{
   city: string;
   region: string;
   postalCode: string;
+  serviceAddressKey: string;
   planId: PlanId | "";
   binStreams: Readonly<{
     trash: number;
@@ -127,6 +128,21 @@ function validDateOnly(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
+function normalizeAddressPart(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+function serviceAddressKey(line1: string, line2: string, city: string, region: string, postalCode: string): string {
+  return [line1, line2, city, region, postalCode]
+    .map(normalizeAddressPart)
+    .filter(Boolean)
+    .join("|");
+}
+
 export function validateSignupLeadRequest(input: unknown): SignupLeadValidation {
   const root = record(input);
   const rawPayload = record(root.payload);
@@ -143,15 +159,9 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
 
   const leadIdText = text(root.leadId, "Signup lead ID", errors, 36);
   const editTokenText = text(root.editToken, "Signup edit token", errors, 128);
-  if (leadIdText && !UUID.test(leadIdText)) {
-    errors.push("Signup lead ID is not valid.");
-  }
-  if (leadIdText && !editTokenText) {
-    errors.push("An edit token is required to update an existing signup.");
-  }
-  if (!leadIdText && editTokenText) {
-    errors.push("An edit token cannot be used without a signup lead ID.");
-  }
+  if (leadIdText && !UUID.test(leadIdText)) errors.push("Signup lead ID is not valid.");
+  if (leadIdText && !editTokenText) errors.push("An edit token is required to update an existing signup.");
+  if (!leadIdText && editTokenText) errors.push("An edit token cannot be used without a signup lead ID.");
 
   const fullName = text(rawPayload.fullName, "Full name", errors, 120);
   const email = text(rawPayload.email, "Email", errors, 254).toLowerCase();
@@ -161,6 +171,7 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
   const city = text(rawPayload.city, "City", errors, 100);
   const region = text(rawPayload.region, "State", errors, 40).toUpperCase();
   const postalCode = text(rawPayload.postalCode, "ZIP code", errors, 10);
+  const addressKey = serviceAddressKey(line1, line2, city, region, postalCode);
   const planIdText = text(rawPayload.planId, "Plan", errors, 40);
   const plan = PUBLIC_BIN_CLEANING_PLANS.find((item) => item.id === planIdText);
   if (planIdText && !plan) errors.push("The selected service plan is not available.");
@@ -169,9 +180,7 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
   const recycling = count(rawStreams.recycling, "Recycling bin count", errors);
   const other = count(rawStreams.other, "Other bin count", errors);
   const binCount = trash + recycling + other;
-  if (binCount > MAX_BIN_COUNT) {
-    errors.push(`The total bin count cannot exceed ${MAX_BIN_COUNT}.`);
-  }
+  if (binCount > MAX_BIN_COUNT) errors.push(`The total bin count cannot exceed ${MAX_BIN_COUNT}.`);
 
   const trashWeekday = weekday(rawPayload.trashWeekday, "Trash pickup day", errors);
   const recyclingWeekday = weekday(rawPayload.recyclingWeekday, "Recycling pickup day", errors);
@@ -182,21 +191,11 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
       : rawFrequency === 2 || rawFrequency === "2"
         ? 2
         : null;
-  if (
-    rawFrequency !== undefined &&
-    rawFrequency !== null &&
-    rawFrequency !== "" &&
-    recyclingFrequencyWeeks === null
-  ) {
+  if (rawFrequency !== undefined && rawFrequency !== null && rawFrequency !== "" && recyclingFrequencyWeeks === null) {
     errors.push("Recycling frequency must be weekly or every other week.");
   }
 
-  const recyclingAnchorCollectionDate = text(
-    rawPayload.recyclingAnchorCollectionDate,
-    "Next recycling pickup date",
-    errors,
-    10,
-  );
+  const recyclingAnchorCollectionDate = text(rawPayload.recyclingAnchorCollectionDate, "Next recycling pickup date", errors, 10);
   if (recyclingAnchorCollectionDate && !validDateOnly(recyclingAnchorCollectionDate)) {
     errors.push("Next recycling pickup date must be a real calendar date.");
   }
@@ -209,25 +208,13 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
     errors.push("Next recycling pickup date must fall on the selected recycling weekday.");
   }
 
-  const promoCode = normalizeBinCleaningPromoCode(
-    text(rawPayload.promoCode, "Promo code", errors, 32),
-  );
-  const referralCode = normalizeBinCleaningReferralCode(
-    text(rawPayload.referralCode, "Referral code", errors, 32),
-  );
-  if (promoCode && referralCode) {
-    errors.push("A promo code and referral code cannot be combined.");
-  }
-  if (referralCode && !isPlausibleBinCleaningReferralCode(referralCode)) {
-    errors.push("Referral code format is not valid.");
-  }
-  if (referralCode && plan && !plan.referralEligible) {
-    errors.push("Referral codes are available only with an eligible Monthly plan.");
-  }
+  const promoCode = normalizeBinCleaningPromoCode(text(rawPayload.promoCode, "Promo code", errors, 32));
+  const referralCode = normalizeBinCleaningReferralCode(text(rawPayload.referralCode, "Referral code", errors, 32));
+  if (promoCode && referralCode) errors.push("A promo code and referral code cannot be combined.");
+  if (referralCode && !isPlausibleBinCleaningReferralCode(referralCode)) errors.push("Referral code format is not valid.");
+  if (referralCode && plan && !plan.referralEligible) errors.push("Referral codes are available only with an eligible Monthly plan.");
 
-  if (postalCode && !POSTAL_CODE.test(postalCode)) {
-    errors.push("ZIP code format is not valid.");
-  }
+  if (postalCode && !POSTAL_CODE.test(postalCode)) errors.push("ZIP code format is not valid.");
 
   const preferredReturnLocation = text(rawPayload.preferredReturnLocation, "Bin return location", errors, 300);
   const accessInstructions = text(rawPayload.accessInstructions, "Access instructions", errors, 1000);
@@ -237,6 +224,11 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
   const sourcePath = text(rawPayload.sourcePath, "Signup source path", errors, 200);
 
   const fictionalDataConfirmed = boolean(rawPayload.fictionalDataConfirmed);
+  const emailAllowed = boolean(rawPayload.emailAllowed);
+  const smsAllowed = boolean(rawPayload.smsAllowed);
+  const phoneAllowed = boolean(rawPayload.phoneAllowed);
+  const marketingAllowed = boolean(rawPayload.marketingAllowed);
+  const termsAccepted = boolean(rawPayload.termsAccepted);
 
   if (status === "submitted_unpaid") {
     const required: [string, string][] = [
@@ -254,16 +246,13 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
     if (binCount < 1) errors.push("At least one bin is required.");
     if (trashWeekday === null) errors.push("Trash pickup day is required.");
     if (recycling > 0) {
-      if (recyclingWeekday === null) {
-        errors.push("Recycling pickup day is required when recycling bins are included.");
-      }
-      if (recyclingFrequencyWeeks === null) {
-        errors.push("Recycling frequency is required when recycling bins are included.");
-      }
-      if (!recyclingAnchorCollectionDate) {
-        errors.push("Next recycling pickup date is required to anchor the recycling cycle.");
-      }
+      if (recyclingWeekday === null) errors.push("Recycling pickup day is required when recycling bins are included.");
+      if (recyclingFrequencyWeeks === null) errors.push("Recycling frequency is required when recycling bins are included.");
+      if (!recyclingAnchorCollectionDate) errors.push("Next recycling pickup date is required to anchor the recycling cycle.");
     }
+    if (!emailAllowed) errors.push("Email service permission is required for account, scheduling, billing, and service notices.");
+    if (!smsAllowed) errors.push("Text-message service permission is required for service notices and before/after completion photos.");
+    if (!phoneAllowed) errors.push("Phone-call service permission is required for time-sensitive service or access issues.");
   }
 
   let subtotalCents: number | null = null;
@@ -277,25 +266,13 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
     subtotalCents = price?.subtotalCents ?? null;
     firstChargeCents = subtotalCents;
     if (promoCode && price) {
-      const promotion = evaluateBinCleaningPromotion(
-        promoCode,
-        plan,
-        price.subtotalCents,
-        binCount,
-      );
+      const promotion = evaluateBinCleaningPromotion(promoCode, plan, price.subtotalCents, binCount);
       discountKind = "promotion";
       discountStatus = promotion.status === "empty" ? "none" : promotion.status;
       discountCents = promotion.discountCents;
       firstChargeCents = promotion.firstChargeSubtotalCents;
-      if (
-        status === "submitted_unpaid" &&
-        (promotion.status === "invalid" || promotion.status === "ineligible")
-      ) {
-        errors.push(
-          promotion.status === "invalid"
-            ? "Promo code is not recognized."
-            : "Promo code is not eligible for the selected plan and bin count.",
-        );
+      if (status === "submitted_unpaid" && (promotion.status === "invalid" || promotion.status === "ineligible")) {
+        errors.push(promotion.status === "invalid" ? "Promo code is not recognized." : "Promo code is not eligible for the selected plan and bin count.");
       }
     } else if (referralCode) {
       discountKind = "referral";
@@ -325,6 +302,7 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
         city,
         region,
         postalCode,
+        serviceAddressKey: addressKey,
         planId: (plan?.id ?? "") as PlanId | "",
         binStreams: { trash, recycling, other },
         trashWeekday,
@@ -338,11 +316,11 @@ export function validateSignupLeadRequest(input: unknown): SignupLeadValidation 
         gateInformation,
         animalWarning,
         safetyNotes,
-        emailAllowed: boolean(rawPayload.emailAllowed),
-        smsAllowed: boolean(rawPayload.smsAllowed),
-        phoneAllowed: boolean(rawPayload.phoneAllowed),
-        marketingAllowed: boolean(rawPayload.marketingAllowed),
-        termsAccepted: boolean(rawPayload.termsAccepted),
+        emailAllowed,
+        smsAllowed,
+        phoneAllowed,
+        marketingAllowed,
+        termsAccepted,
         sourcePath,
       },
       estimate: {
