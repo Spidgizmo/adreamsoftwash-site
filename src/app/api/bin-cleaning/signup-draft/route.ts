@@ -74,6 +74,8 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         p_payload: {
           ...value.payload,
+          signup_method: "online",
+          lead_source: "website-online",
           estimate: value.estimate,
         },
         p_lead_id: value.leadId,
