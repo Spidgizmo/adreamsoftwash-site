@@ -1,4 +1,8 @@
 import { BIN_CLEANING_PLANS, calculateBinCleaningPrice, type PlanId } from "../bin-cleaning-plans.ts";
+import {
+  referralRewardCents,
+  rewardPercentForLifetimeReferral,
+} from "./referral-reward-queue.ts";
 
 export const APP_ROLES = ["customer", "administrator", "dispatcher", "field_technician"] as const;
 export type AppRole = (typeof APP_ROLES)[number];
@@ -27,15 +31,14 @@ export function referralRejection(input: Readonly<{ referrerCustomerId: string; 
   if (input.addressClaimedAt && input.addressClaimedAt > new Date(input.now.getTime() - 365 * 24 * 60 * 60 * 1000)) return "address_lookback";
   return null;
 }
-export function referralCreditCents(planId: PlanId): number {
+export function referralCreditCents(planId: PlanId, lifetimeReferralSequence = 1): number {
   const plan = BIN_CLEANING_PLANS.find((item) => item.id === planId);
   if (!plan || !plan.referralEligible || plan.status !== "active") throw new Error("Plan is not referral eligible.");
-  return Math.floor((calculateBinCleaningPrice(plan, 1)?.basePriceCents ?? 0) / 2);
-}
-export function applyReferralCredits(eligibleBaseCents: number, availableCreditsCents: number) {
-  if (eligibleBaseCents < 0 || availableCreditsCents < 0) throw new RangeError("Credit values cannot be negative.");
-  const appliedCents = Math.min(eligibleBaseCents, availableCreditsCents);
-  return { appliedCents, remainingCents: availableCreditsCents - appliedCents };
+  const basePriceCents = calculateBinCleaningPrice(plan, 1)?.basePriceCents ?? 0;
+  return referralRewardCents(
+    basePriceCents,
+    rewardPercentForLifetimeReferral(lifetimeReferralSequence),
+  );
 }
 export type VisitCompletion = Readonly<{ beforePhoto: boolean; cleaningConfirmed: boolean; afterPhoto: boolean; binsReturned: boolean; authorizedException: boolean }>;
 export function canCompleteVisit(value: VisitCompletion) {
