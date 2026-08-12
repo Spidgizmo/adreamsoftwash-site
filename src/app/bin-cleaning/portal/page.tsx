@@ -4,6 +4,7 @@ import {
   Stat,
 } from "@/components/bin-cleaning/AppShell";
 import { ReferralShare } from "@/components/bin-cleaning/ReferralShare";
+import { customerAccountSummary } from "@/lib/bin-cleaning/customer-account-summary";
 import { portalCustomer } from "@/lib/bin-cleaning/queries";
 import { databaseRequest } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/bin-cleaning-plans";
@@ -52,6 +53,8 @@ export default async function PortalPage({
     `bins?service_address_id=eq.${address.id}&select=id,identifier,description,collection_stream,dirty_this_visit`,
   );
 
+  const accountSummary = await customerAccountSummary(customer, bins.length);
+
   const preferences = (
     await databaseRequest<
       {
@@ -64,13 +67,6 @@ export default async function PortalPage({
     )
   )[0];
 
-  const referrals = await databaseRequest<{ code: string }[]>(
-    `referral_codes?customer_id=eq.${customer.id}&select=code`,
-  );
-  const now = encodeURIComponent(new Date().toISOString());
-  const credits = await databaseRequest<{ remaining_cents: number }[]>(
-    `referral_credits?customer_id=eq.${customer.id}&status=in.(issued,partially_applied)&expires_at=gt.${now}&remaining_cents=gt.0&select=remaining_cents`,
-  );
   const visits = await databaseRequest<
     {
       id: string;
@@ -87,6 +83,10 @@ export default async function PortalPage({
     `service_visits?customer_id=eq.${customer.id}&select=id,status,scheduled_for&status=not.in.(completed,skipped,refused)&order=scheduled_for.asc.nullslast`,
   );
   const nextVisit = actionableVisits[0];
+  const nextChargeValue =
+    accountSummary.nextChargeCents == null
+      ? "No recurring charge"
+      : `${formatCurrency(accountSummary.nextChargeCents)}*`;
 
   return (
     <AppShell area="Customer portal">
@@ -107,13 +107,11 @@ export default async function PortalPage({
           }
         />
         <Stat label="Bins" value={bins.length} />
-        <Stat
-          label="Base estimate"
-          value={formatCurrency(
-            subscription?.service_plan_versions.base_price_cents ?? 0,
-          )}
-        />
+        <Stat label={accountSummary.nextChargeLabel} value={nextChargeValue} />
       </div>
+      <p className="mt-2 text-xs text-zinc-500">
+        *Staging estimate before tax. Qualified referral credit is included when available; pending referrals are not deducted yet.
+      </p>
 
       <section className="card mt-6 p-5">
         <h2 className="text-xl font-black">Hello, {customer.full_name}</h2>
@@ -179,27 +177,37 @@ export default async function PortalPage({
         </section>
 
         <section className="card p-5">
-          <h2 className="text-xl font-black">Share 50%. Get 50%.</h2>
+          <h2 className="text-xl font-black">Your referrals</h2>
           <p className="mt-2 text-sm text-zinc-600">
-            Share your permanent referral code or link with friends. The new
-            eligible Monthly customer can receive 50% off their first eligible
-            base cleaning, and your reward becomes available after the referral
-            qualifies.
+            Share your permanent referral code or link with friends. A new eligible Monthly customer can receive 50% off their first eligible base cleaning. Your first qualified referral earns 50% off one eligible Monthly base cleaning; later qualified referrals earn 25% off one.
           </p>
           <ReferralShare
-            code={referrals[0]?.code}
+            code={accountSummary.referralCode ?? undefined}
             senderName={customer.full_name}
           />
-          <div className="mt-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <Stat label="Submitted referrals" value={accountSummary.submittedReferrals} />
+            <Stat label="Qualified referrals" value={accountSummary.qualifiedReferrals} />
             <Stat
               label="Available credit"
-              value={formatCurrency(
-                credits.reduce(
-                  (total, credit) => total + credit.remaining_cents,
-                  0,
-                ),
-              )}
+              value={formatCurrency(accountSummary.availableCreditCents)}
             />
+          </div>
+          <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm">
+            <strong>{accountSummary.nextChargeLabel}:</strong>{" "}
+            {accountSummary.nextChargeCents == null
+              ? "No recurring charge"
+              : `${formatCurrency(accountSummary.nextChargeCents)} before tax`}
+            {accountSummary.nextAppliedCreditCents > 0 && (
+              <span className="block text-emerald-800">
+                Includes {formatCurrency(accountSummary.nextAppliedCreditCents)} of qualified referral credit.
+              </span>
+            )}
+            {accountSummary.submittedReferrals > accountSummary.qualifiedReferrals && (
+              <span className="block text-zinc-600">
+                Pending referrals do not reduce this estimate until they qualify.
+              </span>
+            )}
           </div>
         </section>
       </div>
