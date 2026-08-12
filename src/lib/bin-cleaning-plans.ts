@@ -164,7 +164,15 @@ export function normalizeBinCleaningReferralCode(
 }
 
 export function isPlausibleBinCleaningReferralCode(value: string) {
-  return /^[A-Z0-9-]{4,32}$/.test(value);
+  const normalized = normalizeBinCleaningReferralCode(value);
+  if (!/^[A-Z0-9-]{4,32}$/.test(normalized)) return false;
+  // The hosted staging database currently has only the seeded fictional
+  // referral codes below. Do not award a staged referral discount merely
+  // because somebody typed another ADS-TEST-shaped value.
+  if (normalized.startsWith("ADS-TEST-")) {
+    return normalized === "ADS-TEST-0001" || normalized === "ADS-TEST-0002";
+  }
+  return true;
 }
 
 export type PriceBreakdown = Readonly<{
