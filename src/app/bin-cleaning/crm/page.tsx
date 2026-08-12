@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell, Stat } from "@/components/bin-cleaning/AppShell";
-import { crmCustomers, crmReferralTracking } from "@/lib/bin-cleaning/queries";
+import { ReferralNotifications } from "@/components/bin-cleaning/ReferralNotifications";
+import { crmCustomers } from "@/lib/bin-cleaning/queries";
 import { crmSignupLeads } from "@/lib/bin-cleaning/signup-queries";
 import { formatCurrency } from "@/lib/bin-cleaning-plans";
 
@@ -26,41 +27,19 @@ function signupDiscount(lead: Awaited<ReturnType<typeof crmSignupLeads>>["leads"
 }
 
 export default async function CRM({ searchParams }: { searchParams: { q?: string; plan?: string; status?: string; municipality?: string; pickup?: string } }) {
-  const [customers, signupResult, referralTracking] = await Promise.all([
+  const [customers, signupResult] = await Promise.all([
     crmCustomers(searchParams),
     crmSignupLeads(),
-    crmReferralTracking(),
   ]);
   const signupLeads = signupResult.leads;
-
-  const ownerById = new Map(referralTracking.owners.map((owner) => [owner.id, owner.full_name]));
-  const ownerIdByCode = new Map(referralTracking.codes.map((code) => [code.code.toUpperCase(), code.customer_id]));
-  const submittedByCode = new Map<string, number>();
-  for (const lead of signupLeads) {
-    if (lead.status !== "submitted_unpaid" || !lead.referral_code) continue;
-    const code = lead.referral_code.toUpperCase();
-    submittedByCode.set(code, (submittedByCode.get(code) ?? 0) + 1);
-  }
-  const qualifiedByOwner = new Map<string, number>();
-  for (const relationship of referralTracking.relationships) {
-    if (!["qualified", "credit_issued", "credit_applied"].includes(relationship.status)) continue;
-    qualifiedByOwner.set(
-      relationship.referrer_customer_id,
-      (qualifiedByOwner.get(relationship.referrer_customer_id) ?? 0) + 1,
-    );
-  }
-  const referralLeaders = [...submittedByCode.entries()]
-    .map(([code, submitted]) => {
-      const ownerId = ownerIdByCode.get(code);
-      return {
-        code,
-        ownerId,
-        name: ownerId ? ownerById.get(ownerId) ?? code : code,
-        submitted,
-        qualified: ownerId ? qualifiedByOwner.get(ownerId) ?? 0 : 0,
-      };
-    })
-    .sort((a, b) => b.submitted - a.submitted || b.qualified - a.qualified || a.name.localeCompare(b.name));
+  const referralNotifications = signupLeads
+    .filter((lead) => lead.status === "submitted_unpaid" && Boolean(lead.referral_code))
+    .map((lead) => ({
+      id: lead.id,
+      customerName: lead.full_name || "Incomplete name",
+      referralCode: lead.referral_code || "Referral",
+      submittedAt: lead.submitted_at || lead.last_activity_at,
+    }));
 
   return (
     <AppShell area="Internal CRM">
@@ -71,30 +50,7 @@ export default async function CRM({ searchParams }: { searchParams: { q?: string
         <Stat label="Open signup drafts" value={signupLeads.filter((lead) => lead.status !== "submitted_unpaid").length} />
       </div>
 
-      <section className="card mt-6 overflow-hidden">
-        <div className="border-b p-5">
-          <h2 className="text-xl font-black">Referral leaders</h2>
-          <p className="mt-1 text-sm text-zinc-600">Tracks who is producing the most submitted referral signups. Qualified rewards remain separate until payment is enabled.</p>
-        </div>
-        {referralLeaders.length === 0 ? (
-          <p className="p-5 text-sm text-zinc-600">No submitted referral signups yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[650px] text-left text-sm">
-              <thead><tr>{["Rank", "Referrer", "Referral code", "Submitted referrals", "Qualified"].map((h) => <th className="p-3" key={h}>{h}</th>)}</tr></thead>
-              <tbody>{referralLeaders.map((leader, index) => (
-                <tr key={leader.code} className="border-t">
-                  <td className="p-3 font-black">#{index + 1}</td>
-                  <td className="p-3 font-bold">{leader.name}</td>
-                  <td className="p-3 font-mono text-xs">{leader.code}</td>
-                  <td className="p-3 font-black">{leader.submitted}</td>
-                  <td className="p-3">{leader.qualified}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <ReferralNotifications referrals={referralNotifications} />
 
       <section className="card mt-6 overflow-hidden">
         <div className="border-b p-5">
