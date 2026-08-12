@@ -8,6 +8,8 @@ import { currentSession } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
+const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 function text(form: FormData, key: string) {
   const value = form.get(key);
   return typeof value === "string" ? value.trim() : "";
@@ -18,6 +20,18 @@ function integer(form: FormData, key: string) {
 }
 function redirect(request: NextRequest, query: string) {
   return NextResponse.redirect(new URL(`/bin-cleaning/crm/customers/new?${query}`, request.url), 303);
+}
+function wantsJson(request: NextRequest) {
+  return request.headers.get("x-ads-manual-intake") === "1";
+}
+function fail(request: NextRequest, error: string, status = 400, fieldErrors?: Record<string, string>) {
+  if (wantsJson(request)) return NextResponse.json({ ok: false, error, fieldErrors }, { status });
+  return redirect(request, `error=${encodeURIComponent(error)}`);
+}
+function dateWeekday(dateValue: string | null) {
+  if (!dateValue || !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return null;
+  const parsed = new Date(`${dateValue}T12:00:00Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.getUTCDay();
 }
 
 export async function POST(request: NextRequest) {
@@ -49,24 +63,48 @@ export async function POST(request: NextRequest) {
   const staffNote = text(form, "staff_note").slice(0, 1500);
   const binCount = trashBins + recyclingBins;
   const plan = BIN_CLEANING_PLANS.find((item) => item.id === planId && item.publiclyVisible);
+  const fieldErrors: Record<string, string> = {};
 
-  const valid =
-    fullName.length >= 1 &&
-    email.length >= 1 &&
-    phone.length >= 1 &&
-    line1.length >= 1 && city.length >= 1 && region.length >= 1 && postalCode.length >= 1 &&
-    plan && Number.isInteger(trashBins) && Number.isInteger(recyclingBins) && trashBins >= 0 && recyclingBins >= 0 && binCount >= 1 &&
-    Number.isInteger(trashWeekday) && trashWeekday >= 0 && trashWeekday <= 6 &&
-    (recyclingBins === 0 || (Number.isInteger(recyclingWeekday) && recyclingWeekday >= 0 && recyclingWeekday <= 6 && [1, 2].includes(recyclingFrequencyWeeks))) &&
-    preferredReturnLocation.length >= 1;
-  if (!valid || !plan) return redirect(request, "error=validation");
+  if (!fullName) fieldErrors.full_name = "Enter a customer name.";
+  if (!email) fieldErrors.email = "Enter an email value.";
+  if (!phone) fieldErrors.phone = "Enter a phone value.";
+  if (!line1) fieldErrors.line1 = "Enter the service street address.";
+  if (!city) fieldErrors.city = "Enter the city.";
+  if (!region) fieldErrors.region = "Enter the state.";
+  if (!postalCode) fieldErrors.postal_code = "Enter the ZIP code.";
+  if (!plan) fieldErrors.plan_id = "Choose a valid service plan.";
+  if (!Number.isInteger(trashBins) || trashBins < 0) fieldErrors.trash_bins = "Enter 0 or more trash bins.";
+  if (!Number.isInteger(recyclingBins) || recyclingBins < 0) fieldErrors.recycling_bins = "Enter 0 or more recycling bins.";
+  if (!fieldErrors.trash_bins && !fieldErrors.recycling_bins && binCount < 1) {
+    fieldErrors.trash_bins = "At least one total bin is required.";
+    fieldErrors.recycling_bins = "At least one total bin is required.";
+  }
+  if (!Number.isInteger(trashWeekday) || trashWeekday < 0 || trashWeekday > 6) fieldErrors.trash_weekday = "Choose the trash pickup day.";
+  if (recyclingBins > 0) {
+    if (!Number.isInteger(recyclingWeekday) || recyclingWeekday < 0 || recyclingWeekday > 6) fieldErrors.recycling_weekday = "Choose the recycling pickup day.";
+    if (![1, 2].includes(recyclingFrequencyWeeks)) fieldErrors.recycling_frequency_weeks = "Choose the recycling frequency.";
+    if (recyclingAnchor) {
+      const actualWeekday = dateWeekday(recyclingAnchor);
+      if (actualWeekday === null) {
+        fieldErrors.recycling_anchor_collection_date = "Enter a valid recycling pickup date.";
+      } else if (!fieldErrors.recycling_weekday && actualWeekday !== recyclingWeekday) {
+        fieldErrors.recycling_anchor_collection_date = `That date is a ${days[actualWeekday]}, but the recycling pickup day is set to ${days[recyclingWeekday]}. Change the date or pickup day.`;
+      }
+    }
+  }
+  if (!preferredReturnLocation) fieldErrors.preferred_return_location = "Enter where ADS should return the bins.";
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return fail(request, "Please fix the fields marked in red. Your entries have been kept.", 400, fieldErrors);
+  }
+  if (!plan) return fail(request, "Choose a valid service plan.", 400, { plan_id: "Choose a valid service plan." });
 
   const price = calculateBinCleaningPrice(plan, binCount);
-  if (!price) return redirect(request, "error=pricing");
+  if (!price) return fail(request, "The selected plan and bin count could not be priced. Your entries have been kept.", 400);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!supabaseUrl || !serviceRoleKey) return redirect(request, "error=database");
+  if (!supabaseUrl || !serviceRoleKey) return fail(request, "The staging database connection is unavailable. Your entries have been kept.", 503);
 
   const now = new Date().toISOString();
   const editTokenHash = createHash("sha256").update(randomBytes(32)).digest("hex");
@@ -122,6 +160,7 @@ export async function POST(request: NextRequest) {
     body: JSON.stringify(payload),
   }).catch(() => null);
 
-  if (!response?.ok) return redirect(request, "error=database");
+  if (!response?.ok) return fail(request, "The server could not save the customer. Your entries have been kept so you can correct or retry without starting over.", 500);
+  if (wantsJson(request)) return NextResponse.json({ ok: true });
   return redirect(request, "saved=1");
 }
