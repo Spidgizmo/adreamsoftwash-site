@@ -16,6 +16,7 @@ const AREA_LINKS: Record<AppArea, { href: string; label: string }[]> = {
   ],
   "Internal CRM": [
     { href: "/bin-cleaning/crm", label: "CRM" },
+    { href: "/bin-cleaning/crm/activity", label: "Messages & notes" },
     {
       href: "/bin-cleaning/field/visits/assigned",
       label: "Field visits",
