@@ -34,6 +34,7 @@ export type SignupLeadRow = Readonly<{
   phone_allowed: boolean;
   terms_accepted: boolean;
   source_path: string;
+  form_data: Record<string, unknown> | null;
   estimated_subtotal_cents: number | null;
   estimated_discount_cents: number;
   estimated_first_charge_cents: number | null;
@@ -52,7 +53,7 @@ export type SignupLeadResult = Readonly<{
 }>;
 
 const SIGNUP_LEAD_SELECT =
-  "id,status,full_name,email,phone,line1,line2,city,region,postal_code,plan_id,bin_count,bin_streams,trash_weekday,recycling_weekday,recycling_frequency_weeks,recycling_anchor_collection_date,promo_code,referral_code,preferred_return_location,access_instructions,gate_information,animal_warning,safety_notes,email_allowed,sms_allowed,phone_allowed,terms_accepted,source_path,estimated_subtotal_cents,estimated_discount_cents,estimated_first_charge_cents,discount_kind,discount_status,is_test,last_activity_at,submitted_at,created_at,updated_at";
+  "id,status,full_name,email,phone,line1,line2,city,region,postal_code,plan_id,bin_count,bin_streams,trash_weekday,recycling_weekday,recycling_frequency_weeks,recycling_anchor_collection_date,promo_code,referral_code,preferred_return_location,access_instructions,gate_information,animal_warning,safety_notes,email_allowed,sms_allowed,phone_allowed,terms_accepted,source_path,form_data,estimated_subtotal_cents,estimated_discount_cents,estimated_first_charge_cents,discount_kind,discount_status,is_test,last_activity_at,submitted_at,created_at,updated_at";
 
 export async function crmSignupLeads(): Promise<SignupLeadResult> {
   try {
