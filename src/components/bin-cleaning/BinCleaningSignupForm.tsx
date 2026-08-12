@@ -143,6 +143,52 @@ function boundedCount(value: string) {
   return Number.isInteger(parsed) ? Math.min(MAX_BIN_COUNT, Math.max(0, parsed)) : 0;
 }
 
+function parseDateOnly(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+function startOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
+function firstServiceEstimate(form: FormState): { collection: Date; cleaning: Date; deferred: boolean } | null {
+  const today = startOfToday();
+  if (form.recyclingBins > 0) {
+    const anchor = parseDateOnly(form.recyclingAnchorCollectionDate);
+    const frequencyWeeks = Number(form.recyclingFrequencyWeeks || 0);
+    if (!anchor || !frequencyWeeks) return null;
+    let collection = anchor;
+    while (daysBetween(today, collection) <= 1) collection = addDays(collection, frequencyWeeks * 7);
+    return { collection, cleaning: addDays(collection, 1), deferred: collection.getTime() !== anchor.getTime() };
+  }
+  if (form.trashWeekday === "") return null;
+  const weekday = Number(form.trashWeekday);
+  let delta = (weekday - today.getDay() + 7) % 7;
+  if (delta === 0) delta = 7;
+  let collection = addDays(today, delta);
+  const deferred = delta <= 1;
+  if (deferred) collection = addDays(collection, 7);
+  return { collection, cleaning: addDays(collection, 1), deferred };
+}
+
+function dateLabel(value: Date): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric" }).format(value);
+}
+
 function buildPayload(form: FormState) {
   return {
     fictionalDataConfirmed: true,
@@ -192,10 +238,37 @@ function validateForSubmit(form: FormState): FieldErrors {
     if (!form.recyclingWeekday) result.recyclingWeekday = "Recycling pickup day is required.";
     if (!form.recyclingFrequencyWeeks) result.recyclingFrequencyWeeks = "Recycling frequency is required.";
     if (!form.recyclingAnchorCollectionDate) result.recyclingAnchorCollectionDate = "Next recycling pickup date is required.";
+    const anchor = parseDateOnly(form.recyclingAnchorCollectionDate);
+    if (anchor && form.recyclingWeekday !== "" && anchor.getDay() !== Number(form.recyclingWeekday)) {
+      result.recyclingAnchorCollectionDate = `That date is a ${WEEKDAYS[anchor.getDay()]}, but recycling pickup is set to ${WEEKDAYS[Number(form.recyclingWeekday)]}. Change the date or pickup day.`;
+    }
   }
   if (!form.preferredReturnLocation.trim()) result.preferredReturnLocation = "Bin return location is required.";
+  if (!form.emailAllowed) result.emailAllowed = "Email service permission is required for account, scheduling, billing, and service notices.";
   if (!form.smsAllowed) result.smsAllowed = "Text-message service permission is required so ADS can send service notices and before/after completion photos.";
+  if (!form.phoneAllowed) result.phoneAllowed = "Phone-call service permission is required for time-sensitive service or access issues.";
   return result;
+}
+
+function serverErrorsToFields(items: readonly string[]): FieldErrors {
+  const mapped: FieldErrors = {};
+  for (const item of items) {
+    const lower = item.toLowerCase();
+    if (lower.includes("email service permission")) mapped.emailAllowed = item;
+    else if (lower.includes("text-message service permission")) mapped.smsAllowed = item;
+    else if (lower.includes("phone-call service permission")) mapped.phoneAllowed = item;
+    else if (lower.includes("recycling pickup date")) mapped.recyclingAnchorCollectionDate = item;
+    else if (lower.includes("zip")) mapped.postalCode = item;
+    else if (lower.includes("return location")) mapped.preferredReturnLocation = item;
+    else if (lower.includes("trash pickup")) mapped.trashWeekday = item;
+    else if (lower.includes("recycling pickup day")) mapped.recyclingWeekday = item;
+    else if (lower.includes("recycling frequency")) mapped.recyclingFrequencyWeeks = item;
+    else if (lower.includes("full name")) mapped.fullName = item;
+    else if (lower.includes("service address")) mapped.line1 = item;
+    else if (lower.includes("email")) mapped.email = item;
+    else if (lower.includes("phone")) mapped.phone = item;
+  }
+  return mapped;
 }
 
 export function BinCleaningSignupForm(props: SignupFormProps) {
@@ -228,6 +301,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
   const referralEligible = Boolean(normalizedReferral && referralFormatValid && plan?.referralEligible);
   const referralDiscountCents = referralEligible && price ? Math.round(price.subtotalCents * 0.5) : 0;
   const estimatedFirstCharge = price ? promotion?.status === "applied" ? promotion.firstChargeSubtotalCents : price.subtotalCents - referralDiscountCents : null;
+  const firstService = useMemo(() => firstServiceEstimate(form), [form]);
 
   const saveDraft = useCallback(async (status: SaveStatus, keepalive = false) => {
     const currentForm = formRef.current;
@@ -251,7 +325,10 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         if (status !== "abandoned") {
           setSaveState("error");
           setMessage(result.error || "The fictional signup could not be saved.");
-          setErrors(result.errors ?? []);
+          const serverErrors = result.errors ?? [];
+          setErrors(serverErrors);
+          const mapped = serverErrorsToFields(serverErrors);
+          if (Object.keys(mapped).length) setFieldErrors((current) => ({ ...current, ...mapped }));
         }
         return false;
       }
@@ -398,10 +475,11 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
               <Field label="Next scheduled recycling pickup date" fieldKey="recyclingAnchorCollectionDate" error={fieldErrors.recyclingAnchorCollectionDate} hint="The date must fall on the selected recycling weekday."><input type="date" value={form.recyclingAnchorCollectionDate} onChange={setText("recyclingAnchorCollectionDate")} className={inputClass(fieldErrors.recyclingAnchorCollectionDate)} /></Field>
             </> : null}
           </div>
+          {firstService ? <div className="mt-5 rounded-2xl border border-blue-300 bg-white p-4 text-sm text-blue-950"><p className="font-black">Estimated first cleaning: {dateLabel(firstService.cleaning)}</p><p className="mt-1">Based on an expected collection on {dateLabel(firstService.collection)}. {firstService.deferred ? "Because the nearest collection is today or tomorrow, the system conservatively starts on the following eligible collection cycle unless ADS staff confirms an earlier slot." : "This remains subject to route confirmation until automatic address-to-route assignment is live."}</p></div> : null}
         </Section>
 
         <Section title="4. Promo or referral code">
-          <p className="mt-2 text-sm text-zinc-700">Use one or the other. They never stack.</p>
+          <p className="mt-2 text-sm text-zinc-700">Use one or the other. They never stack. New-customer promotion eligibility will be tied to the service address as well as the customer account, so changing the name or email at the same household will not create a fresh new-customer offer after payment activation.</p>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <Field label="Promo code"><input value={form.promoCode} disabled={Boolean(normalizedReferral)} onChange={(event) => updateForm({ ...formRef.current, promoCode: event.target.value, referralCode: event.target.value ? "" : formRef.current.referralCode })} className={inputClass()} autoCapitalize="characters" autoComplete="off" /></Field>
             <Field label="Referral code" hint="Short /r/ADS-XXXX-XXXX links automatically place the code here."><input value={form.referralCode} disabled={Boolean(normalizedPromo)} onChange={(event) => updateForm({ ...formRef.current, referralCode: event.target.value, promoCode: event.target.value ? "" : formRef.current.promoCode })} className={inputClass()} autoCapitalize="characters" autoComplete="off" /></Field>
@@ -426,12 +504,13 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
             <p className="font-black">Service communications are part of ADS Bin Cleaning.</p>
             <p className="mt-2">We may need to contact you about scheduling, weather or service changes, access problems, billing or account issues, questions about your bins, and other information needed to complete your service. After a completed visit, ADS plans to send before-and-after service photos as part of the completion notice.</p>
             <p className="mt-2"><strong>Your privacy matters.</strong> American Dream Softwash (ADS Bin Cleaning) does not sell or rent customer personal information or customer contact lists. Information is used to operate your account, provide your requested services, communicate with you, and work with service providers needed to operate the service.</p>
+            <p className="mt-2 font-bold">Email, text-message, and phone service permissions are required for the service account. Promotional marketing below is separate and optional.</p>
           </div>
 
           <div className="mt-5 space-y-3">
-            <label className="flex items-start gap-3 font-semibold"><input type="checkbox" checked={form.emailAllowed} onChange={setChecked("emailAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span><strong>Email service updates</strong><span className="block text-sm font-normal text-zinc-600">Account, scheduling, billing, and service information.</span></span></label>
+            <label data-field="emailAllowed" className={`flex items-start gap-3 rounded-xl p-3 font-semibold ${fieldErrors.emailAllowed ? "border-2 border-red-600 bg-red-50 text-red-900" : ""}`}><input type="checkbox" checked={form.emailAllowed} onChange={setChecked("emailAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span><strong>Email service updates</strong><span className="block text-sm font-normal text-zinc-600">Required for account, scheduling, billing, and service information.</span>{fieldErrors.emailAllowed ? <span className="mt-1 block text-xs font-black text-red-700">{fieldErrors.emailAllowed}</span> : null}</span></label>
             <label data-field="smsAllowed" className={`flex items-start gap-3 rounded-xl p-3 font-semibold ${fieldErrors.smsAllowed ? "border-2 border-red-600 bg-red-50 text-red-900" : ""}`}><input type="checkbox" checked={form.smsAllowed} onChange={setChecked("smsAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span><strong>Text-message service updates & before/after photos</strong><span className="block text-sm font-normal text-zinc-600">Required for service completion photos and important text notices.</span>{fieldErrors.smsAllowed ? <span className="mt-1 block text-xs font-black text-red-700">{fieldErrors.smsAllowed}</span> : null}</span></label>
-            <label className="flex items-start gap-3 font-semibold"><input type="checkbox" checked={form.phoneAllowed} onChange={setChecked("phoneAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span><strong>Phone calls when needed</strong><span className="block text-sm font-normal text-zinc-600">For time-sensitive service or access issues when a call is appropriate.</span></span></label>
+            <label data-field="phoneAllowed" className={`flex items-start gap-3 rounded-xl p-3 font-semibold ${fieldErrors.phoneAllowed ? "border-2 border-red-600 bg-red-50 text-red-900" : ""}`}><input type="checkbox" checked={form.phoneAllowed} onChange={setChecked("phoneAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span><strong>Phone calls when needed</strong><span className="block text-sm font-normal text-zinc-600">Required for time-sensitive service or access issues when a call is appropriate.</span>{fieldErrors.phoneAllowed ? <span className="mt-1 block text-xs font-black text-red-700">{fieldErrors.phoneAllowed}</span> : null}</span></label>
           </div>
 
           <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
