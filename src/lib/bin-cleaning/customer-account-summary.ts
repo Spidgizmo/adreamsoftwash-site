@@ -44,6 +44,7 @@ export async function customerAccountSummary(
     `referral_codes?customer_id=eq.${customer.id}&active=eq.true&select=code&limit=1`,
   ).catch(() => []);
   const referralCode = codeRows[0]?.code ?? null;
+  const now = encodeURIComponent(new Date().toISOString());
 
   const [relationships, credits] = await Promise.all([
     databaseRequest<{ status: string }[]>(
@@ -52,7 +53,7 @@ export async function customerAccountSummary(
     databaseRequest<
       { remaining_cents: number; earned_at: string }[]
     >(
-      `referral_credits?customer_id=eq.${customer.id}&status=in.(issued,partially_applied)&remaining_cents=gt.0&select=remaining_cents,earned_at&order=earned_at.asc`,
+      `referral_credits?customer_id=eq.${customer.id}&status=in.(issued,partially_applied)&expires_at=gt.${now}&remaining_cents=gt.0&select=remaining_cents,earned_at&order=earned_at.asc`,
     ).catch(() => []),
   ]);
 
