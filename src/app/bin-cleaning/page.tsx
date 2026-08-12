@@ -95,7 +95,7 @@ export default function BinCleaningPage() {
                   href="/bin-cleaning/signup"
                   className="rounded-xl border border-cyan-200/70 bg-white px-6 py-3 text-center font-black text-[#071b3b] shadow-xl shadow-black/15 transition hover:-translate-y-0.5 hover:bg-cyan-50"
                 >
-                  Preview signup
+                  Sign Up
                 </Link>
               </div>
               <div className="mt-7 grid max-w-2xl gap-3 text-sm font-semibold text-sky-100 sm:grid-cols-3">
@@ -104,7 +104,7 @@ export default function BinCleaningPage() {
                 <span>✓ Return bins after cleaning</span>
               </div>
               <p className="mt-5 text-sm text-slate-300">
-                Signup and checkout are not yet activated.
+                Signup is available in the staging test environment; real payments remain disabled.
               </p>
             </div>
 
@@ -140,7 +140,7 @@ export default function BinCleaningPage() {
               href={`/bin-cleaning/signup?plan=one-time&bins=2&promo=${ONE45_PROMO_CODE}`}
               className="rounded-xl bg-white px-6 py-3 text-center font-black text-red-700 shadow-xl shadow-red-950/25 transition hover:-translate-y-0.5 hover:bg-red-50"
             >
-              Preview ONE45
+              Sign Up with ONE45
             </Link>
           </div>
         </Container>
@@ -187,15 +187,14 @@ export default function BinCleaningPage() {
                 Plans & pricing
               </p>
               <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-                Build your bin-cleaning estimate
+                Sign up for your bin cleaning
               </h2>
               <p className="mt-4 text-lg leading-8 text-zinc-700">
-                Choose the plan that works best for your household. Enter an
-                advertised promo code to preview an eligible offer.
+                Choose the service plan that works best for your household and tell us how many bins you have. Promo and referral codes are entered on the signup form.
               </p>
             </div>
             <div className="mt-9 rounded-3xl border border-brand-200 bg-white p-4 shadow-2xl shadow-brand-950/10 sm:p-7">
-              <BinCleaningCalculator enablePromoCode />
+              <BinCleaningCalculator />
             </div>
           </div>
         </Container>
@@ -225,7 +224,7 @@ export default function BinCleaningPage() {
                     <span
                       aria-hidden="true"
                       className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black text-white ${
-                        index % 4 === 3 ? "bg-red-600" : "bg-brand-700"
+                        index % 2 === 1 ? "bg-red-600" : "bg-brand-700"
                       }`}
                     >
                       ✓
@@ -318,7 +317,7 @@ export default function BinCleaningPage() {
               href="/bin-cleaning/signup"
               className="rounded-xl bg-white px-6 py-3 text-center font-black text-[#071b3b] shadow-xl shadow-black/20 transition hover:-translate-y-0.5 hover:bg-cyan-50"
             >
-              Preview the flow
+              Sign Up
             </Link>
           </div>
         </Container>
@@ -355,14 +354,13 @@ export default function BinCleaningPage() {
                   Ready for a cleaner routine?
                 </h2>
                 <p className="mx-auto mt-4 max-w-2xl text-white/90">
-                  Review the upcoming ADS Bin Cleaning signup experience. No
-                  payment is accepted in this staging phase.
+                  Choose your plan, enter your service details, and submit your ADS Bin Cleaning signup. Real payments remain disabled in staging.
                 </p>
                 <Link
                   href="/bin-cleaning/signup"
                   className="mt-7 inline-flex rounded-xl bg-white px-7 py-3 font-black text-red-700 shadow-lg transition hover:-translate-y-0.5 hover:bg-red-50"
                 >
-                  Preview ADS Bin Cleaning signup
+                  Sign Up
                 </Link>
               </div>
             </div>
