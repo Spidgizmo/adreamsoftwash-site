@@ -107,7 +107,7 @@ function initialForm(props: SignupFormProps): FormState {
   const promo = normalizeBinCleaningPromoCode(props.initialPromoCode);
   const referral = normalizeBinCleaningReferralCode(props.initialReferralCode);
   return {
-    fictionalDataConfirmed: false,
+    fictionalDataConfirmed: true,
     fullName: "",
     email: "",
     phone: "",
@@ -134,7 +134,7 @@ function initialForm(props: SignupFormProps): FormState {
     smsAllowed: false,
     phoneAllowed: false,
     marketingAllowed: false,
-    termsAccepted: false,
+    termsAccepted: true,
   };
 }
 
@@ -145,7 +145,7 @@ function boundedCount(value: string) {
 
 function buildPayload(form: FormState) {
   return {
-    fictionalDataConfirmed: form.fictionalDataConfirmed,
+    fictionalDataConfirmed: true,
     fullName: form.fullName,
     email: form.email,
     phone: form.phone,
@@ -171,7 +171,7 @@ function buildPayload(form: FormState) {
     smsAllowed: form.smsAllowed,
     phoneAllowed: form.phoneAllowed,
     marketingAllowed: form.marketingAllowed,
-    termsAccepted: form.termsAccepted,
+    termsAccepted: true,
     sourcePath: window.location.pathname + window.location.search,
   };
 }
@@ -180,9 +180,7 @@ function validateForSubmit(form: FormState): FieldErrors {
   const result: FieldErrors = {};
   if (!form.fullName.trim()) result.fullName = "Full name is required.";
   if (!form.email.trim()) result.email = "Email is required.";
-  else if (!form.email.trim().toLowerCase().endsWith(".test")) result.email = "Use a fictional email ending in .test.";
   if (!form.phone.trim()) result.phone = "Phone number is required.";
-  else if (!/^1555\d{7}$/.test(form.phone.replace(/[^0-9]/g, ""))) result.phone = "Use a reserved fictional 555 number.";
   if (!form.line1.trim()) result.line1 = "Service address is required.";
   if (!form.city.trim()) result.city = "City is required.";
   if (!form.region.trim()) result.region = "State is required.";
@@ -197,7 +195,6 @@ function validateForSubmit(form: FormState): FieldErrors {
   }
   if (!form.preferredReturnLocation.trim()) result.preferredReturnLocation = "Bin return location is required.";
   if (!form.smsAllowed) result.smsAllowed = "Text-message service permission is required so ADS can send service notices and before/after completion photos.";
-  if (!form.termsAccepted) result.termsAccepted = "You must accept the staging confirmation.";
   return result;
 }
 
@@ -234,7 +231,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
 
   const saveDraft = useCallback(async (status: SaveStatus, keepalive = false) => {
     const currentForm = formRef.current;
-    if (!currentForm.fictionalDataConfirmed || savingRef.current) return false;
+    if (savingRef.current) return false;
     const payload = buildPayload(currentForm);
     const fingerprint = JSON.stringify(payload);
     if (status === "incomplete" && leadRef.current && fingerprint === lastSavedFingerprint.current) return true;
@@ -294,13 +291,13 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
     const next = { ...formRef.current, [key]: event.target.value } as FormState;
     updateForm(next);
     if (fieldErrors[key]) setFieldErrors((current) => { const copy = { ...current }; delete copy[key]; return copy; });
-    if (next.fictionalDataConfirmed && !submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
+    if (!submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
   };
   const setChecked = (key: BooleanKey) => (event: ChangeEvent<HTMLInputElement>) => {
     const next = { ...formRef.current, [key]: event.target.checked } as FormState;
     updateForm(next);
     if (fieldErrors[key]) setFieldErrors((current) => { const copy = { ...current }; delete copy[key]; return copy; });
-    if (next.fictionalDataConfirmed && !submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
+    if (!submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
   };
   const setCount = (key: CountKey) => (event: ChangeEvent<HTMLInputElement>) => {
     const value = boundedCount(event.target.value);
@@ -309,7 +306,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       : { ...formRef.current, [key]: value };
     updateForm(next as FormState);
     if (fieldErrors[key]) setFieldErrors((current) => { const copy = { ...current }; delete copy[key]; return copy; });
-    if (next.fictionalDataConfirmed && !submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
+    if (!submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
   };
 
   const startAnother = () => {
@@ -345,14 +342,10 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
   const weekdayOptions = WEEKDAYS.map((day, index) => <option value={index} key={day}>{day}</option>);
 
   return (
-    <form className="space-y-8" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
-      <section className="rounded-3xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm sm:p-7">
-        <h2 className="text-xl font-black text-amber-950">Fictional staging data only</h2>
-        <p className="mt-2 text-sm leading-relaxed text-amber-950">Use invented names, an email ending in <strong>.test</strong>, a reserved 555 phone number, and an invented address. Stripe is disabled and no payment can be accepted here.</p>
-        <label className="mt-4 flex items-start gap-3 font-bold text-amber-950">
-          <input type="checkbox" checked={form.fictionalDataConfirmed} onChange={setChecked("fictionalDataConfirmed")} className="mt-1 h-5 w-5 accent-blue-700" />
-          I confirm every value I enter is fictional test data.
-        </label>
+    <form className="space-y-8" noValidate onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+      <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:p-7">
+        <h2 className="text-xl font-black text-amber-950">Staging test environment</h2>
+        <p className="mt-2 text-sm leading-relaxed text-amber-950">Use made-up customer information while testing. There are no special <strong>.test</strong> email, 555 phone-number, or leading-1 phone requirements. Stripe is still disabled and no payment can be accepted here.</p>
       </section>
 
       {submitted ? (
@@ -363,12 +356,12 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         </section>
       ) : null}
 
-      <fieldset disabled={!form.fictionalDataConfirmed || submitted} className="space-y-8 disabled:opacity-60">
+      <fieldset disabled={submitted} className="space-y-8 disabled:opacity-60">
         <Section title="1. Contact and service address">
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <Field label="Full name" fieldKey="fullName" error={fieldErrors.fullName}><input value={form.fullName} onChange={setText("fullName")} className={inputClass(fieldErrors.fullName)} autoComplete="off" /></Field>
-            <Field label="Email address" fieldKey="email" error={fieldErrors.email} hint="Use a fictional address such as avery@example.test."><input type="email" value={form.email} onChange={setText("email")} className={inputClass(fieldErrors.email)} autoComplete="off" /></Field>
-            <Field label="Mobile number" fieldKey="phone" error={fieldErrors.phone} hint="Use a reserved number such as +1 (555) 010-0123."><input type="tel" value={form.phone} onChange={setText("phone")} className={inputClass(fieldErrors.phone)} autoComplete="off" /></Field>
+            <Field label="Email address" fieldKey="email" error={fieldErrors.email} hint="Enter the test email you want to use."><input value={form.email} onChange={setText("email")} className={inputClass(fieldErrors.email)} autoComplete="off" /></Field>
+            <Field label="Mobile number" fieldKey="phone" error={fieldErrors.phone} hint="A normal 10-digit number format is fine; no leading 1 is required."><input type="tel" value={form.phone} onChange={setText("phone")} className={inputClass(fieldErrors.phone)} autoComplete="off" /></Field>
             <Field label="Street address" fieldKey="line1" error={fieldErrors.line1}><input value={form.line1} onChange={setText("line1")} className={inputClass(fieldErrors.line1)} autoComplete="off" /></Field>
             <Field label="Apartment or unit"><input value={form.line2} onChange={setText("line2")} className={inputClass()} autoComplete="off" /></Field>
             <Field label="City" fieldKey="city" error={fieldErrors.city}><input value={form.city} onChange={setText("city")} className={inputClass(fieldErrors.city)} autoComplete="off" /></Field>
@@ -445,9 +438,6 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
             <p className="font-black text-zinc-950">Optional marketing offers</p>
             <label className="mt-3 flex items-start gap-3 font-semibold"><input type="checkbox" checked={form.marketingAllowed} onChange={setChecked("marketingAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span>Yes, I would like to receive occasional promotions and special offers from <strong>American Dream Softwash (ADS Bin Cleaning)</strong>, including offers for house washing, roof washing, concrete cleaning, bin cleaning, and other exterior-cleaning services.<span className="mt-1 block text-sm font-normal text-zinc-600">Marketing consent is optional and is not required to purchase ADS Bin Cleaning services.</span></span></label>
           </div>
-
-          <label data-field="termsAccepted" className={`mt-6 flex items-start gap-3 rounded-xl p-4 font-bold ${fieldErrors.termsAccepted ? "border-2 border-red-600 bg-red-50 text-red-900" : "bg-zinc-100"}`}><input type="checkbox" checked={form.termsAccepted} onChange={setChecked("termsAccepted")} className="mt-1 h-5 w-5 accent-blue-700" />I confirm this fictional staging signup may be saved as submitted but unpaid. No account becomes active and no service is scheduled until later launch steps are completed and approved.</label>
-          {fieldErrors.termsAccepted ? <p className="mt-2 text-sm font-black text-red-700">{fieldErrors.termsAccepted}</p> : null}
         </Section>
 
         <aside className="rounded-3xl bg-zinc-950 p-6 text-white shadow-xl sm:p-8">
