@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell, Definition } from "@/components/bin-cleaning/AppShell";
+import { CustomerHistoryPanels } from "@/components/bin-cleaning/CustomerHistoryPanels";
 import { customerAccountSummary } from "@/lib/bin-cleaning/customer-account-summary";
 import { crmCustomer } from "@/lib/bin-cleaning/queries";
 import { formatCurrency } from "@/lib/bin-cleaning-plans";
@@ -24,7 +25,7 @@ export default async function Customer({ params, searchParams }: { params: { id:
   const address = customer.service_addresses[0];
   const [notes, audit, changes, bins] = await Promise.all([
     databaseRequest<{ id: string; body: string; created_at: string }[]>(`customer_notes?customer_id=eq.${customer.id}&select=id,body,created_at&order=created_at.desc`),
-    databaseRequest<{ id: string; action: string; entity_table: string; created_at: string }[]>(`audit_events?entity_id=eq.${customer.id}&select=id,action,entity_table,created_at&order=created_at.desc&limit=50`),
+    databaseRequest<{ id: string; action: string; entity_table: string; created_at: string }[]>(`audit_events?entity_id=eq.${customer.id}&select=id,action,entity_table,created_at&order=created_at.desc&limit=200`),
     databaseRequest<{ id: string; request_type: string; requested_value: Record<string, unknown> | null; status: string; created_at: string }[]>(`customer_change_requests?customer_id=eq.${customer.id}&select=id,request_type,requested_value,status,created_at&order=created_at.desc`),
     address ? databaseRequest<{ id: string; collection_stream: "trash" | "recycling" | "other" }[]>(`bins?service_address_id=eq.${address.id}&active=eq.true&select=id,collection_stream`) : Promise.resolve([]),
   ]);
@@ -123,8 +124,23 @@ export default async function Customer({ params, searchParams }: { params: { id:
       </section>
 
       <section className="card mt-5 p-5"><h3 className="text-xl font-black">Staff notes</h3>{notes.length === 0 ? <p className="mt-2 text-sm text-zinc-500">No notes.</p> : notes.map((note) => <div key={note.id} className="mt-3 border-t pt-3"><p>{note.body}</p><p className="text-xs text-zinc-500">{displayDate(note.created_at)}</p></div>)}</section>
-      <section className="card mt-5 p-5"><h3 className="text-xl font-black">Customer request history</h3>{changes.length === 0 ? <p className="mt-2 text-sm text-zinc-500">No customer requests.</p> : changes.map((change) => <div key={change.id} className="mt-3 border-t pt-3"><p className="font-bold capitalize">{change.request_type.replaceAll("_", " ")} · {change.status.replaceAll("_", " ")}</p><p className="text-sm">{requestedText(change.requested_value)}</p><p className="text-xs text-zinc-500">{displayDate(change.created_at)}</p></div>)}</section>
-      <section className="card mt-5 p-5"><h3 className="text-xl font-black">Audit history</h3>{audit.map((entry) => <p key={entry.id}>{entry.action} {entry.entity_table} · {displayDate(entry.created_at)}</p>)}</section>
+      <CustomerHistoryPanels
+        changes={changes.map((change) => ({
+          id: change.id,
+          requestType: change.request_type,
+          requestedText: requestedText(change.requested_value),
+          status: change.status,
+          createdAt: change.created_at,
+          displayDate: displayDate(change.created_at),
+        }))}
+        audit={audit.map((entry) => ({
+          id: entry.id,
+          action: entry.action,
+          entityTable: entry.entity_table,
+          createdAt: entry.created_at,
+          displayDate: displayDate(entry.created_at),
+        }))}
+      />
     </AppShell>
   );
 }
