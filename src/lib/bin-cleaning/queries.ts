@@ -6,10 +6,13 @@ export type CustomerRow = {
   email: string;
   phone: string | null;
   account_status: string;
+  last_portal_activity_at: string | null;
+  last_portal_login_at: string | null;
   service_addresses: {
     id: string;
     is_current: boolean;
     line1: string;
+    line2?: string | null;
     city: string;
     region: string;
     postal_code: string;
@@ -52,7 +55,7 @@ export type CustomerRow = {
 };
 
 const customerSelect =
-  "id,full_name,email,phone,account_status,service_addresses(id,is_current,line1,city,region,postal_code,preferred_return_location,access_instructions,gate_information,animal_warning,municipalities(name),trash_pickup_schedules(weekday,source,verification_status,cleaning_day_assignments(normal_weekday,cleaning_date)),recycling_pickup_schedules(weekday,frequency_weeks,anchor_collection_date,source,verification_status,is_current)),subscriptions(payment_status,subscription_status,service_status,service_alignment,service_plan_versions(base_price_cents,additional_bin_price_cents,bins_included,service_plans(id,display_name)))";
+  "id,full_name,email,phone,account_status,last_portal_activity_at,last_portal_login_at,service_addresses(id,is_current,line1,line2,city,region,postal_code,preferred_return_location,access_instructions,gate_information,animal_warning,municipalities(name),trash_pickup_schedules(weekday,source,verification_status,cleaning_day_assignments(normal_weekday,cleaning_date)),recycling_pickup_schedules(weekday,frequency_weeks,anchor_collection_date,source,verification_status,is_current)),subscriptions(payment_status,subscription_status,service_status,service_alignment,service_plan_versions(base_price_cents,additional_bin_price_cents,bins_included,service_plans(id,display_name)))";
 
 export async function portalCustomer() {
   const rows = await databaseRequest<CustomerRow[]>(
@@ -66,6 +69,8 @@ export type CrmCustomer = {
   id: string;
   full_name: string;
   account_status: string;
+  last_portal_activity_at: string | null;
+  last_portal_login_at: string | null;
   service_addresses: {
     is_current: boolean;
     municipalities: { name: string } | null;
@@ -97,7 +102,7 @@ export async function crmCustomers(filters: {
 }) {
   const params = new URLSearchParams({
     select:
-      "id,full_name,account_status,service_addresses(is_current,municipalities(name),trash_pickup_schedules(weekday,cleaning_day_assignments(normal_weekday)),recycling_pickup_schedules(weekday,frequency_weeks,anchor_collection_date,is_current)),subscriptions(service_alignment,service_plan_versions(service_plans(id,display_name)))",
+      "id,full_name,account_status,last_portal_activity_at,last_portal_login_at,service_addresses(is_current,municipalities(name),trash_pickup_schedules(weekday,cleaning_day_assignments(normal_weekday)),recycling_pickup_schedules(weekday,frequency_weeks,anchor_collection_date,is_current)),subscriptions(service_alignment,service_plan_versions(service_plans(id,display_name)))",
     order: "full_name",
     "service_addresses.is_current": "eq.true",
     "service_addresses.recycling_pickup_schedules.is_current": "eq.true",
@@ -131,49 +136,25 @@ export async function crmCustomers(filters: {
   );
 }
 
-export type ReferralCodeRow = {
-  code: string;
-  customer_id: string;
-};
-
-export type ReferralRelationshipRow = {
-  referrer_customer_id: string;
-  status: string;
-};
-
-export type ReferralOwnerRow = {
-  id: string;
-  full_name: string;
-};
+export type ReferralCodeRow = { code: string; customer_id: string };
+export type ReferralRelationshipRow = { referrer_customer_id: string; status: string };
+export type ReferralOwnerRow = { id: string; full_name: string };
 
 export async function crmReferralTracking() {
   try {
     const [codes, relationships, owners] = await Promise.all([
-      databaseRequest<ReferralCodeRow[]>(
-        "referral_codes?select=code,customer_id&active=eq.true",
-      ),
-      databaseRequest<ReferralRelationshipRow[]>(
-        "referral_relationships?select=referrer_customer_id,status",
-      ),
-      databaseRequest<ReferralOwnerRow[]>(
-        "customers?select=id,full_name&order=full_name",
-      ),
+      databaseRequest<ReferralCodeRow[]>("referral_codes?select=code,customer_id&active=eq.true"),
+      databaseRequest<ReferralRelationshipRow[]>("referral_relationships?select=referrer_customer_id,status"),
+      databaseRequest<ReferralOwnerRow[]>("customers?select=id,full_name&order=full_name"),
     ]);
     return { available: true, codes, relationships, owners } as const;
   } catch {
-    return {
-      available: false,
-      codes: [] as ReferralCodeRow[],
-      relationships: [] as ReferralRelationshipRow[],
-      owners: [] as ReferralOwnerRow[],
-    } as const;
+    return { available: false, codes: [] as ReferralCodeRow[], relationships: [] as ReferralRelationshipRow[], owners: [] as ReferralOwnerRow[] } as const;
   }
 }
 
 export async function crmCustomer(id: string) {
-  const safe = /^[0-9a-f-]{36}$/i.test(id)
-    ? id
-    : "00000000-0000-0000-0000-000000000000";
+  const safe = /^[0-9a-f-]{36}$/i.test(id) ? id : "00000000-0000-0000-0000-000000000000";
   return (
     await databaseRequest<CustomerRow[]>(
       `customers?id=eq.${safe}&select=${customerSelect}&service_addresses.is_current=eq.true&service_addresses.recycling_pickup_schedules.is_current=eq.true&subscriptions.ended_at=is.null&subscriptions.order=started_at.desc.nullslast&subscriptions.limit=1`,
@@ -195,20 +176,14 @@ export type VisitRow = {
       preferred_return_location: string | null;
       access_instructions: string | null;
       animal_warning: string | null;
-      bins: {
-        id: string;
-        identifier: string | null;
-        description: string | null;
-      }[];
+      bins: { id: string; identifier: string | null; description: string | null }[];
     };
   } | null;
   visit_photographs: { id: string; kind: string }[];
 };
 
 export async function visits(id?: string, actionable = false) {
-  const statusFilter = actionable
-    ? "status=not.in.(completed,skipped,refused)&"
-    : "";
+  const statusFilter = actionable ? "status=not.in.(completed,skipped,refused)&" : "";
   return databaseRequest<VisitRow[]>(
     `service_visits?${id ? `id=eq.${id}&` : ""}${statusFilter}select=id,status,scheduled_for,cleaning_confirmed,bins_returned,customers(full_name),route_stops(service_addresses(line1,city,preferred_return_location,access_instructions,animal_warning,bins(id,identifier,description))),visit_photographs(id,kind)&order=scheduled_for`,
   );
