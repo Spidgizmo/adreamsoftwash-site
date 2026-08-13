@@ -26,14 +26,15 @@ type SignupSearchParams = {
   ref?: string | string[];
 };
 
-export default function SignupPage({
+export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: SignupSearchParams;
+  searchParams: Promise<SignupSearchParams>;
 }) {
-  const selection = resolveBinCleaningSelection(searchParams);
-  const initialPromoCode = normalizeBinCleaningPromoCode(searchParams.promo);
-  const initialReferralCode = normalizeBinCleaningReferralCode(searchParams.ref);
+  const query = await searchParams;
+  const selection = resolveBinCleaningSelection(query);
+  const initialPromoCode = normalizeBinCleaningPromoCode(query.promo);
+  const initialReferralCode = normalizeBinCleaningReferralCode(query.ref);
 
   return (
     <main className="min-h-screen bg-brand-50">
