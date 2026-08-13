@@ -8,18 +8,19 @@ type LoginSearchParams = {
   logged_out?: string;
 };
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: LoginSearchParams;
+  searchParams: Promise<LoginSearchParams>;
 }) {
-  const message = searchParams.unauthorized
+  const query = await searchParams;
+  const message = query.unauthorized
     ? "This test identity is not linked to an active staff role or customer account."
-    : searchParams.expired
+    : query.expired
       ? "Your test session expired. Sign in again."
-      : searchParams.logged_out
+      : query.logged_out
         ? "You have signed out."
-        : searchParams.error
+        : query.error
           ? "Sign-in failed. Check the hosted staging test credentials."
           : null;
 
