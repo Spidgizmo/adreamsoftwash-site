@@ -4,7 +4,7 @@ import { VISIT_STATUSES } from "@/lib/bin-cleaning/domain";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await currentSession();
   if (
@@ -14,11 +14,12 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
   const form = await request.formData();
   const action = String(form.get("action") ?? "");
   const visit = (
     await databaseRequest<{ id: string }[]>(
-      `service_visits?id=eq.${params.id}&select=id`,
+      `service_visits?id=eq.${id}&select=id`,
     )
   )[0];
 
