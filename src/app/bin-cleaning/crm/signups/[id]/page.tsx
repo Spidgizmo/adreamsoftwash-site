@@ -41,8 +41,9 @@ function Card({ title, children }: Readonly<{ title: string; children: React.Rea
   );
 }
 
-export default async function SignupDetail({ params }: { params: { id: string } }) {
-  const lead = await crmSignupLead(params.id).catch(() => null);
+export default async function SignupDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const lead = await crmSignupLead(id).catch(() => null);
   if (!lead) notFound();
 
   return (
