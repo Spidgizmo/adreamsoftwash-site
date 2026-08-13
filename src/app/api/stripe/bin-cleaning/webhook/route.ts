@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { provisionPaidStripeTestCustomerAuth } from "@/lib/bin-cleaning/test-auth-provisioning";
 import { serviceRoleDatabaseRequest } from "@/lib/supabase/server";
 import { verifyStripeSignature } from "@/lib/stripe/server";
 
@@ -17,8 +18,8 @@ type StripeEvent = {
   livemode: boolean;
   data: { object: StripeObject };
 };
-
 type Attempt = { id: string };
+type ActivationResult = { customerId: string };
 
 function text(value: unknown) {
   return typeof value === "string" && value ? value : null;
@@ -62,8 +63,14 @@ async function attemptFor(object: StripeObject) {
   return null;
 }
 
-async function rpc(path: string, body: Record<string, unknown>) {
-  return serviceRoleDatabaseRequest(path, { method: "POST", body: JSON.stringify(body) });
+async function rpc<T = unknown>(path: string, body: Record<string, unknown>) {
+  return serviceRoleDatabaseRequest<T>(path, { method: "POST", body: JSON.stringify(body) });
+}
+
+async function activatePaidTestCustomer(body: Record<string, unknown>) {
+  const activated = await rpc<ActivationResult>("rpc/activate_stripe_test_payment", body);
+  if (!activated?.customerId) throw new Error("Paid test customer activation did not return a customer id");
+  await provisionPaidStripeTestCustomerAuth(activated.customerId);
 }
 
 export async function POST(request: NextRequest) {
@@ -83,12 +90,12 @@ export async function POST(request: NextRequest) {
   }
 
   const object = event.data.object;
-  const claimed = await rpc("rpc/claim_stripe_test_webhook_event", {
+  const claimed = await rpc<boolean>("rpc/claim_stripe_test_webhook_event", {
     p_event_id: event.id,
     p_event_type: event.type,
     p_object_id: text(object.id),
     p_livemode: event.livemode,
-  }) as boolean;
+  });
   if (!claimed) {
     return NextResponse.json({ ok: true, duplicate: true }, { headers: HEADERS });
   }
@@ -109,7 +116,7 @@ export async function POST(request: NextRequest) {
           p_paid: mode === "payment" && paymentStatus === "paid",
         });
         if (mode === "payment" && paymentStatus === "paid") {
-          await rpc("rpc/activate_stripe_test_payment", {
+          await activatePaidTestCustomer({
             p_attempt_id: attemptId,
             p_stripe_customer_id: text(object.customer),
             p_stripe_subscription_id: null,
@@ -130,7 +137,7 @@ export async function POST(request: NextRequest) {
       }
       case "invoice.paid": {
         if (!attemptId) throw new Error("Subscription checkout attempt could not be resolved");
-        await rpc("rpc/activate_stripe_test_payment", {
+        await activatePaidTestCustomer({
           p_attempt_id: attemptId,
           p_stripe_customer_id: text(object.customer),
           p_stripe_subscription_id: invoiceSubscriptionId(object),
