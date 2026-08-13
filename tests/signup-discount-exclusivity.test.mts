@@ -36,9 +36,10 @@ test("working signup accepts separate promo and referral link parameters", async
   const source = await readFile(signupPagePath, "utf8");
   assert.match(source, /promo\?: string \| string\[\]/);
   assert.match(source, /ref\?: string \| string\[\]/);
+  assert.match(source, /const query = await searchParams/);
   assert.match(
     source,
-    /normalizeBinCleaningReferralCode\(searchParams\.ref\)/,
+    /normalizeBinCleaningReferralCode\(query\.ref\)/,
   );
   assert.match(source, /initialPromoCode=\{initialPromoCode\}/);
   assert.match(source, /initialReferralCode=\{initialReferralCode\}/);
