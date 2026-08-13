@@ -32,24 +32,22 @@ jobs:
 
       - name: Install stable patched runtime dependencies
         run: |
-          # The latest Next 15 Maintenance LTS backport still fails npm audit
-          # because of high-severity PostCSS and Sharp advisories bundled through
-          # Next. Test the current stable Next 16 line instead of npm's suggested
-          # 16.3.0 preview. Nothing is committed unless the complete verification
-          # below succeeds.
-          npm install next@16.2.12 react@19.2.6 react-dom@19.2.6 nodemailer@9.0.4 postcss@latest --save-exact
+          # Test only stable releases. Next 16.2.12 currently bundles vulnerable
+          # PostCSS/Sharp versions, so force the current patched stable releases
+          # through npm overrides and keep the change only if the complete app,
+          # build, and production audit all succeed.
+          npm install next@16.2.12 react@19.2.6 react-dom@19.2.6 nodemailer@9.0.4 postcss@8.5.25 sharp@0.35.3 --save-exact
           npm install eslint-config-next@16.2.12 eslint@9.39.5 @types/react@19 @types/react-dom@19 --save-dev --save-exact
+          npm pkg set 'overrides.next.postcss=8.5.25' 'overrides.next.sharp=0.35.3'
+          npm install
           npm pkg set scripts.lint="eslint ."
           cat > eslint.config.mjs <<'EOF'
           import nextConfig from "eslint-config-next/core-web-vitals";
 
           // React 19's current recommended hooks preset also surfaces React
-          // Compiler optimization diagnostics. React documents those diagnostics
-          // as incremental: affected components are skipped by the compiler and
-          // do not all need to be refactored at once. Preserve the existing
-          // Rules-of-Hooks/exhaustive-deps enforcement while keeping the new
-          // compiler-only diagnostics visible as warnings during this launch-safe
-          // framework/security upgrade.
+          // Compiler optimization diagnostics. Affected components can be
+          // improved incrementally; preserve Rules-of-Hooks/exhaustive-deps as
+          // errors while keeping compiler-only diagnostics visible as warnings.
           const compilerDiagnostics = [
             "component-hook-factories",
             "config",
