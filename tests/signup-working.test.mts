@@ -34,13 +34,16 @@ test("Step 4 validation covers signup data, schedules, and discount exclusivity"
   assert.match(source, /safetyNotes/);
 });
 
-test("signup API saves through the server-only RPC boundary and stops before Stripe", async () => {
+test("signup API saves through the server-only RPC boundary, validates real referral records, and stops before Stripe", async () => {
   const source = await readFile(apiPath, "utf8");
 
   assert.match(source, /save_fictional_signup_lead/);
   assert.match(source, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.doesNotMatch(source, /NEXT_PUBLIC_SUPABASE_ANON_KEY/);
   assert.doesNotMatch(source, /STRIPE_SECRET_KEY/);
+  assert.match(source, /referral_codes\?select=id/);
+  assert.match(source, /active=eq\.true/);
+  assert.match(source, /Referral code is not recognized or is inactive\./);
   assert.match(source, /stripeMode: "disabled"/);
   assert.match(source, /checkoutStarted: false/);
   assert.match(source, /amountCollectedCents: 0/);
