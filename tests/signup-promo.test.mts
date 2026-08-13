@@ -36,8 +36,8 @@ test("working signup preserves approved NEW25 and nonexpiring ONE45 copy", async
     readFile(signupFormPath, "utf8"),
   ]);
 
-  assert.match(page, /Use code <strong>\{NEW25_PROMO_CODE\}<\/strong> for 25% off your first month/);
-  assert.match(page, /Use code <strong>\{ONE45_PROMO_CODE\}<\/strong> for a \$45 One-Time Cleaning of 2/);
+  assert.match(page, /Use code <strong[^>]*>\{NEW25_PROMO_CODE\}<\/strong> for <strong>25% off your first month<\/strong>/);
+  assert.match(page, /Use code <strong[^>]*>\{ONE45_PROMO_CODE\}<\/strong> for a <strong>\$45 One-Time Cleaning of 2 bins<\/strong>/);
   assert.match(page, /One successful use per customer/);
   assert.match(page, /does not expire/);
   assert.doesNotMatch(page, /September 1, 2026/);
