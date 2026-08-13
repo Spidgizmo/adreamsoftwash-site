@@ -35,13 +35,15 @@ test("short referral route normalizes and forwards valid codes into signup", asy
   ]);
 
   assert.match(redirect, /\^ADS-\[A-Z0-9\]\{4\}-\[A-Z0-9\]\{4\}\$/);
-  assert.match(redirect, /params\.code\.trim\(\)\.toUpperCase\(\)/);
+  assert.match(redirect, /const \{ code \} = await params/);
+  assert.match(redirect, /code\.trim\(\)\.toUpperCase\(\)/);
   assert.match(
     redirect,
     /destination\.searchParams\.set\("ref", normalizedCode\)/,
   );
   assert.match(redirect, /NextResponse\.redirect\(destination, 307\)/);
-  assert.match(signup, /normalizeBinCleaningReferralCode\(searchParams\.ref\)/);
+  assert.match(signup, /const query = await searchParams/);
+  assert.match(signup, /normalizeBinCleaningReferralCode\(query\.ref\)/);
   assert.match(signup, /initialReferralCode=\{initialReferralCode\}/);
 });
 
