@@ -32,21 +32,12 @@ jobs:
 
       - name: Install patched runtime dependencies
         run: |
-          npm install next@16.3.0 react@19.2.0 react-dom@19.2.0 nodemailer@9.0.4 postcss@latest --save-exact
-          npm install eslint@9 eslint-config-next@16.3.0 @types/react@19 @types/react-dom@19 --save-dev --save-exact
-          npm pkg set scripts.lint="eslint ."
-          cat > eslint.config.mjs <<'EOF'
-          import { defineConfig, globalIgnores } from "eslint/config";
-          import nextVitals from "eslint-config-next/core-web-vitals";
-          import nextTs from "eslint-config-next/typescript";
-
-          export default defineConfig([
-            ...nextVitals,
-            ...nextTs,
-            globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
-          ]);
-          EOF
-          rm -f .eslintrc.json
+          # Stay on the smaller Next 15 migration instead of jumping directly
+          # from Next 14 to Next 16 immediately before launch. Next 15.5.21
+          # contains the July 2026 Next.js security fixes, and React 19.2.6
+          # contains the May 2026 React Server Components security fixes.
+          npm install next@15.5.21 react@19.2.6 react-dom@19.2.6 nodemailer@9.0.4 postcss@latest --save-exact
+          npm install eslint-config-next@15.5.21 @types/react@19 @types/react-dom@19 --save-dev --save-exact
 
       - name: Verify application and runtime dependencies
         run: |
@@ -61,6 +52,6 @@ jobs:
           rm .github/workflows/temporary-next-security-bump.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json eslint.config.mjs .eslintrc.json .github/workflows/temporary-next-security-bump.yml
+          git add package.json package-lock.json .github/workflows/temporary-next-security-bump.yml
           git commit -m "Upgrade framework and runtime dependencies"
           git push origin HEAD:codex/begin-agent-2-for-ads-bin-cleaning
