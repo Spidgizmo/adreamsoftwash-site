@@ -10,6 +10,10 @@ const apiPath = new URL(
   "../src/app/api/bin-cleaning/signup-draft/route.ts",
   import.meta.url,
 );
+const checkoutPath = new URL(
+  "../src/app/api/bin-cleaning/checkout/route.ts",
+  import.meta.url,
+);
 const migrationPath = new URL(
   "../supabase/migrations/202608060001_fictional_signup_intake.sql",
   import.meta.url,
@@ -34,7 +38,7 @@ test("Step 4 validation covers signup data, schedules, and discount exclusivity"
   assert.match(source, /safetyNotes/);
 });
 
-test("signup API saves through the server-only RPC boundary, validates real referral records, and stops before Stripe", async () => {
+test("signup API saves through the server-only RPC boundary and validates real referral records", async () => {
   const source = await readFile(apiPath, "utf8");
 
   assert.match(source, /save_fictional_signup_lead/);
@@ -44,10 +48,26 @@ test("signup API saves through the server-only RPC boundary, validates real refe
   assert.match(source, /referral_codes\?select=id/);
   assert.match(source, /active=eq\.true/);
   assert.match(source, /Referral code is not recognized or is inactive\./);
-  assert.match(source, /stripeMode: "disabled"/);
+  assert.match(source, /referralValidated/);
+  assert.match(source, /STRIPE_INTEGRATION_MODE === "test"/);
   assert.match(source, /checkoutStarted: false/);
   assert.match(source, /amountCollectedCents: 0/);
   assert.match(source, /isStagingEnvironment/);
+});
+
+test("Stripe checkout accepts only the submitted signup identity and recomputes price server-side", async () => {
+  const source = await readFile(checkoutPath, "utf8");
+
+  assert.match(source, /prepare_stripe_test_checkout/);
+  assert.match(source, /calculateBinCleaningPrice/);
+  assert.match(source, /evaluateBinCleaningPromotion/);
+  assert.match(source, /stripeTestConfig/);
+  assert.match(source, /checkoutMode = plan\.chargeType === "recurring" \? "subscription" : "payment"/);
+  assert.match(source, /Idempotency|idempotencyKey/i);
+  assert.doesNotMatch(source, /input\.amount/);
+  assert.doesNotMatch(source, /input\.subtotal/);
+  assert.doesNotMatch(source, /input\.planId/);
+  assert.doesNotMatch(source, /input\.binCount/);
 });
 
 test("database intake uses opaque token hashes, RLS, staff-only CRM reads, and server-only writes", async () => {
