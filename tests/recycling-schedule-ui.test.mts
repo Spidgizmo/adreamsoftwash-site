@@ -50,10 +50,7 @@ test("portal displays recycling cadence and accepts a staff-reviewed correction"
   assert.match(portal, /recycling_weekday/);
   assert.match(portal, /recycling_frequency_weeks/);
   assert.match(portal, /recycling_next_collection_date/);
-  assert.match(
-    portal,
-    /Staff must verify the request before it\s+changes routing/,
-  );
+  assert.match(portal, /route-affecting requests await staff\s+review/);
 
   assert.match(route, /request_type: "recycling_schedule"/);
   assert.match(route, /next_collection_date: recyclingDate/);

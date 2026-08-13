@@ -56,13 +56,10 @@ test("working form clears and locks the other discount type", async () => {
   assert.match(source, /Use one or the other\. They never stack\./);
 });
 
-test("existing calculator still prevents stacked submitted discounts", async () => {
+test("public calculator leaves discount entry to the signup form", async () => {
   const source = await readFile(calculatorPath, "utf8");
-  assert.match(source, /id="promo-code"/);
-  assert.match(source, /id="referral-code"/);
-  assert.match(source, /setReferralEntry\(""\)/);
-  assert.match(source, /setSubmittedReferralCode\(""\)/);
-  assert.match(source, /setPromoEntry\(""\)/);
-  assert.match(source, /setSubmittedPromoCode\(""\)/);
-  assert.match(source, /cannot be combined on the same signup/);
+  assert.doesNotMatch(source, /id="promo-code"/);
+  assert.doesNotMatch(source, /id="referral-code"/);
+  assert.match(source, /Promo and referral codes are entered on the signup form/);
+  assert.match(source, /href=\{`\/bin-cleaning\/signup\?plan=\$\{plan\.id\}&bins=\$\{binCount\}`\}/);
 });

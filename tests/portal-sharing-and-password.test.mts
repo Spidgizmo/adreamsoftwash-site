@@ -74,5 +74,5 @@ test("portal explains which bins need cleaning without changing paid bin count",
   const portal = await readFile(portalPath, "utf8");
 
   assert.match(portal, /Which bins need cleaning on your next visit\?/);
-  assert.match(portal, /does not change the number of bins on your paid plan/);
+  assert.match(portal, /does not add or remove a bin from your plan/);
 });

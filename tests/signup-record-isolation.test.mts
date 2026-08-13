@@ -20,8 +20,9 @@ test("submitted fictional signup releases its edit identity so the next signup c
 
 test("CRM signup pipeline stays compact and links to a separate detail page", async () => {
   const source = await readFile(crmPath, "utf8");
-  assert.match(source, /crm\/signups\/\$\{lead\.id\}/);
-  assert.match(source, /Compact intake list/);
+  assert.match(source, /crm\/signups\/\$\{l\.id\}/);
+  assert.match(source, /Fictional signup pipeline/);
+  assert.match(source, /min-w-\[1120px\]/);
   assert.doesNotMatch(source, /<details/);
 });
 

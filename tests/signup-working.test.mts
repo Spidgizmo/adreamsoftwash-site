@@ -19,12 +19,12 @@ const serverOnlyMigrationPath = new URL(
   import.meta.url,
 );
 
-test("Step 4 validation covers fictional data, schedules, and discount exclusivity", async () => {
+test("Step 4 validation covers signup data, schedules, and discount exclusivity", async () => {
   const source = await readFile(validatorPath, "utf8");
 
   assert.match(source, /submitted_unpaid/);
-  assert.match(source, /fictional email addresses ending in \.test/);
-  assert.match(source, /reserved fictional 555 phone numbers/);
+  assert.doesNotMatch(source, /fictional email addresses ending in \.test/);
+  assert.doesNotMatch(source, /reserved fictional 555 phone numbers/);
   assert.match(source, /promo code and referral code cannot be combined/i);
   assert.match(source, /Recycling frequency/);
   assert.match(source, /anchor the recycling cycle/);

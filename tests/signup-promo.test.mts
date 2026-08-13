@@ -27,7 +27,7 @@ test("public page advertises nonexpiring ONE45 and deep-links the eligible selec
   assert.match(source, /This offer does not\s+expire/);
   assert.doesNotMatch(source, /September 1, 2026/);
   assert.match(source, /promo=\$\{ONE45_PROMO_CODE\}/);
-  assert.match(source, /<BinCleaningCalculator enablePromoCode \/>/);
+  assert.match(source, /<BinCleaningCalculator \/>/);
 });
 
 test("working signup preserves approved NEW25 and nonexpiring ONE45 copy", async () => {
@@ -48,17 +48,12 @@ test("working signup preserves approved NEW25 and nonexpiring ONE45 copy", async
   assert.match(form, /Estimated first charge before tax/);
 });
 
-test("signup calculator provides ONE45 and NEW25 preview behavior", async () => {
+test("public calculator keeps promo preview on the signup form", async () => {
   const source = await readFile(calculatorPath, "utf8");
-  assert.match(source, /id="promo-code"/);
-  assert.match(source, />\s*Apply promo\s*</);
-  assert.match(source, /First month before tax/);
-  assert.match(source, /Later Monthly renewals before tax/);
-  assert.match(source, /Promotional total before tax/);
-  assert.match(source, /one-time two-bin cleaning for \$45 before tax/);
-  assert.match(source, /One successful ONE45 redemption per/);
-  assert.match(source, /Established customers pay the regular price/);
-  assert.match(source, /That promo code is not recognized/);
-  assert.match(source, /cannot be combined on the same signup/);
-  assert.match(source, /another promotion cannot be added/);
+  assert.doesNotMatch(source, /id="promo-code"/);
+  assert.doesNotMatch(source, />\s*Apply promo\s*</);
+  assert.match(source, /Promo and referral codes are entered on the signup form/);
+  assert.match(source, /Your estimate/);
+  assert.match(source, /Subtotal/);
+  assert.match(source, /Estimated total before tax/);
 });
