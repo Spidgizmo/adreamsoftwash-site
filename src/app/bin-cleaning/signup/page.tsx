@@ -58,19 +58,18 @@ export default async function SignupPage({
             </p>
           </div>
 
-          <aside className="mt-7 max-w-4xl rounded-2xl border border-blue-200 bg-white p-5 text-sm leading-relaxed text-zinc-800 shadow-sm">
-            <p>
-              Use code <strong>{NEW25_PROMO_CODE}</strong> for 25% off your first month
-              of an eligible new Monthly signup.
+          <aside className="mt-7 max-w-4xl rounded-2xl border border-red-200 border-l-4 border-l-red-600 bg-white p-5 text-sm leading-relaxed text-zinc-800 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-wider text-red-700">
+              Current offers
             </p>
-            <p className="mt-2">
-              Use code <strong>{ONE45_PROMO_CODE}</strong> for a $45 One-Time Cleaning of 2
-              bins before tax. One successful use per customer; the current
-              approved offer does not expire.
+            <p className="mt-2 font-semibold">
+              Use code <strong className="text-base font-black text-red-700">{NEW25_PROMO_CODE}</strong> for <strong>25% off your first month</strong> of an eligible new Monthly signup.
             </p>
-            <p className="mt-2 font-bold">
-              A valid referral code is separate from a promo code. The form
-              permits one discount type only.
+            <p className="mt-1.5 font-semibold">
+              Use code <strong className="text-base font-black text-red-700">{ONE45_PROMO_CODE}</strong> for a <strong>$45 One-Time Cleaning of 2 bins</strong> before tax. One successful use per customer; the current approved offer does not expire.
+            </p>
+            <p className="mt-2 text-xs font-semibold text-zinc-600 sm:text-sm">
+              A valid referral code is separate from a promo code. The form permits one discount type only.
             </p>
           </aside>
 
