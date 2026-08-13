@@ -62,6 +62,11 @@ export type CrmCustomer = {
   service_addresses: {
     id: string;
     is_current: boolean;
+    line1: string;
+    line2?: string | null;
+    city: string;
+    region: string;
+    postal_code: string;
     municipalities: { name: string } | null;
     bins: { id: string; collection_stream: "trash" | "recycling" | "other"; active: boolean }[];
     trash_pickup_schedules: { weekday: number | null; cleaning_day_assignments: { normal_weekday: number }[] }[];
@@ -79,7 +84,7 @@ export type CrmCustomer = {
 };
 
 export async function crmCustomers(filters: { q?: string; plan?: string; status?: string; municipality?: string; pickup?: string }) {
-  const params = new URLSearchParams({ select: "id,full_name,email,account_status,last_portal_activity_at,last_portal_login_at,service_addresses(id,is_current,municipalities(name),bins(id,collection_stream,active),trash_pickup_schedules(weekday,cleaning_day_assignments(normal_weekday)),recycling_pickup_schedules(weekday,frequency_weeks,anchor_collection_date,is_current)),subscriptions(service_alignment,service_plan_versions(base_price_cents,additional_bin_price_cents,bins_included,service_plans(id,display_name)))", order: "full_name", "service_addresses.is_current": "eq.true", "service_addresses.recycling_pickup_schedules.is_current": "eq.true", "subscriptions.ended_at": "is.null", "subscriptions.order": "started_at.desc.nullslast", "subscriptions.limit": "1" });
+  const params = new URLSearchParams({ select: "id,full_name,email,account_status,last_portal_activity_at,last_portal_login_at,service_addresses(id,is_current,line1,line2,city,region,postal_code,municipalities(name),bins(id,collection_stream,active),trash_pickup_schedules(weekday,cleaning_day_assignments(normal_weekday)),recycling_pickup_schedules(weekday,frequency_weeks,anchor_collection_date,is_current)),subscriptions(service_alignment,service_plan_versions(base_price_cents,additional_bin_price_cents,bins_included,service_plans(id,display_name)))", order: "full_name", "service_addresses.is_current": "eq.true", "service_addresses.recycling_pickup_schedules.is_current": "eq.true", "subscriptions.ended_at": "is.null", "subscriptions.order": "started_at.desc.nullslast", "subscriptions.limit": "1" });
   if (filters.q) params.set("full_name", `ilike.*${filters.q.replace(/[%*,()]/g, "")}*`);
   if (filters.status) params.set("account_status", `eq.${filters.status}`);
   const rows = await databaseRequest<CrmCustomer[]>(`customers?${params}`);
