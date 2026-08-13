@@ -55,5 +55,5 @@ test("public calculator keeps promo preview on the signup form", async () => {
   assert.match(source, /Promo and referral codes are entered on the signup form/);
   assert.match(source, /Your estimate/);
   assert.match(source, /Subtotal/);
-  assert.match(source, /Estimated total before tax/);
+  assert.match(source, /ESTIMATED_TOTAL_LABEL/);
 });
