@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
 
   const { value } = validation;
   const referralCode = value.payload.referralCode;
+  let referralValidated = false;
   if (referralCode) {
     const referralIsActive = await activeReferralCodeExists(
       supabaseUrl,
@@ -113,8 +114,12 @@ export async function POST(request: NextRequest) {
         { status: 400, headers: RESPONSE_HEADERS },
       );
     }
+    referralValidated = true;
   }
 
+  const trustedEstimate = referralValidated
+    ? { ...value.estimate, discountStatus: "applied" as const }
+    : value.estimate;
   const rawPayload = rawPayloadFrom(input);
   const marketingAllowed = rawPayload.marketingAllowed === true;
   const databaseResponse = await fetch(
@@ -135,7 +140,7 @@ export async function POST(request: NextRequest) {
           lead_source: "website-online",
           marketingAllowed,
           marketingConsentVersion: "ads-marketing-v1",
-          estimate: value.estimate,
+          estimate: trustedEstimate,
         },
         p_lead_id: value.leadId,
         p_edit_token: value.editToken,
@@ -171,9 +176,10 @@ export async function POST(request: NextRequest) {
     {
       ok: true,
       lead,
-      estimate: value.estimate,
+      estimate: trustedEstimate,
+      referralValidated,
       payment: {
-        stripeMode: "disabled",
+        stripeMode: process.env.STRIPE_INTEGRATION_MODE === "test" ? "test" : "disabled",
         checkoutStarted: false,
         amountCollectedCents: 0,
       },
