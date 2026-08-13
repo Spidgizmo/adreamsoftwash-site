@@ -18,11 +18,14 @@ type StripeEvent = {
   livemode: boolean;
   data: { object: StripeObject };
 };
-type Attempt = { id: string };
+type Attempt = { id: string; subtotal_cents?: number; first_charge_cents?: number };
 type ActivationResult = { customerId: string };
 
 function text(value: unknown) {
   return typeof value === "string" && value ? value : null;
+}
+function integer(value: unknown) {
+  return typeof value === "number" && Number.isSafeInteger(value) ? value : null;
 }
 function nestedRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
@@ -61,6 +64,30 @@ async function attemptFor(object: StripeObject) {
     if (rows[0]?.id) return rows[0].id;
   }
   return null;
+}
+
+async function trustedAttempt(attemptId: string) {
+  const rows = await serviceRoleDatabaseRequest<Attempt[]>(
+    `stripe_checkout_attempts?id=eq.${encodeURIComponent(attemptId)}&select=id,subtotal_cents,first_charge_cents&limit=1`,
+  );
+  if (!rows[0] || !Number.isSafeInteger(rows[0].subtotal_cents) || !Number.isSafeInteger(rows[0].first_charge_cents)) {
+    throw new Error("Trusted checkout amount could not be resolved");
+  }
+  return rows[0] as Required<Attempt>;
+}
+
+async function verifyPaidAmount(attemptId: string, object: StripeObject, kind: "checkout" | "invoice") {
+  const attempt = await trustedAttempt(attemptId);
+  const paidCents = integer(kind === "checkout" ? object.amount_total : object.amount_paid);
+  if (paidCents === null) throw new Error("Stripe paid amount is missing");
+
+  let expectedCents = attempt.first_charge_cents;
+  if (kind === "invoice" && text(object.billing_reason) !== "subscription_create") {
+    expectedCents = attempt.subtotal_cents;
+  }
+  if (paidCents !== expectedCents) {
+    throw new Error(`Stripe paid amount mismatch: expected ${expectedCents}, received ${paidCents}`);
+  }
 }
 
 async function rpc<T = unknown>(path: string, body: Record<string, unknown>) {
@@ -107,6 +134,7 @@ export async function POST(request: NextRequest) {
         if (!attemptId) throw new Error("Checkout attempt could not be resolved");
         const mode = text(object.mode);
         const paymentStatus = text(object.payment_status);
+        if (mode === "payment" && paymentStatus === "paid") await verifyPaidAmount(attemptId, object, "checkout");
         await rpc("rpc/sync_stripe_test_checkout_session", {
           p_attempt_id: attemptId,
           p_session_id: text(object.id),
@@ -137,6 +165,7 @@ export async function POST(request: NextRequest) {
       }
       case "invoice.paid": {
         if (!attemptId) throw new Error("Subscription checkout attempt could not be resolved");
+        await verifyPaidAmount(attemptId, object, "invoice");
         await activatePaidTestCustomer({
           p_attempt_id: attemptId,
           p_stripe_customer_id: text(object.customer),
