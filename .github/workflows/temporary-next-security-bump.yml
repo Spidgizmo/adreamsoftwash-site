@@ -30,14 +30,26 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install patched runtime dependencies
+      - name: Install stable patched runtime dependencies
         run: |
-          # Stay on the smaller Next 15 migration instead of jumping directly
-          # from Next 14 to Next 16 immediately before launch. Next 15.5.22 is
-          # the current Maintenance LTS backport, while React 19.2.6 contains
-          # the May 2026 React Server Components security fixes.
-          npm install next@15.5.22 react@19.2.6 react-dom@19.2.6 nodemailer@9.0.4 postcss@latest --save-exact
-          npm install eslint-config-next@15.5.22 @types/react@19 @types/react-dom@19 --save-dev --save-exact
+          # The latest Next 15 Maintenance LTS backport still fails npm audit
+          # because of high-severity PostCSS and Sharp advisories bundled through
+          # Next. Test the current stable Next 16 line instead of npm's suggested
+          # 16.3.0 preview. Nothing is committed unless the complete verification
+          # below succeeds.
+          npm install next@16.2.12 react@19.2.6 react-dom@19.2.6 nodemailer@9.0.4 postcss@latest --save-exact
+          npm install eslint-config-next@16.2.12 eslint@9.39.5 @types/react@19 @types/react-dom@19 --save-dev --save-exact
+          npm pkg set scripts.lint="eslint ."
+          cat > eslint.config.mjs <<'EOF'
+          import nextConfig from "eslint-config-next/core-web-vitals";
+
+          const eslintConfig = [
+            ...nextConfig,
+          ];
+
+          export default eslintConfig;
+          EOF
+          rm .eslintrc.json
 
       - name: Verify application and runtime dependencies
         run: |
@@ -52,6 +64,6 @@ jobs:
           rm .github/workflows/temporary-next-security-bump.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json .github/workflows/temporary-next-security-bump.yml
+          git add package.json package-lock.json eslint.config.mjs .eslintrc.json .github/workflows/temporary-next-security-bump.yml
           git commit -m "Upgrade framework and runtime dependencies"
           git push origin HEAD:codex/begin-agent-2-for-ads-bin-cleaning
