@@ -27,13 +27,13 @@ begin
     create policy "staff read service address occupancy history"
       on public.service_address_occupancy_history for select
       to authenticated
-      using (public.current_user_role() in ('administrator','dispatcher'));
+      using (public.has_role('administrator') or public.has_role('dispatcher'));
   end if;
   if not exists (select 1 from pg_policies where schemaname='public' and tablename='service_address_occupancy_history' and policyname='staff manage service address occupancy history') then
     create policy "staff manage service address occupancy history"
       on public.service_address_occupancy_history for all
       to authenticated
-      using (public.current_user_role() in ('administrator','dispatcher'))
-      with check (public.current_user_role() in ('administrator','dispatcher'));
+      using (public.has_role('administrator') or public.has_role('dispatcher'))
+      with check (public.has_role('administrator') or public.has_role('dispatcher'));
   end if;
 end $$;
