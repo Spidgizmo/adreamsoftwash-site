@@ -20,6 +20,28 @@ function rawPayloadFrom(input: unknown): Record<string, unknown> {
     : {};
 }
 
+async function activeReferralCodeExists(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  referralCode: string,
+) {
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/referral_codes?select=id&code=eq.${encodeURIComponent(referralCode)}&active=eq.true&limit=1`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    },
+  ).catch(() => null);
+
+  if (!response?.ok) return null;
+  const rows = (await response.json()) as { id: string }[];
+  return rows.length > 0;
+}
+
 export async function POST(request: NextRequest) {
   if (!isStagingEnvironment()) {
     return NextResponse.json(
@@ -68,6 +90,31 @@ export async function POST(request: NextRequest) {
   }
 
   const { value } = validation;
+  const referralCode = value.payload.referralCode;
+  if (referralCode) {
+    const referralIsActive = await activeReferralCodeExists(
+      supabaseUrl,
+      serviceRoleKey,
+      referralCode,
+    );
+    if (referralIsActive === null) {
+      return NextResponse.json(
+        { ok: false, error: "Referral validation is temporarily unavailable." },
+        { status: 503, headers: RESPONSE_HEADERS },
+      );
+    }
+    if (!referralIsActive) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "The fictional signup needs correction.",
+          errors: ["Referral code is not recognized or is inactive."],
+        },
+        { status: 400, headers: RESPONSE_HEADERS },
+      );
+    }
+  }
+
   const rawPayload = rawPayloadFrom(input);
   const marketingAllowed = rawPayload.marketingAllowed === true;
   const databaseResponse = await fetch(
