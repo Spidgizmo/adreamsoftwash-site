@@ -34,8 +34,9 @@ function cadenceLabel(frequencyWeeks: number) {
 export default async function PortalPage({
   searchParams,
 }: {
-  searchParams: { saved?: string; bins?: string };
+  searchParams: Promise<{ saved?: string; bins?: string }>;
 }) {
+  const query = await searchParams;
   const customer = await portalCustomer();
   const address = customer.service_addresses[0];
   const trashSchedule = address?.trash_pickup_schedules[0];
@@ -141,18 +142,18 @@ export default async function PortalPage({
 
   return (
     <AppShell area="Customer portal">
-      {searchParams.saved && (
+      {query.saved && (
         <p role="status" className="mb-4 rounded-lg bg-green-50 p-3">
           Your test changes were saved; route-affecting requests await staff
           review.
         </p>
       )}
-      {searchParams.bins === "changed" && (
+      {query.bins === "changed" && (
         <p role="status" className="mb-4 rounded-lg bg-green-50 p-3 font-semibold text-green-900">
           Your bin change was recorded. Future unlocked service uses the new bin configuration. Your next billing renewal will use the new recurring price once payment integration is connected. Any already-locked visit keeps the configuration recorded for that visit.
         </p>
       )}
-      {searchParams.bins === "unchanged" && (
+      {query.bins === "unchanged" && (
         <p role="status" className="mb-4 rounded-lg bg-blue-50 p-3 text-blue-950">
           No bin-count change was needed.
         </p>
