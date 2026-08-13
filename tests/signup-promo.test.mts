@@ -43,7 +43,8 @@ test("working signup preserves approved NEW25 and nonexpiring ONE45 copy", async
   assert.doesNotMatch(page, /September 1, 2026/);
   assert.match(page, /<BinCleaningSignupForm/);
   assert.match(page, /initialPromoCode=\{initialPromoCode\}/);
-  assert.match(page, /normalizeBinCleaningPromoCode\(searchParams\.promo\)/);
+  assert.match(page, /const query = await searchParams/);
+  assert.match(page, /normalizeBinCleaningPromoCode\(query\.promo\)/);
   assert.match(form, /Promo code/);
   assert.match(form, /Estimated first charge before tax/);
 });
