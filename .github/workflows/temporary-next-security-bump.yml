@@ -33,11 +33,11 @@ jobs:
       - name: Install patched runtime dependencies
         run: |
           # Stay on the smaller Next 15 migration instead of jumping directly
-          # from Next 14 to Next 16 immediately before launch. Next 15.5.21
-          # contains the July 2026 Next.js security fixes, and React 19.2.6
-          # contains the May 2026 React Server Components security fixes.
-          npm install next@15.5.21 react@19.2.6 react-dom@19.2.6 nodemailer@9.0.4 postcss@latest --save-exact
-          npm install eslint-config-next@15.5.21 @types/react@19 @types/react-dom@19 --save-dev --save-exact
+          # from Next 14 to Next 16 immediately before launch. Next 15.5.22 is
+          # the current Maintenance LTS backport, while React 19.2.6 contains
+          # the May 2026 React Server Components security fixes.
+          npm install next@15.5.22 react@19.2.6 react-dom@19.2.6 nodemailer@9.0.4 postcss@latest --save-exact
+          npm install eslint-config-next@15.5.22 @types/react@19 @types/react-dom@19 --save-dev --save-exact
 
       - name: Verify application and runtime dependencies
         run: |
