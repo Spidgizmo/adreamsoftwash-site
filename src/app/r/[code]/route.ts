@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 const REFERRAL_CODE_PATTERN = /^ADS-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
 
-export function GET(
+export async function GET(
   request: NextRequest,
-  { params }: { params: { code: string } },
+  { params }: { params: Promise<{ code: string }> },
 ) {
-  const normalizedCode = params.code.trim().toUpperCase();
+  const { code } = await params;
+  const normalizedCode = code.trim().toUpperCase();
   const destination = new URL("/bin-cleaning/signup", request.url);
 
   if (REFERRAL_CODE_PATTERN.test(normalizedCode)) {
