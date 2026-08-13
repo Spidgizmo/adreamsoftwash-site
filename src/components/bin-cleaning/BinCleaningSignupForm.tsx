@@ -26,7 +26,7 @@ const baseAreaClass = "mt-2 min-h-24 w-full rounded-lg border bg-white px-3 py-2
 
 type LeadIdentity = Readonly<{ id: string; editToken: string }>;
 type SaveStatus = "incomplete" | "abandoned" | "submitted_unpaid";
-type SaveState = "idle" | "saving" | "saved" | "error" | "submitted";
+type SaveState = "idle" | "saving" | "saved" | "error" | "submitted" | "checkout";
 type FieldErrors = Record<string, string>;
 
 type FormState = {
@@ -254,7 +254,8 @@ function serverErrorsToFields(items: readonly string[]): FieldErrors {
   const mapped: FieldErrors = {};
   for (const item of items) {
     const lower = item.toLowerCase();
-    if (lower.includes("email service permission")) mapped.emailAllowed = item;
+    if (lower.includes("referral code")) mapped.referralCode = item;
+    else if (lower.includes("email service permission")) mapped.emailAllowed = item;
     else if (lower.includes("text-message service permission")) mapped.smsAllowed = item;
     else if (lower.includes("phone-call service permission")) mapped.phoneAllowed = item;
     else if (lower.includes("recycling pickup date")) mapped.recyclingAnchorCollectionDate = item;
@@ -279,6 +280,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [validatedReferralCode, setValidatedReferralCode] = useState("");
 
   const formRef = useRef(form);
   const leadRef = useRef<LeadIdentity | null>(null);
@@ -298,7 +300,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
   const normalizedReferral = normalizeBinCleaningReferralCode(form.referralCode);
   const promotion = plan && price ? evaluateBinCleaningPromotion(normalizedPromo, plan, price.subtotalCents, binCount) : null;
   const referralFormatValid = !normalizedReferral || isPlausibleBinCleaningReferralCode(normalizedReferral);
-  const referralEligible = Boolean(normalizedReferral && referralFormatValid && plan?.referralEligible);
+  const referralEligible = Boolean(normalizedReferral && normalizedReferral === validatedReferralCode && plan?.referralEligible);
   const referralDiscountCents = referralEligible && price ? Math.round(price.subtotalCents * 0.5) : 0;
   const estimatedFirstCharge = price ? promotion?.status === "applied" ? promotion.firstChargeSubtotalCents : price.subtotalCents - referralDiscountCents : null;
   const firstService = useMemo(() => firstServiceEstimate(form), [form]);
@@ -320,7 +322,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         keepalive,
         body: JSON.stringify({ leadId: leadRef.current?.id ?? null, editToken: leadRef.current?.editToken ?? null, status, payload }),
       });
-      const result = await response.json() as { ok?: boolean; error?: string; errors?: string[]; lead?: LeadIdentity };
+      const result = await response.json() as { ok?: boolean; error?: string; errors?: string[]; lead?: LeadIdentity; referralValidated?: boolean };
       if (!response.ok || !result.ok || !result.lead) {
         if (status !== "abandoned") {
           setSaveState("error");
@@ -329,27 +331,28 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           setErrors(serverErrors);
           const mapped = serverErrorsToFields(serverErrors);
           if (Object.keys(mapped).length) setFieldErrors((current) => ({ ...current, ...mapped }));
+          if (serverErrors.some((item) => item.toLowerCase().includes("referral"))) setValidatedReferralCode("");
         }
         return false;
       }
 
+      const currentReferral = normalizeBinCleaningReferralCode(currentForm.referralCode);
+      setValidatedReferralCode(result.referralValidated && currentReferral ? currentReferral : "");
       setErrors([]);
+      const identity = result.lead;
+      leadRef.current = identity;
+      setLead(identity);
       if (status === "submitted_unpaid") {
         submittedRef.current = true;
-        leadRef.current = null;
-        setLead(null);
         lastSavedFingerprint.current = "";
         setSubmitted(true);
         setSaveState("submitted");
-        setMessage("Fictional signup submitted to the staging CRM as a separate record. No payment was collected and Stripe Checkout did not start.");
+        setMessage("Signup saved. Stripe TEST checkout is the next step; live payments remain blocked.");
       } else {
-        const identity = result.lead;
-        leadRef.current = identity;
-        setLead(identity);
         lastSavedFingerprint.current = fingerprint;
         if (status !== "abandoned") {
           setSaveState("saved");
-          setMessage("Fictional draft saved to the staging CRM.");
+          setMessage(currentReferral ? "Referral verified and fictional draft saved." : "Fictional draft saved to the staging CRM.");
         }
       }
       return true;
@@ -361,6 +364,37 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       return false;
     } finally {
       savingRef.current = false;
+    }
+  }, []);
+
+  const startCheckout = useCallback(async () => {
+    const identity = leadRef.current;
+    if (!identity) {
+      setSaveState("error");
+      setMessage("The submitted signup identity is unavailable. Start a new signup before checkout.");
+      return false;
+    }
+    setSaveState("checkout");
+    setMessage("Opening secure Stripe TEST checkout…");
+    try {
+      const response = await fetch("/api/bin-cleaning/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ leadId: identity.id, editToken: identity.editToken }),
+      });
+      const result = await response.json() as { ok?: boolean; checkoutUrl?: string; error?: string };
+      if (!response.ok || !result.ok || !result.checkoutUrl) {
+        setSaveState("error");
+        setMessage(result.error || "Stripe TEST checkout could not be started.");
+        return false;
+      }
+      window.location.assign(result.checkoutUrl);
+      return true;
+    } catch {
+      setSaveState("error");
+      setMessage("Stripe TEST checkout could not be reached.");
+      return false;
     }
   }, []);
 
@@ -385,6 +419,19 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
     if (fieldErrors[key]) setFieldErrors((current) => { const copy = { ...current }; delete copy[key]; return copy; });
     if (!submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
   };
+  const setPromoCode = (event: ChangeEvent<HTMLInputElement>) => {
+    setValidatedReferralCode("");
+    const next = { ...formRef.current, promoCode: event.target.value, referralCode: event.target.value ? "" : formRef.current.referralCode };
+    updateForm(next);
+    if (!submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
+  };
+  const setReferralCode = (event: ChangeEvent<HTMLInputElement>) => {
+    setValidatedReferralCode("");
+    const next = { ...formRef.current, referralCode: event.target.value, promoCode: event.target.value ? "" : formRef.current.promoCode };
+    updateForm(next);
+    if (fieldErrors.referralCode) setFieldErrors((current) => { const copy = { ...current }; delete copy.referralCode; return copy; });
+    if (!submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
+  };
 
   const startAnother = () => {
     const fresh = initialForm(props);
@@ -399,6 +446,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
     setMessage("");
     setErrors([]);
     setFieldErrors({});
+    setValidatedReferralCode("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -413,7 +461,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       window.setTimeout(() => document.querySelector(`[data-field="${first}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
       return;
     }
-    await saveDraft("submitted_unpaid");
+    if (await saveDraft("submitted_unpaid")) await startCheckout();
   };
 
   const weekdayOptions = WEEKDAYS.map((day, index) => <option value={index} key={day}>{day}</option>);
@@ -421,15 +469,18 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
   return (
     <form className="space-y-8" noValidate onSubmit={(event) => { event.preventDefault(); void submit(); }}>
       <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:p-7">
-        <h2 className="text-xl font-black text-amber-950">Staging test environment</h2>
-        <p className="mt-2 text-sm leading-relaxed text-amber-950">Use made-up customer information while testing. There are no special <strong>.test</strong> email, 555 phone-number, or leading-1 phone requirements. Stripe is still disabled and no payment can be accepted here.</p>
+        <h2 className="text-xl font-black text-amber-950">Staging + Stripe TEST environment</h2>
+        <p className="mt-2 text-sm leading-relaxed text-amber-950">Use made-up customer information while testing. Checkout is allowed only with Stripe test credentials and test coupons. The server rejects live Stripe keys and live webhook events.</p>
       </section>
 
       {submitted ? (
         <section className="rounded-3xl border-2 border-emerald-300 bg-emerald-50 p-6 shadow-sm">
-          <h2 className="text-xl font-black text-emerald-950">Signup saved as its own CRM record</h2>
-          <p className="mt-2 text-sm text-emerald-950">This submitted signup is locked. Starting another signup creates a separate record.</p>
-          <button type="button" onClick={startAnother} className="mt-5 rounded-xl bg-brand-700 px-5 py-3 font-black text-white">Start another fictional signup</button>
+          <h2 className="text-xl font-black text-emerald-950">Signup locked and ready for TEST payment</h2>
+          <p className="mt-2 text-sm text-emerald-950">The CRM record cannot be edited after submission. Payment still has to succeed and a signed Stripe webhook must be verified before service is activated.</p>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <button type="button" onClick={() => void startCheckout()} disabled={!lead || saveState === "checkout"} className="rounded-xl bg-brand-700 px-5 py-3 font-black text-white disabled:bg-zinc-400">{saveState === "checkout" ? "Opening Stripe TEST checkout…" : "Retry secure Stripe TEST checkout"}</button>
+            <button type="button" onClick={startAnother} className="rounded-xl border border-zinc-400 bg-white px-5 py-3 font-black text-zinc-900">Start another fictional signup</button>
+          </div>
         </section>
       ) : null}
 
@@ -438,7 +489,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <Field label="Full name" fieldKey="fullName" error={fieldErrors.fullName}><input value={form.fullName} onChange={setText("fullName")} className={inputClass(fieldErrors.fullName)} autoComplete="off" /></Field>
             <Field label="Email address" fieldKey="email" error={fieldErrors.email} hint="Enter the test email you want to use."><input value={form.email} onChange={setText("email")} className={inputClass(fieldErrors.email)} autoComplete="off" /></Field>
-            <Field label="Mobile number" fieldKey="phone" error={fieldErrors.phone} hint="A normal 10-digit number format is fine; no leading 1 is required."><input type="tel" value={form.phone} onChange={setText("phone")} className={inputClass(fieldErrors.phone)} autoComplete="off" /></Field>
+            <Field label="Mobile number" fieldKey="phone" error={fieldErrors.phone} hint="Use fictional test contact information only."><input type="tel" value={form.phone} onChange={setText("phone")} className={inputClass(fieldErrors.phone)} autoComplete="off" /></Field>
             <Field label="Street address" fieldKey="line1" error={fieldErrors.line1}><input value={form.line1} onChange={setText("line1")} className={inputClass(fieldErrors.line1)} autoComplete="off" /></Field>
             <Field label="Apartment or unit"><input value={form.line2} onChange={setText("line2")} className={inputClass()} autoComplete="off" /></Field>
             <Field label="City" fieldKey="city" error={fieldErrors.city}><input value={form.city} onChange={setText("city")} className={inputClass(fieldErrors.city)} autoComplete="off" /></Field>
@@ -451,7 +502,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {PUBLIC_BIN_CLEANING_PLANS.map((item) => (
               <label key={item.id} className={`rounded-2xl border p-4 ${form.planId === item.id ? "border-brand-700 bg-brand-50 ring-2 ring-brand-200" : "border-zinc-200"} ${item.status === "future" ? "opacity-60" : "cursor-pointer"}`}>
-                <input type="radio" name="plan" disabled={item.status === "future"} checked={form.planId === item.id} onChange={() => updateForm({ ...formRef.current, planId: item.id })} className="mr-2 accent-blue-700" />
+                <input type="radio" name="plan" disabled={item.status === "future"} checked={form.planId === item.id} onChange={() => { setValidatedReferralCode(""); updateForm({ ...formRef.current, planId: item.id }); window.setTimeout(() => void saveDraft("incomplete"), 700); }} className="mr-2 accent-blue-700" />
                 <strong>{item.name}</strong>
                 <span className="mt-2 block text-sm text-zinc-700">{item.priceLines.join(" · ")}</span>
                 {item.status === "future" ? <span className="mt-2 block text-xs font-bold uppercase">Coming later</span> : null}
@@ -479,12 +530,14 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         </Section>
 
         <Section title="4. Promo or referral code">
-          <p className="mt-2 text-sm text-zinc-700">Use one or the other. They never stack. New-customer promotion eligibility will be tied to the service address as well as the customer account, so changing the name or email at the same household will not create a fresh new-customer offer after payment activation.</p>
+          <p className="mt-2 text-sm text-zinc-700">Use one or the other. They never stack. New-customer promotion eligibility is tied to customer and service-address history. Referral discounts appear only after the server confirms a real active referral code.</p>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <Field label="Promo code"><input value={form.promoCode} disabled={Boolean(normalizedReferral)} onChange={(event) => updateForm({ ...formRef.current, promoCode: event.target.value, referralCode: event.target.value ? "" : formRef.current.referralCode })} className={inputClass()} autoCapitalize="characters" autoComplete="off" /></Field>
-            <Field label="Referral code" hint="Short /r/ADS-XXXX-XXXX links automatically place the code here."><input value={form.referralCode} disabled={Boolean(normalizedPromo)} onChange={(event) => updateForm({ ...formRef.current, referralCode: event.target.value, promoCode: event.target.value ? "" : formRef.current.promoCode })} className={inputClass()} autoCapitalize="characters" autoComplete="off" /></Field>
+            <Field label="Promo code"><input value={form.promoCode} disabled={Boolean(normalizedReferral)} onChange={setPromoCode} className={inputClass()} autoCapitalize="characters" autoComplete="off" /></Field>
+            <Field label="Referral code" fieldKey="referralCode" error={fieldErrors.referralCode} hint="Short /r/ADS-XXXX-XXXX links automatically place the code here."><input value={form.referralCode} disabled={Boolean(normalizedPromo)} onChange={setReferralCode} className={inputClass(fieldErrors.referralCode)} autoCapitalize="characters" autoComplete="off" /></Field>
           </div>
           {normalizedReferral && !referralFormatValid ? <p className="mt-3 text-sm font-bold text-red-700">Referral code format is not valid.</p> : null}
+          {normalizedReferral && referralFormatValid && !referralEligible && !fieldErrors.referralCode ? <p className="mt-3 text-sm font-bold text-zinc-600">Referral code is not applied until the server verifies it.</p> : null}
+          {referralEligible ? <p className="mt-3 text-sm font-black text-emerald-700">Referral code verified. The 50% new-customer Monthly discount is applied.</p> : null}
           {normalizedReferral && plan && !plan.referralEligible ? <p className="mt-3 text-sm font-bold text-amber-800">Referral discounts apply only to an eligible new Monthly signup.</p> : null}
           {promotion && promotion.status !== "empty" && promotion.status !== "applied" ? <p className="mt-3 text-sm font-bold text-amber-800">That promo is not recognized or is not eligible for this plan and bin count.</p> : null}
         </Section>
@@ -520,22 +573,22 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         </Section>
 
         <aside className="rounded-3xl bg-zinc-950 p-6 text-white shadow-xl sm:p-8">
-          <p className="text-sm font-bold uppercase tracking-wider text-brand-300">Fictional estimate</p>
+          <p className="text-sm font-bold uppercase tracking-wider text-brand-300">Server-checked estimate</p>
           <h2 className="mt-2 text-2xl font-black text-white">{plan?.name ?? "Select a plan"}</h2>
           <dl className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between gap-4"><dt>Bins</dt><dd>{binCount}</dd></div>
             <div className="flex justify-between gap-4"><dt>Regular subtotal</dt><dd>{price ? formatCurrency(price.subtotalCents) : "Pending"}</dd></div>
             {promotion?.status === "applied" ? <div className="flex justify-between gap-4 text-emerald-300"><dt>Promo discount</dt><dd>−{formatCurrency(promotion.discountCents)}</dd></div> : null}
-            {referralEligible ? <div className="flex justify-between gap-4 text-emerald-300"><dt>Referred new Monthly customer discount</dt><dd>−{formatCurrency(referralDiscountCents)}</dd></div> : null}
+            {referralEligible ? <div className="flex justify-between gap-4 text-emerald-300"><dt>Verified referral discount</dt><dd>−{formatCurrency(referralDiscountCents)}</dd></div> : null}
             <div className="flex justify-between gap-4 border-t border-zinc-700 pt-3 text-lg font-black"><dt>Estimated first charge before tax</dt><dd>{estimatedFirstCharge === null ? "Pending" : formatCurrency(estimatedFirstCharge)}</dd></div>
           </dl>
-          <p className="mt-4 text-sm text-zinc-300">Tax remains a staff-review simulation. Stripe is explicitly disabled. The submit button only saves a submitted-but-unpaid CRM record.</p>
+          <p className="mt-4 text-sm text-zinc-300">Final plan, bin count, discount eligibility, and cents are recomputed on the server before Stripe TEST checkout. Tax remains a separate launch-readiness item; no browser-provided amount is accepted.</p>
         </aside>
 
-        {message ? <div role={saveState === "error" ? "alert" : "status"} className={`rounded-2xl p-4 text-sm font-bold ${saveState === "error" ? "bg-red-100 text-red-900" : saveState === "submitted" ? "bg-emerald-100 text-emerald-950" : "bg-blue-100 text-blue-950"}`}><p>{message}</p>{errors.length ? <ul className="mt-2 list-disc space-y-1 pl-5">{errors.map((error) => <li key={error}>{error}</li>)}</ul> : null}</div> : null}
+        {message ? <div role={saveState === "error" ? "alert" : "status"} className={`rounded-2xl p-4 text-sm font-bold ${saveState === "error" ? "bg-red-100 text-red-900" : saveState === "submitted" || saveState === "checkout" ? "bg-emerald-100 text-emerald-950" : "bg-blue-100 text-blue-950"}`}><p>{message}</p>{errors.length ? <ul className="mt-2 list-disc space-y-1 pl-5">{errors.map((error) => <li key={error}>{error}</li>)}</ul> : null}</div> : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button type="submit" disabled={saveState === "saving" || submitted} className="rounded-xl bg-brand-700 px-6 py-4 text-base font-black text-white shadow hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-zinc-400">{saveState === "saving" ? "Saving fictional signup…" : submitted ? "Submitted — no payment collected" : "Submit fictional signup — stop before payment"}</button>
+          <button type="submit" disabled={saveState === "saving" || saveState === "checkout" || submitted} className="rounded-xl bg-brand-700 px-6 py-4 text-base font-black text-white shadow hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-zinc-400">{saveState === "saving" ? "Saving signup…" : saveState === "checkout" ? "Opening Stripe TEST checkout…" : submitted ? "Submitted" : "Submit & continue to Stripe TEST checkout"}</button>
           <span className="text-sm font-semibold text-zinc-600">{saveState === "saved" ? "Draft saved" : lead ? "CRM draft created" : "A fresh signup starts each time this page is opened"}</span>
         </div>
       </fieldset>
