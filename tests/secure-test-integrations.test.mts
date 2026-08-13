@@ -39,26 +39,23 @@ test("protected integration credentials are not named as browser-public values",
   assert.doesNotMatch(env, /NEXT_PUBLIC_TEST_SMS_API_KEY/);
 });
 
-test("Step 3 requires safe simulators and keeps Stripe disabled until Step 8", async () => {
+test("safe simulators remain required while Stripe test checkout defaults disabled", async () => {
   const [integration, env] = await Promise.all([
     readFile(integrationPath, "utf8"),
     readFile(envPath, "utf8"),
   ]);
 
   assert.match(integration, /validateStep3IntegrationConfiguration/);
-  assert.match(
-    integration,
-    /Step 3 requires ADDRESS_VALIDATION_MODE=simulator/,
-  );
+  assert.match(integration, /Step 3 requires ADDRESS_VALIDATION_MODE=simulator/);
   assert.match(integration, /Step 3 requires TAX_CALCULATION_MODE=simulator/);
   assert.match(integration, /Step 3 requires NOTIFICATION_MODE=simulator/);
-  assert.match(
-    integration,
-    /Step 3 requires STRIPE_INTEGRATION_MODE=disabled/,
-  );
   assert.match(integration, /STRIPE_INTEGRATION_MODE must be disabled or test/);
   assert.match(env, /STRIPE_INTEGRATION_MODE=disabled/);
-  assert.match(env, /Step 8 is the first checkout step/);
+  assert.match(env, /Stripe TEST MODE ONLY/);
+  assert.match(env, /server refuses sk_live_ credentials/);
+  assert.match(env, /STRIPE_TEST_COUPON_NEW25=/);
+  assert.match(env, /STRIPE_TEST_COUPON_REFERRAL50=/);
+  assert.match(env, /STRIPE_TEST_COUPON_ONE45=/);
 });
 
 test("simulators execute with fictional results and no external delivery", () => {
