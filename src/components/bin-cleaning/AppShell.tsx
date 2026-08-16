@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReferralLedger } from "@/components/bin-cleaning/ReferralLedger";
 
 export function TestBanner() {
   return (
@@ -81,6 +82,7 @@ export function AppShell({
             </button>
           </form>
         </div>
+        {area === "Customer portal" && <ReferralLedger />}
         {children}
       </main>
     </>
