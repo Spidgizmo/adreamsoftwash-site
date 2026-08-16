@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { processReferralNotificationOutbox } from "@/lib/bin-cleaning/referral-notification-outbox";
 import { provisionPaidStripeTestCustomerAuth } from "@/lib/bin-cleaning/test-auth-provisioning";
 import { serviceRoleDatabaseRequest } from "@/lib/supabase/server";
 import { verifyStripeSignature } from "@/lib/stripe/server";
@@ -100,6 +101,10 @@ async function activatePaidTestCustomer(body: Record<string, unknown>) {
   await provisionPaidStripeTestCustomerAuth(activated.customerId);
 }
 
+async function flushReferralNotifications() {
+  await processReferralNotificationOutbox(20).catch(() => null);
+}
+
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
   if (!verifyStripeSignature(rawBody, request.headers.get("stripe-signature"))) {
@@ -124,6 +129,7 @@ export async function POST(request: NextRequest) {
     p_livemode: event.livemode,
   });
   if (!claimed) {
+    await flushReferralNotifications();
     return NextResponse.json({ ok: true, duplicate: true }, { headers: HEADERS });
   }
 
@@ -199,10 +205,12 @@ export async function POST(request: NextRequest) {
       }
       default:
         await rpc("rpc/finish_stripe_test_webhook_event", { p_event_id: event.id, p_status: "ignored", p_error: null });
+        await flushReferralNotifications();
         return NextResponse.json({ ok: true, ignored: true }, { headers: HEADERS });
     }
 
     await rpc("rpc/finish_stripe_test_webhook_event", { p_event_id: event.id, p_status: "processed", p_error: null });
+    await flushReferralNotifications();
     return NextResponse.json({ ok: true }, { headers: HEADERS });
   } catch (error) {
     await rpc("rpc/finish_stripe_test_webhook_event", {
