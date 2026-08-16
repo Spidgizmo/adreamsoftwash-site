@@ -28,6 +28,13 @@ function text(value: unknown) {
 function integer(value: unknown) {
   return typeof value === "number" && Number.isSafeInteger(value) ? value : null;
 }
+function booleanValue(value: unknown) {
+  return typeof value === "boolean" ? value : false;
+}
+function stripeTimestamp(value: unknown) {
+  const seconds = integer(value);
+  return seconds && seconds > 0 ? new Date(seconds * 1000).toISOString() : null;
+}
 function nestedRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
@@ -198,8 +205,16 @@ export async function POST(request: NextRequest) {
       case "customer.subscription.updated": {
         const subscriptionId = text(object.id);
         const status = text(object.status);
-        if (subscriptionId && ["canceled", "unpaid", "incomplete_expired"].includes(status || "")) {
-          await rpc("rpc/cancel_stripe_test_subscription", { p_stripe_subscription_id: subscriptionId });
+        if (subscriptionId) {
+          await rpc("rpc/sync_stripe_test_subscription_state", {
+            p_stripe_subscription_id: subscriptionId,
+            p_stripe_status: status,
+            p_cancel_at_period_end: booleanValue(object.cancel_at_period_end),
+            p_cancel_at: stripeTimestamp(object.cancel_at),
+          });
+          if (["canceled", "unpaid", "incomplete_expired"].includes(status || "")) {
+            await rpc("rpc/cancel_stripe_test_subscription", { p_stripe_subscription_id: subscriptionId });
+          }
         }
         break;
       }
