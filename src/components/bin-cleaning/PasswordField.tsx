@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PORTAL_PASSWORD_MIN_LENGTH } from "@/lib/bin-cleaning/password-policy";
 
 export function PasswordField() {
   const [visible, setVisible] = useState(false);
@@ -11,7 +12,7 @@ export function PasswordField() {
       <div className="relative mt-2">
         <input
           required
-          minLength={12}
+          minLength={PORTAL_PASSWORD_MIN_LENGTH}
           type={visible ? "text" : "password"}
           name="password"
           autoComplete="current-password"
