@@ -3,6 +3,7 @@ import { TestBanner } from "@/components/bin-cleaning/AppShell";
 
 type ForgotPasswordSearchParams = {
   sent?: string;
+  simulated?: string;
   error?: string;
 };
 
@@ -51,9 +52,26 @@ export default async function ForgotPasswordPage({
               If an account exists for that email, a password reset link has been sent.
             </p>
           )}
+
+          {query.simulated && (
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+              <p className="font-bold">STAGING EMAIL SIMULATOR</p>
+              <p className="mt-1">
+                Fictional .test mailboxes cannot receive email. Use the button below to open the same one-time recovery flow that the email link would open.
+              </p>
+              <form action="/api/bin-cleaning/auth/open-simulated-recovery" method="post" className="mt-3">
+                <button type="submit" className="rounded-lg bg-sky-800 px-4 py-2 font-bold text-white">
+                  Open simulated reset link
+                </button>
+              </form>
+            </div>
+          )}
+
           {query.error && (
             <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm">
-              We could not send the reset email right now. Please try again shortly.
+              {query.error === "expired"
+                ? "That reset link is invalid or expired. Request another one."
+                : "We could not send the reset email right now. Please try again shortly."}
             </p>
           )}
 
