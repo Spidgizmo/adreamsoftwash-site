@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processReferralNotificationOutbox } from "@/lib/bin-cleaning/referral-notification-outbox";
+import { armAvailableStripeReferralRewards } from "@/lib/bin-cleaning/stripe-referral-rewards";
 import { currentSession, serviceRoleDatabaseRequest } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +11,9 @@ async function processReferralWork() {
     method: "POST",
     body: "{}",
   });
+  const stripeRewards = await armAvailableStripeReferralRewards(50);
   const notifications = await processReferralNotificationOutbox(50);
-  return { matured: Number(matured || 0), notifications };
+  return { matured: Number(matured || 0), stripeRewards, notifications };
 }
 
 function cronAuthorized(request: NextRequest) {
