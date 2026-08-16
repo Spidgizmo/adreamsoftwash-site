@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { TestBanner } from "@/components/bin-cleaning/AppShell";
 import { PasswordField } from "@/components/bin-cleaning/PasswordField";
 
@@ -21,7 +22,7 @@ export default async function LoginPage({
       : query.logged_out
         ? "You have signed out."
         : query.error
-          ? "Sign-in failed. Check the hosted staging test credentials."
+          ? "Sign-in failed. Check your email and password."
           : null;
 
   return (
@@ -51,6 +52,14 @@ export default async function LoginPage({
             />
           </label>
           <PasswordField />
+          <div className="text-right">
+            <Link
+              href="/bin-cleaning/forgot-password"
+              className="text-sm font-semibold text-brand-700 underline underline-offset-2"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <button
             className="w-full rounded-lg bg-brand-700 p-3 font-bold text-white"
             type="submit"
