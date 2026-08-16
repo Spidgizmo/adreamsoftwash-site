@@ -19,6 +19,13 @@ export function ResetPasswordForm() {
     const query = new URLSearchParams(window.location.search);
     const token = hash.get("access_token") || query.get("access_token") || "";
     const type = hash.get("type") || query.get("type");
+    const simulated = query.get("simulated") === "1";
+
+    if (simulated) {
+      setStatus("ready");
+      window.history.replaceState({}, "", "/bin-cleaning/reset-password");
+      return;
+    }
 
     if (!token || (type && type !== "recovery")) {
       setStatus("invalid");
