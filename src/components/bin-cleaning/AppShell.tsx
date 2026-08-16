@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ReferralLedger } from "@/components/bin-cleaning/ReferralLedger";
+import { SubscriptionStatusNotice } from "@/components/bin-cleaning/SubscriptionStatusNotice";
 
 export function TestBanner() {
   return (
@@ -82,7 +83,12 @@ export function AppShell({
             </button>
           </form>
         </div>
-        {area === "Customer portal" && <ReferralLedger />}
+        {area === "Customer portal" && (
+          <>
+            <SubscriptionStatusNotice />
+            <ReferralLedger />
+          </>
+        )}
         {children}
       </main>
     </>
