@@ -64,14 +64,26 @@ export function AppShell({
               </Link>
             ))}
             {area === "Customer portal" && (
-              <form action="/api/bin-cleaning/billing-portal" method="post">
-                <button
-                  className="rounded-lg border border-brand-300 bg-brand-50 px-3 py-2 font-black text-brand-800"
-                  type="submit"
-                >
-                  Billing &amp; cancel
-                </button>
-              </form>
+              <>
+                <form action="/api/bin-cleaning/billing-portal" method="post">
+                  <input type="hidden" name="action" value="payment_method" />
+                  <button
+                    className="rounded-lg border border-brand-300 bg-brand-50 px-3 py-2 font-black text-brand-800"
+                    type="submit"
+                  >
+                    Update payment method
+                  </button>
+                </form>
+                <form action="/api/bin-cleaning/billing-portal" method="post">
+                  <input type="hidden" name="action" value="cancel" />
+                  <button
+                    className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 font-black text-red-800"
+                    type="submit"
+                  >
+                    Cancel service
+                  </button>
+                </form>
+              </>
             )}
           </nav>
           <form action="/api/bin-cleaning/auth/logout" method="post">
