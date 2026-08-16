@@ -7,22 +7,26 @@ type CustomerIdentity = {
   email: string;
   full_name: string;
   phone: string | null;
+  stripe_customer_id: string | null;
   is_test: boolean;
 };
 
+type CheckoutAttempt = { signup_lead_id: string };
+type SignupIdentity = { auth_user_id: string | null };
 type AuthUser = { id: string; email?: string };
 type AuthUsersResponse = { users?: AuthUser[] };
 
-function testAuthConfiguration() {
+function stagingAuthConfiguration() {
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV?.trim();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  const password = process.env.ADS_TEST_USER_PASSWORD;
-  if (!["test", "staging"].includes(appEnv || "")) throw new Error("Paid test Auth provisioning is allowed only in test or staging");
-  if (!supabaseUrl || !serviceRoleKey || !isValidPortalPassword(password)) {
+  if (!["test", "staging"].includes(appEnv || "")) {
+    throw new Error("Paid test Auth provisioning is allowed only in test or staging");
+  }
+  if (!supabaseUrl || !serviceRoleKey) {
     throw new Error("Paid test Auth provisioning is not configured");
   }
-  return { supabaseUrl, serviceRoleKey, password };
+  return { supabaseUrl, serviceRoleKey };
 }
 
 async function findExistingAuthUser(supabaseUrl: string, serviceRoleKey: string, email: string) {
@@ -40,15 +44,60 @@ async function findExistingAuthUser(supabaseUrl: string, serviceRoleKey: string,
   return null;
 }
 
+async function preparedSignupIdentity(customer: CustomerIdentity) {
+  if (!customer.stripe_customer_id) return null;
+  const attempts = await serviceRoleDatabaseRequest<CheckoutAttempt[]>(
+    `stripe_checkout_attempts?stripe_customer_id=eq.${encodeURIComponent(customer.stripe_customer_id)}&select=signup_lead_id&order=created_at.desc&limit=1`,
+  ).catch(() => []);
+  const leadId = attempts[0]?.signup_lead_id;
+  if (!leadId) return null;
+  const leads = await serviceRoleDatabaseRequest<SignupIdentity[]>(
+    `signup_leads?id=eq.${encodeURIComponent(leadId)}&select=auth_user_id&limit=1`,
+  ).catch(() => []);
+  return leads[0]?.auth_user_id ?? null;
+}
+
+async function activateIdentity(customer: CustomerIdentity, authUserId: string) {
+  await serviceRoleDatabaseRequest("user_profiles?on_conflict=id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({
+      id: authUserId,
+      display_name: customer.full_name,
+      phone: customer.phone,
+      login_status: "active",
+      is_test: true,
+    }),
+  });
+  await serviceRoleDatabaseRequest(`customers?id=eq.${customer.id}&user_id=is.null`, {
+    method: "PATCH",
+    body: JSON.stringify({ user_id: authUserId, account_status: "test_active" }),
+  });
+  return authUserId;
+}
+
 export async function provisionPaidStripeTestCustomerAuth(customerId: string) {
-  const { supabaseUrl, serviceRoleKey, password } = testAuthConfiguration();
+  const { supabaseUrl, serviceRoleKey } = stagingAuthConfiguration();
   const rows = await serviceRoleDatabaseRequest<CustomerIdentity[]>(
-    `customers?id=eq.${encodeURIComponent(customerId)}&select=id,user_id,email,full_name,phone,is_test&limit=1`,
+    `customers?id=eq.${encodeURIComponent(customerId)}&select=id,user_id,email,full_name,phone,stripe_customer_id,is_test&limit=1`,
   );
   const customer = rows[0];
   if (!customer?.is_test) throw new Error("Only fictional test customers can receive disposable test Auth");
   if (customer.user_id) return customer.user_id;
   if (!customer.email.toLowerCase().endsWith(".test")) throw new Error("Disposable paid test Auth requires a .test email address");
+
+  const preparedAuthUserId = await preparedSignupIdentity(customer);
+  if (preparedAuthUserId) {
+    return activateIdentity(customer, preparedAuthUserId);
+  }
+
+  // Legacy staging records created before customer-chosen signup passwords can
+  // still be completed with the shared test password. New signups should not
+  // reach this fallback because checkout now requires auth_user_id on the lead.
+  const password = process.env.ADS_TEST_USER_PASSWORD;
+  if (!isValidPortalPassword(password)) {
+    throw new Error("Paid test Auth provisioning is not configured");
+  }
 
   let authUser: AuthUser | null = null;
   const createResponse = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
@@ -74,21 +123,5 @@ export async function provisionPaidStripeTestCustomerAuth(customerId: string) {
     authUser = await findExistingAuthUser(supabaseUrl, serviceRoleKey, customer.email);
   }
   if (!authUser?.id) throw new Error("Could not provision disposable customer Auth identity");
-
-  await serviceRoleDatabaseRequest("user_profiles?on_conflict=id", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify({
-      id: authUser.id,
-      display_name: customer.full_name,
-      phone: customer.phone,
-      login_status: "active",
-      is_test: true,
-    }),
-  });
-  await serviceRoleDatabaseRequest(`customers?id=eq.${customer.id}&user_id=is.null`, {
-    method: "PATCH",
-    body: JSON.stringify({ user_id: authUser.id, account_status: "test_active" }),
-  });
-  return authUser.id;
+  return activateIdentity(customer, authUser.id);
 }
