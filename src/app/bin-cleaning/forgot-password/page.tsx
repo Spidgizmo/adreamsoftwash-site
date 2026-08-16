@@ -23,29 +23,31 @@ export default async function ForgotPasswordPage({
           Enter the email address used for your ADS Bin Cleaning customer portal.
         </p>
 
-        <form
-          action="/api/bin-cleaning/auth/forgot-password"
-          method="post"
-          className="card mt-8 space-y-5 p-6"
-        >
-          <label className="block font-semibold">
-            Email
-            <input
-              required
-              type="email"
-              name="email"
-              autoComplete="email"
-              className="mt-2 w-full rounded-lg border p-3"
-              placeholder="customer@example.test"
-            />
-          </label>
-
-          <button
-            className="w-full rounded-lg bg-brand-700 p-3 font-bold text-white"
-            type="submit"
+        <div className="card mt-8 space-y-5 p-6">
+          <form
+            action="/api/bin-cleaning/auth/forgot-password"
+            method="post"
+            className="space-y-5"
           >
-            Email password reset link
-          </button>
+            <label className="block font-semibold">
+              Email
+              <input
+                required
+                type="email"
+                name="email"
+                autoComplete="email"
+                className="mt-2 w-full rounded-lg border p-3"
+                placeholder="customer@example.test"
+              />
+            </label>
+
+            <button
+              className="w-full rounded-lg bg-brand-700 p-3 font-bold text-white"
+              type="submit"
+            >
+              Email password reset link
+            </button>
+          </form>
 
           {query.sent && (
             <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
@@ -81,7 +83,7 @@ export default async function ForgotPasswordPage({
           >
             Back to sign in
           </Link>
-        </form>
+        </div>
       </main>
     </>
   );
