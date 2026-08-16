@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processReferralNotificationOutbox } from "@/lib/bin-cleaning/referral-notification-outbox";
+import {
+  armAvailableStripeReferralRewards,
+  clearStripeReferralRewardState,
+} from "@/lib/bin-cleaning/stripe-referral-rewards";
 import { provisionPaidStripeTestCustomerAuth } from "@/lib/bin-cleaning/test-auth-provisioning";
 import { serviceRoleDatabaseRequest } from "@/lib/supabase/server";
 import { verifyStripeSignature } from "@/lib/stripe/server";
@@ -21,6 +25,13 @@ type StripeEvent = {
 };
 type Attempt = { id: string; subtotal_cents?: number; first_charge_cents?: number };
 type ActivationResult = { customerId: string };
+type ReferralCredit = {
+  id: string;
+  remaining_cents: number;
+  status: string;
+  stripe_subscription_id: string | null;
+  stripe_armed_at: string | null;
+};
 
 function text(value: unknown) {
   return typeof value === "string" && value ? value : null;
@@ -38,20 +49,26 @@ function stripeTimestamp(value: unknown) {
 function nestedRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
+function subscriptionDetails(object: StripeObject) {
+  const parent = nestedRecord(object.parent);
+  return nestedRecord(parent?.subscription_details) || nestedRecord(object.subscription_details);
+}
+function subscriptionMetadata(object: StripeObject) {
+  return nestedRecord(subscriptionDetails(object)?.metadata);
+}
 function metadataAttemptId(object: StripeObject) {
   const direct = text(object.metadata?.ads_checkout_attempt_id);
   if (direct) return direct;
-  const parent = nestedRecord(object.parent);
-  const subscriptionDetails = nestedRecord(parent?.subscription_details) || nestedRecord(object.subscription_details);
-  const metadata = nestedRecord(subscriptionDetails?.metadata);
-  return text(metadata?.ads_checkout_attempt_id);
+  return text(subscriptionMetadata(object)?.ads_checkout_attempt_id);
+}
+function invoiceReferralCreditId(object: StripeObject) {
+  const id = text(subscriptionMetadata(object)?.ads_referral_credit_id);
+  return id && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
 }
 function invoiceSubscriptionId(object: StripeObject) {
   const direct = text(object.subscription);
   if (direct) return direct;
-  const parent = nestedRecord(object.parent);
-  const details = nestedRecord(parent?.subscription_details);
-  return text(details?.subscription);
+  return text(subscriptionDetails(object)?.subscription);
 }
 
 async function attemptFor(object: StripeObject) {
@@ -84,18 +101,43 @@ async function trustedAttempt(attemptId: string) {
   return rows[0] as Required<Attempt>;
 }
 
+async function trustedReferralCredit(creditId: string, subscriptionId: string) {
+  const rows = await serviceRoleDatabaseRequest<ReferralCredit[]>(
+    `referral_credits?id=eq.${encodeURIComponent(creditId)}&select=id,remaining_cents,status,stripe_subscription_id,stripe_armed_at&limit=1`,
+  );
+  const credit = rows[0];
+  if (!credit
+      || credit.status !== "issued"
+      || !Number.isSafeInteger(credit.remaining_cents)
+      || credit.remaining_cents <= 0
+      || !credit.stripe_armed_at
+      || credit.stripe_subscription_id !== subscriptionId) {
+    throw new Error("Trusted referral reward could not be resolved");
+  }
+  return credit;
+}
+
 async function verifyPaidAmount(attemptId: string, object: StripeObject, kind: "checkout" | "invoice") {
   const attempt = await trustedAttempt(attemptId);
   const paidCents = integer(kind === "checkout" ? object.amount_total : object.amount_paid);
   if (paidCents === null) throw new Error("Stripe paid amount is missing");
 
   let expectedCents = attempt.first_charge_cents;
+  let referralCreditId: string | null = null;
   if (kind === "invoice" && text(object.billing_reason) !== "subscription_create") {
     expectedCents = attempt.subtotal_cents;
+    referralCreditId = invoiceReferralCreditId(object);
+    const subscriptionId = invoiceSubscriptionId(object);
+    if (referralCreditId) {
+      if (!subscriptionId) throw new Error("Stripe referral invoice subscription is missing");
+      const credit = await trustedReferralCredit(referralCreditId, subscriptionId);
+      expectedCents = Math.max(0, expectedCents - Math.min(credit.remaining_cents, expectedCents));
+    }
   }
   if (paidCents !== expectedCents) {
     throw new Error(`Stripe paid amount mismatch: expected ${expectedCents}, received ${paidCents}`);
   }
+  return referralCreditId;
 }
 
 async function rpc<T = unknown>(path: string, body: Record<string, unknown>) {
@@ -178,14 +220,24 @@ export async function POST(request: NextRequest) {
       }
       case "invoice.paid": {
         if (!attemptId) throw new Error("Subscription checkout attempt could not be resolved");
-        await verifyPaidAmount(attemptId, object, "invoice");
+        const referralCreditId = await verifyPaidAmount(attemptId, object, "invoice");
+        const subscriptionId = invoiceSubscriptionId(object);
         await activatePaidTestCustomer({
           p_attempt_id: attemptId,
           p_stripe_customer_id: text(object.customer),
-          p_stripe_subscription_id: invoiceSubscriptionId(object),
+          p_stripe_subscription_id: subscriptionId,
           p_stripe_invoice_id: text(object.id),
           p_stripe_payment_intent_id: text(object.payment_intent),
         });
+        if (referralCreditId && subscriptionId && text(object.id)) {
+          await rpc("rpc/apply_stripe_referral_reward_invoice", {
+            p_credit_id: referralCreditId,
+            p_stripe_subscription_id: subscriptionId,
+            p_stripe_invoice_id: text(object.id),
+          });
+          await clearStripeReferralRewardState(subscriptionId, referralCreditId);
+          await armAvailableStripeReferralRewards(20);
+        }
         break;
       }
       case "invoice.payment_failed": {
