@@ -62,6 +62,34 @@ export async function stripePost<T>(
   return payload;
 }
 
+export async function stripeDeleteTestCustomer(customerId: string) {
+  if (!/^cus_[A-Za-z0-9]+$/.test(customerId)) {
+    throw new Error("Stripe customer id is invalid");
+  }
+
+  const { secretKey } = stripeTestConfig();
+  const response = await fetch(`${STRIPE_API}/customers/${encodeURIComponent(customerId)}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${secretKey}` },
+    cache: "no-store",
+  });
+  const payload = (await response.json().catch(() => ({}))) as {
+    id?: string;
+    deleted?: boolean;
+    error?: { code?: string; message?: string };
+  };
+
+  // A retry after Stripe was already cleaned up must be safe. If the customer no
+  // longer exists, there is no remaining Stripe customer/subscription to bill.
+  if (response.status === 404 && payload.error?.code === "resource_missing") {
+    return { id: customerId, deleted: true, alreadyMissing: true } as const;
+  }
+  if (!response.ok || payload.id !== customerId || payload.deleted !== true) {
+    throw new Error(payload.error?.message || `Stripe customer deletion failed (${response.status})`);
+  }
+  return { id: customerId, deleted: true, alreadyMissing: false } as const;
+}
+
 export function verifyStripeSignature(
   rawBody: string,
   signatureHeader: string | null,
