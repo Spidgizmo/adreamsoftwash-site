@@ -115,8 +115,8 @@ function count(value: unknown, label: string, errors: string[]): number {
 function weekday(value: unknown, label: string, errors: string[]): number | null {
   if (value === undefined || value === null || value === "") return null;
   const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 6) {
-    errors.push(`${label} must be a valid weekday.`);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 5) {
+    errors.push(`${label} must be Monday through Friday.`);
     return null;
   }
   return parsed;
