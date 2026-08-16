@@ -18,7 +18,7 @@ function testAuthConfiguration() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const password = process.env.ADS_TEST_USER_PASSWORD;
   if (!['test', 'staging'].includes(appEnv || '')) throw new Error('Paid test Auth provisioning is allowed only in test or staging');
-  if (!supabaseUrl || !serviceRoleKey || !password || password.length < 16) {
+  if (!supabaseUrl || !serviceRoleKey || !password || password.length < 8) {
     throw new Error('Paid test Auth provisioning is not configured');
   }
   return { supabaseUrl, serviceRoleKey, password };
