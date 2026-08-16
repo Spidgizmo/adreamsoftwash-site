@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
   try {
     await serviceRoleDatabaseRequest("user_profiles?on_conflict=id", {
       method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      headers: { Prefer: "resolution=merge-duplicates,return=representation" },
       body: JSON.stringify({
         id: authUser.id,
         display_name: lead.full_name || lead.email,
