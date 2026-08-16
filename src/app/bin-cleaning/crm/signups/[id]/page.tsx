@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/bin-cleaning/AppShell";
+import { PermanentErasePanel } from "@/components/bin-cleaning/PermanentErasePanel";
 import { crmSignupLead } from "@/lib/bin-cleaning/signup-queries";
 import { formatCurrency } from "@/lib/bin-cleaning-plans";
 
@@ -41,8 +42,8 @@ function Card({ title, children }: Readonly<{ title: string; children: React.Rea
   );
 }
 
-export default async function SignupDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function SignupDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ erase_error?: string }> }) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const lead = await crmSignupLead(id).catch(() => null);
   if (!lead) notFound();
 
@@ -51,6 +52,8 @@ export default async function SignupDetail({ params }: { params: Promise<{ id: s
       <div className="mb-5">
         <Link href="/bin-cleaning/crm" className="text-sm font-bold text-brand-700 hover:underline">← Back to CRM</Link>
       </div>
+
+      {query.erase_error && <p className="mb-5 rounded-xl bg-red-50 p-4 font-bold text-red-900">This signup could not be erased. If it has already become a customer, erase it from the customer record instead.</p>}
 
       <header className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -64,7 +67,7 @@ export default async function SignupDetail({ params }: { params: Promise<{ id: s
           </div>
           <div className="sm:text-right">
             <p className="text-xl font-black">{lead.estimated_first_charge_cents == null ? "Estimate pending" : `${formatCurrency(lead.estimated_first_charge_cents)} before tax`}</p>
-            <p className="mt-1 text-xs text-zinc-500">Unpaid — Stripe disabled</p>
+            <p className="mt-1 text-xs text-zinc-500">Unpaid signup record</p>
           </div>
         </div>
       </header>
@@ -121,9 +124,11 @@ export default async function SignupDetail({ params }: { params: Promise<{ id: s
           <Item label="Created" value={displayDate(lead.created_at)} />
           <Item label="Updated" value={displayDate(lead.updated_at)} />
           <Item label="Submitted" value={displayDate(lead.submitted_at)} />
-          <Item label="Payment" value="Unpaid — Stripe disabled" />
+          <Item label="Payment" value="No completed customer activation" />
         </Card>
       </div>
+
+      <PermanentErasePanel kind="signup" id={lead.id} name={lead.full_name || lead.email || "this signup"} />
     </AppShell>
   );
 }
