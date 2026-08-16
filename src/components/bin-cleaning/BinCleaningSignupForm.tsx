@@ -25,6 +25,7 @@ import {
 } from "@/lib/bin-cleaning/password-policy";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+const STANDARD_PICKUP_WEEKDAYS = [1, 2, 3, 4, 5] as const;
 const baseInputClass = "mt-2 h-11 w-full rounded-lg border bg-white px-3 text-base text-zinc-950 shadow-sm outline-none focus:ring-2";
 const baseAreaClass = "mt-2 min-h-24 w-full rounded-lg border bg-white px-3 py-2 text-base text-zinc-950 shadow-sm outline-none focus:ring-2";
 
@@ -180,16 +181,15 @@ function firstServiceEstimate(form: FormState): { collection: Date; cleaning: Da
     const frequencyWeeks = Number(form.recyclingFrequencyWeeks || 0);
     if (!anchor || !frequencyWeeks) return null;
     let collection = anchor;
-    while (daysBetween(today, collection) <= 1) collection = addDays(collection, frequencyWeeks * 7);
+    while (daysBetween(today, collection) <= 0) collection = addDays(collection, frequencyWeeks * 7);
     return { collection, cleaning: addDays(collection, 1), deferred: collection.getTime() !== anchor.getTime() };
   }
   if (form.trashWeekday === "") return null;
   const weekday = Number(form.trashWeekday);
   let delta = (weekday - today.getDay() + 7) % 7;
-  if (delta === 0) delta = 7;
-  let collection = addDays(today, delta);
-  const deferred = delta <= 1;
-  if (deferred) collection = addDays(collection, 7);
+  const deferred = delta === 0;
+  if (deferred) delta = 7;
+  const collection = addDays(today, delta);
   return { collection, cleaning: addDays(collection, 1), deferred };
 }
 
@@ -246,8 +246,10 @@ function validateForSubmit(form: FormState): FieldErrors {
   else if (!/^\d{5}(?:-\d{4})?$/.test(form.postalCode.trim())) result.postalCode = "Enter a valid ZIP code.";
   if (form.trashBins + form.recyclingBins < 1) result.trashBins = "Choose at least one trash or recycling bin.";
   if (!form.trashWeekday) result.trashWeekday = "Trash pickup day is required.";
+  else if (!STANDARD_PICKUP_WEEKDAYS.includes(Number(form.trashWeekday) as 1 | 2 | 3 | 4 | 5)) result.trashWeekday = "Trash pickup day must be Monday through Friday.";
   if (form.recyclingBins > 0) {
     if (!form.recyclingWeekday) result.recyclingWeekday = "Recycling pickup day is required.";
+    else if (!STANDARD_PICKUP_WEEKDAYS.includes(Number(form.recyclingWeekday) as 1 | 2 | 3 | 4 | 5)) result.recyclingWeekday = "Recycling pickup day must be Monday through Friday.";
     if (!form.recyclingFrequencyWeeks) result.recyclingFrequencyWeeks = "Recycling frequency is required.";
     if (!form.recyclingAnchorCollectionDate) result.recyclingAnchorCollectionDate = "Next recycling pickup date is required.";
     const anchor = parseDateOnly(form.recyclingAnchorCollectionDate);
@@ -520,7 +522,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
     if (await saveDraft("submitted_unpaid")) await startCheckout();
   };
 
-  const weekdayOptions = WEEKDAYS.map((day, index) => <option value={index} key={day}>{day}</option>);
+  const weekdayOptions = STANDARD_PICKUP_WEEKDAYS.map((index) => <option value={index} key={WEEKDAYS[index]}>{WEEKDAYS[index]}</option>);
 
   return (
     <form className="space-y-8" noValidate onSubmit={(event) => { event.preventDefault(); void submit(); }}>
@@ -586,7 +588,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         </Section>
 
         <Section title="4. Trash and recycling schedule" className="border-blue-200 bg-blue-50">
-          <p className="mt-2 text-sm leading-relaxed text-blue-950">ADS cleaning is normally the calendar day after collection. When a recycling bin is included, the first service aligns to a recycling pickup so both carts should be empty. Every-other-week service needs an exact next pickup date as its anchor.</p>
+          <p className="mt-2 text-sm leading-relaxed text-blue-950">Normal recurring trash and recycling pickup days are Monday through Friday. ADS cleaning is normally the calendar day after collection. A customer who signs up by the calendar day before collection can start with that pickup; a signup on the collection day starts with the following eligible cycle. Holiday collection shifts are handled separately. When a recycling bin is included, the first service aligns to a recycling pickup so both carts should be empty. Every-other-week service needs an exact next pickup date as its anchor.</p>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <Field label="Trash pickup day" fieldKey="trashWeekday" error={fieldErrors.trashWeekday}><select value={form.trashWeekday} onChange={setText("trashWeekday")} className={inputClass(fieldErrors.trashWeekday)}><option value="">Select a day</option>{weekdayOptions}</select></Field>
             {form.recyclingBins > 0 ? <>
@@ -595,7 +597,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
               <Field label="Next scheduled recycling pickup date" fieldKey="recyclingAnchorCollectionDate" error={fieldErrors.recyclingAnchorCollectionDate} hint="The date must fall on the selected recycling weekday."><input type="date" value={form.recyclingAnchorCollectionDate} onChange={setText("recyclingAnchorCollectionDate")} className={inputClass(fieldErrors.recyclingAnchorCollectionDate)} /></Field>
             </> : null}
           </div>
-          {firstService ? <div className="mt-5 rounded-2xl border border-blue-300 bg-white p-4 text-sm text-blue-950"><p className="font-black">Estimated first cleaning: {dateLabel(firstService.cleaning)}</p><p className="mt-1">Based on an expected collection on {dateLabel(firstService.collection)}. {firstService.deferred ? "Because the nearest collection is today or tomorrow, the system conservatively starts on the following eligible collection cycle unless ADS staff confirms an earlier slot." : "This remains subject to route confirmation until automatic address-to-route assignment is live."}</p></div> : null}
+          {firstService ? <div className="mt-5 rounded-2xl border border-blue-300 bg-white p-4 text-sm text-blue-950"><p className="font-black">Estimated first cleaning: {dateLabel(firstService.cleaning)}</p><p className="mt-1">Based on an expected collection on {dateLabel(firstService.collection)}. {firstService.deferred ? "Because signup occurred on the normal collection day, that pickup is too late for onboarding, so the estimate starts with the following eligible collection cycle." : "This remains subject to route confirmation until automatic address-to-route assignment is live."}</p></div> : null}
         </Section>
 
         <Section title="5. Promo or referral code">
