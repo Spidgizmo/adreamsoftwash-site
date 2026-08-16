@@ -41,7 +41,7 @@ export async function SubscriptionStatusNotice() {
       <section role="status" className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-950">
         <p className="font-black">Cancellation scheduled</p>
         <p className="mt-1 text-sm leading-6">
-          Your recurring subscription is scheduled to end on {dateLabel(subscription.cancel_at)}. Service remains active through the paid period. Use <strong>Billing &amp; cancel</strong> above if you need to review the subscription in Stripe TEST billing.
+          Your recurring subscription is scheduled to end on {dateLabel(subscription.cancel_at)}. Service remains active through the paid period and the subscription will not renew after that period. Use <strong>Update payment method</strong> above if you need to change the card used before cancellation takes effect.
         </p>
       </section>
     );
