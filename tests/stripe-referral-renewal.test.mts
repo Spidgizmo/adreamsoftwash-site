@@ -68,5 +68,5 @@ test("Stripe form encoding can send empty strings so consumed discounts and meta
   assert.match(server, /value === undefined \|\| value === null/);
   assert.doesNotMatch(server, /value === ""/);
   assert.match(helper, /discounts:\s*""/);
-  assert.match(helper, /metadata\[ads_referral_credit_id\]\]:\s*""/);
+  assert.match(helper, /"metadata\[ads_referral_credit_id\]":\s*""/);
 });
