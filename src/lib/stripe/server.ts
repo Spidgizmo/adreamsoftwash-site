@@ -23,7 +23,7 @@ export function stripeTestConfig() {
 }
 
 function appendValue(params: URLSearchParams, key: string, value: unknown) {
-  if (value === undefined || value === null || value === "") return;
+  if (value === undefined || value === null) return;
   if (typeof value === "boolean") {
     params.append(key, value ? "true" : "false");
     return;
