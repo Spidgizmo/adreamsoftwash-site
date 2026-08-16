@@ -60,7 +60,7 @@ async function preparedSignupIdentity(customer: CustomerIdentity) {
 async function activateIdentity(customer: CustomerIdentity, authUserId: string) {
   await serviceRoleDatabaseRequest("user_profiles?on_conflict=id", {
     method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
     body: JSON.stringify({
       id: authUserId,
       display_name: customer.full_name,
