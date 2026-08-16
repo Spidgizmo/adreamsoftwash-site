@@ -21,6 +21,13 @@ function config() {
   return { url, key };
 }
 
+async function parseDatabaseResponse<T>(response: Response) {
+  if (response.status === 204) return [] as T;
+  const body = await response.text();
+  if (!body.trim()) return [] as T;
+  return JSON.parse(body) as T;
+}
+
 export async function authRequest(path: string, init: RequestInit = {}) {
   const { url, key } = config();
   return fetch(`${url}/auth/v1/${path}`, {
@@ -59,7 +66,7 @@ export async function databaseRequest<T>(
       `Database request failed (${response.status}): ${await response.text()}`,
     );
   }
-  return response.status === 204 ? ([] as T) : (await response.json()) as T;
+  return parseDatabaseResponse<T>(response);
 }
 
 /**
@@ -89,7 +96,7 @@ export async function serviceRoleDatabaseRequest<T>(
   if (!response.ok) {
     throw new Error(`Server database request failed (${response.status})`);
   }
-  return response.status === 204 ? ([] as T) : (await response.json()) as T;
+  return parseDatabaseResponse<T>(response);
 }
 
 async function profileRole(userId: string, token?: string): Promise<AppRole> {
