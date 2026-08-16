@@ -19,6 +19,10 @@ import {
   normalizeBinCleaningReferralCode,
   type PlanId,
 } from "@/lib/bin-cleaning-plans";
+import {
+  PORTAL_PASSWORD_REQUIREMENTS,
+  portalPasswordErrors,
+} from "@/lib/bin-cleaning/password-policy";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 const baseInputClass = "mt-2 h-11 w-full rounded-lg border bg-white px-3 text-base text-zinc-950 shadow-sm outline-none focus:ring-2";
@@ -34,6 +38,8 @@ type FormState = {
   fullName: string;
   email: string;
   phone: string;
+  password: string;
+  confirmPassword: string;
   line1: string;
   line2: string;
   city: string;
@@ -111,6 +117,8 @@ function initialForm(props: SignupFormProps): FormState {
     fullName: "",
     email: "",
     phone: "",
+    password: "",
+    confirmPassword: "",
     line1: "",
     line2: "",
     city: "Toledo",
@@ -227,6 +235,10 @@ function validateForSubmit(form: FormState): FieldErrors {
   if (!form.fullName.trim()) result.fullName = "Full name is required.";
   if (!form.email.trim()) result.email = "Email is required.";
   if (!form.phone.trim()) result.phone = "Phone number is required.";
+  const passwordIssues = portalPasswordErrors(form.password);
+  if (passwordIssues.length) result.password = PORTAL_PASSWORD_REQUIREMENTS;
+  if (!form.confirmPassword) result.confirmPassword = "Confirm your password.";
+  else if (form.confirmPassword !== form.password) result.confirmPassword = "Passwords do not match.";
   if (!form.line1.trim()) result.line1 = "Service address is required.";
   if (!form.city.trim()) result.city = "City is required.";
   if (!form.region.trim()) result.region = "State is required.";
@@ -255,6 +267,7 @@ function serverErrorsToFields(items: readonly string[]): FieldErrors {
   for (const item of items) {
     const lower = item.toLowerCase();
     if (lower.includes("referral code")) mapped.referralCode = item;
+    else if (lower.includes("password")) mapped.password = item;
     else if (lower.includes("email service permission")) mapped.emailAllowed = item;
     else if (lower.includes("text-message service permission")) mapped.smsAllowed = item;
     else if (lower.includes("phone-call service permission")) mapped.phoneAllowed = item;
@@ -347,7 +360,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         lastSavedFingerprint.current = "";
         setSubmitted(true);
         setSaveState("submitted");
-        setMessage("Signup saved. Stripe TEST checkout is the next step; live payments remain blocked.");
+        setMessage("Signup and portal login are prepared. Stripe TEST checkout is the next step; live payments remain blocked.");
       } else {
         lastSavedFingerprint.current = fingerprint;
         if (status !== "abandoned") {
@@ -364,6 +377,47 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       return false;
     } finally {
       savingRef.current = false;
+    }
+  }, []);
+
+  const preparePortalAccount = useCallback(async () => {
+    const identity = leadRef.current;
+    if (!identity) {
+      setSaveState("error");
+      setMessage("Save the signup before creating the portal account.");
+      return false;
+    }
+    setSaveState("saving");
+    setMessage("Preparing your customer portal sign-in…");
+    try {
+      const response = await fetch("/api/bin-cleaning/signup-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          leadId: identity.id,
+          editToken: identity.editToken,
+          password: formRef.current.password,
+        }),
+      });
+      const result = await response.json() as { ok?: boolean; error?: string; errors?: string[] };
+      if (!response.ok || !result.ok) {
+        const serverErrors = result.errors ?? [];
+        setSaveState("error");
+        setMessage(result.error || "The customer portal sign-in could not be prepared.");
+        setErrors(serverErrors);
+        const mapped = serverErrorsToFields(serverErrors);
+        if (Object.keys(mapped).length) setFieldErrors((current) => ({ ...current, ...mapped }));
+        return false;
+      }
+      setErrors([]);
+      setSaveState("saved");
+      setMessage("Portal sign-in prepared. It stays disabled until Stripe confirms payment.");
+      return true;
+    } catch {
+      setSaveState("error");
+      setMessage("The portal account service could not be reached.");
+      return false;
     }
   }, []);
 
@@ -402,7 +456,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
     const next = { ...formRef.current, [key]: event.target.value } as FormState;
     updateForm(next);
     if (fieldErrors[key]) setFieldErrors((current) => { const copy = { ...current }; delete copy[key]; return copy; });
-    if (!submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
+    if (key !== "password" && key !== "confirmPassword" && !submittedRef.current) window.setTimeout(() => void saveDraft("incomplete"), 700);
   };
   const setChecked = (key: BooleanKey) => (event: ChangeEvent<HTMLInputElement>) => {
     const next = { ...formRef.current, [key]: event.target.checked } as FormState;
@@ -461,6 +515,8 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       window.setTimeout(() => document.querySelector(`[data-field="${first}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
       return;
     }
+    if (!(await saveDraft("incomplete"))) return;
+    if (!(await preparePortalAccount())) return;
     if (await saveDraft("submitted_unpaid")) await startCheckout();
   };
 
@@ -476,7 +532,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       {submitted ? (
         <section className="rounded-3xl border-2 border-emerald-300 bg-emerald-50 p-6 shadow-sm">
           <h2 className="text-xl font-black text-emerald-950">Signup locked and ready for TEST payment</h2>
-          <p className="mt-2 text-sm text-emerald-950">The CRM record cannot be edited after submission. Payment still has to succeed and a signed Stripe webhook must be verified before service is activated.</p>
+          <p className="mt-2 text-sm text-emerald-950">Your portal sign-in is prepared but remains disabled until payment succeeds. A signed Stripe webhook must be verified before the customer account and service are activated.</p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={() => void startCheckout()} disabled={!lead || saveState === "checkout"} className="rounded-xl bg-brand-700 px-5 py-3 font-black text-white disabled:bg-zinc-400">{saveState === "checkout" ? "Opening Stripe TEST checkout…" : "Retry secure Stripe TEST checkout"}</button>
             <button type="button" onClick={startAnother} className="rounded-xl border border-zinc-400 bg-white px-5 py-3 font-black text-zinc-900">Start another fictional signup</button>
@@ -487,18 +543,31 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
       <fieldset disabled={submitted} className="space-y-8 disabled:opacity-60">
         <Section title="1. Contact and service address">
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <Field label="Full name" fieldKey="fullName" error={fieldErrors.fullName}><input value={form.fullName} onChange={setText("fullName")} className={inputClass(fieldErrors.fullName)} autoComplete="off" /></Field>
-            <Field label="Email address" fieldKey="email" error={fieldErrors.email} hint="Enter the test email you want to use."><input value={form.email} onChange={setText("email")} className={inputClass(fieldErrors.email)} autoComplete="off" /></Field>
-            <Field label="Mobile number" fieldKey="phone" error={fieldErrors.phone} hint="Use fictional test contact information only."><input type="tel" value={form.phone} onChange={setText("phone")} className={inputClass(fieldErrors.phone)} autoComplete="off" /></Field>
-            <Field label="Street address" fieldKey="line1" error={fieldErrors.line1}><input value={form.line1} onChange={setText("line1")} className={inputClass(fieldErrors.line1)} autoComplete="off" /></Field>
-            <Field label="Apartment or unit"><input value={form.line2} onChange={setText("line2")} className={inputClass()} autoComplete="off" /></Field>
-            <Field label="City" fieldKey="city" error={fieldErrors.city}><input value={form.city} onChange={setText("city")} className={inputClass(fieldErrors.city)} autoComplete="off" /></Field>
-            <Field label="State" fieldKey="region" error={fieldErrors.region}><input value={form.region} onChange={setText("region")} className={inputClass(fieldErrors.region)} maxLength={2} autoComplete="off" /></Field>
-            <Field label="ZIP code" fieldKey="postalCode" error={fieldErrors.postalCode}><input value={form.postalCode} onChange={setText("postalCode")} className={inputClass(fieldErrors.postalCode)} inputMode="numeric" autoComplete="off" /></Field>
+            <Field label="Full name" fieldKey="fullName" error={fieldErrors.fullName}><input value={form.fullName} onChange={setText("fullName")} className={inputClass(fieldErrors.fullName)} autoComplete="name" /></Field>
+            <Field label="Email address" fieldKey="email" error={fieldErrors.email} hint="This email becomes the customer portal sign-in."><input type="email" value={form.email} onChange={setText("email")} className={inputClass(fieldErrors.email)} autoComplete="email" /></Field>
+            <Field label="Mobile number" fieldKey="phone" error={fieldErrors.phone} hint="Use fictional test contact information only."><input type="tel" value={form.phone} onChange={setText("phone")} className={inputClass(fieldErrors.phone)} autoComplete="tel" /></Field>
+            <Field label="Street address" fieldKey="line1" error={fieldErrors.line1}><input value={form.line1} onChange={setText("line1")} className={inputClass(fieldErrors.line1)} autoComplete="street-address" /></Field>
+            <Field label="Apartment or unit"><input value={form.line2} onChange={setText("line2")} className={inputClass()} autoComplete="address-line2" /></Field>
+            <Field label="City" fieldKey="city" error={fieldErrors.city}><input value={form.city} onChange={setText("city")} className={inputClass(fieldErrors.city)} autoComplete="address-level2" /></Field>
+            <Field label="State" fieldKey="region" error={fieldErrors.region}><input value={form.region} onChange={setText("region")} className={inputClass(fieldErrors.region)} maxLength={2} autoComplete="address-level1" /></Field>
+            <Field label="ZIP code" fieldKey="postalCode" error={fieldErrors.postalCode}><input value={form.postalCode} onChange={setText("postalCode")} className={inputClass(fieldErrors.postalCode)} inputMode="numeric" autoComplete="postal-code" /></Field>
           </div>
         </Section>
 
-        <Section title="2. Plan and bins">
+        <Section title="2. Create your customer portal sign-in" className="border-brand-200 bg-brand-50">
+          <p className="mt-2 text-sm leading-relaxed text-zinc-700">You are creating the login for the same customer account used for billing, service history, referrals, photos, bin changes, and cancellation. The login stays inactive until Stripe confirms payment.</p>
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <Field label="Create password" fieldKey="password" error={fieldErrors.password} hint={PORTAL_PASSWORD_REQUIREMENTS}>
+              <input type="password" value={form.password} onChange={setText("password")} className={inputClass(fieldErrors.password)} autoComplete="new-password" />
+            </Field>
+            <Field label="Confirm password" fieldKey="confirmPassword" error={fieldErrors.confirmPassword}>
+              <input type="password" value={form.confirmPassword} onChange={setText("confirmPassword")} className={inputClass(fieldErrors.confirmPassword)} autoComplete="new-password" />
+            </Field>
+          </div>
+          <p className="mt-4 text-xs font-semibold text-zinc-600">Your password is sent only to Supabase Auth to create the login. It is not saved in the ADS signup lead or CRM record.</p>
+        </Section>
+
+        <Section title="3. Plan and bins">
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {PUBLIC_BIN_CLEANING_PLANS.map((item) => (
               <label key={item.id} className={`rounded-2xl border p-4 ${form.planId === item.id ? "border-brand-700 bg-brand-50 ring-2 ring-brand-200" : "border-zinc-200"} ${item.status === "future" ? "opacity-60" : "cursor-pointer"}`}>
@@ -516,7 +585,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           <p className={`mt-3 text-sm font-bold ${binCount > MAX_BIN_COUNT || binCount < 1 ? "text-red-700" : "text-zinc-700"}`}>Total: {binCount} {binCount === 1 ? "bin" : "bins"}. The staging maximum is {MAX_BIN_COUNT}.</p>
         </Section>
 
-        <Section title="3. Trash and recycling schedule" className="border-blue-200 bg-blue-50">
+        <Section title="4. Trash and recycling schedule" className="border-blue-200 bg-blue-50">
           <p className="mt-2 text-sm leading-relaxed text-blue-950">ADS cleaning is normally the calendar day after collection. When a recycling bin is included, the first service aligns to a recycling pickup so both carts should be empty. Every-other-week service needs an exact next pickup date as its anchor.</p>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <Field label="Trash pickup day" fieldKey="trashWeekday" error={fieldErrors.trashWeekday}><select value={form.trashWeekday} onChange={setText("trashWeekday")} className={inputClass(fieldErrors.trashWeekday)}><option value="">Select a day</option>{weekdayOptions}</select></Field>
@@ -529,7 +598,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           {firstService ? <div className="mt-5 rounded-2xl border border-blue-300 bg-white p-4 text-sm text-blue-950"><p className="font-black">Estimated first cleaning: {dateLabel(firstService.cleaning)}</p><p className="mt-1">Based on an expected collection on {dateLabel(firstService.collection)}. {firstService.deferred ? "Because the nearest collection is today or tomorrow, the system conservatively starts on the following eligible collection cycle unless ADS staff confirms an earlier slot." : "This remains subject to route confirmation until automatic address-to-route assignment is live."}</p></div> : null}
         </Section>
 
-        <Section title="4. Promo or referral code">
+        <Section title="5. Promo or referral code">
           <p className="mt-2 text-sm text-zinc-700">Use one or the other. They never stack. New-customer promotion eligibility is tied to customer and service-address history. Referral discounts appear only after the server confirms a real active referral code.</p>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <Field label="Promo code"><input value={form.promoCode} disabled={Boolean(normalizedReferral)} onChange={setPromoCode} className={inputClass()} autoCapitalize="characters" autoComplete="off" /></Field>
@@ -542,7 +611,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           {promotion && promotion.status !== "empty" && promotion.status !== "applied" ? <p className="mt-3 text-sm font-bold text-amber-800">That promo is not recognized or is not eligible for this plan and bin count.</p> : null}
         </Section>
 
-        <Section title="5. Return, access, and safety details">
+        <Section title="6. Return, access, and safety details">
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <Field label="Designated bin-return location" fieldKey="preferredReturnLocation" error={fieldErrors.preferredReturnLocation} hint="Standard service includes returning cleaned bins to this chosen location."><input value={form.preferredReturnLocation} onChange={setText("preferredReturnLocation")} className={inputClass(fieldErrors.preferredReturnLocation)} /></Field>
             <Field label="Gate information"><input value={form.gateInformation} onChange={setText("gateInformation")} className={inputClass()} /></Field>
@@ -552,7 +621,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           </div>
         </Section>
 
-        <Section title="6. Service communications, privacy, and confirmation">
+        <Section title="7. Service communications, privacy, and confirmation">
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-blue-950">
             <p className="font-black">Service communications are part of ADS Bin Cleaning.</p>
             <p className="mt-2">We may need to contact you about scheduling, weather or service changes, access problems, billing or account issues, questions about your bins, and other information needed to complete your service. After a completed visit, ADS plans to send before-and-after service photos as part of the completion notice.</p>
@@ -588,7 +657,7 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
         {message ? <div role={saveState === "error" ? "alert" : "status"} className={`rounded-2xl p-4 text-sm font-bold ${saveState === "error" ? "bg-red-100 text-red-900" : saveState === "submitted" || saveState === "checkout" ? "bg-emerald-100 text-emerald-950" : "bg-blue-100 text-blue-950"}`}><p>{message}</p>{errors.length ? <ul className="mt-2 list-disc space-y-1 pl-5">{errors.map((error) => <li key={error}>{error}</li>)}</ul> : null}</div> : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button type="submit" disabled={saveState === "saving" || saveState === "checkout" || submitted} className="rounded-xl bg-brand-700 px-6 py-4 text-base font-black text-white shadow hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-zinc-400">{saveState === "saving" ? "Saving signup…" : saveState === "checkout" ? "Opening Stripe TEST checkout…" : submitted ? "Submitted" : "Submit & continue to Stripe TEST checkout"}</button>
+          <button type="submit" disabled={saveState === "saving" || saveState === "checkout" || submitted} className="rounded-xl bg-brand-700 px-6 py-4 text-base font-black text-white shadow hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-zinc-400">{saveState === "saving" ? "Preparing account…" : saveState === "checkout" ? "Opening Stripe TEST checkout…" : submitted ? "Submitted" : "Create account & continue to Stripe TEST checkout"}</button>
           <span className="text-sm font-semibold text-zinc-600">{saveState === "saved" ? "Draft saved" : lead ? "CRM draft created" : "A fresh signup starts each time this page is opened"}</span>
         </div>
       </fieldset>
