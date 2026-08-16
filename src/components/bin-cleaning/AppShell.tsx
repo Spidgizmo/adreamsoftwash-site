@@ -3,7 +3,7 @@ import Link from "next/link";
 export function TestBanner() {
   return (
     <div className="bg-amber-100 px-4 py-2 text-center text-sm font-bold text-amber-950">
-      TEST ENVIRONMENT · FICTIONAL DATA ONLY · NO PAYMENTS OR MESSAGES
+      TEST ENVIRONMENT · FICTIONAL DATA ONLY · STRIPE TEST PAYMENTS ONLY · NO LIVE MESSAGES
     </div>
   );
 }
@@ -61,6 +61,16 @@ export function AppShell({
                 {link.label}
               </Link>
             ))}
+            {area === "Customer portal" && (
+              <form action="/api/bin-cleaning/billing-portal" method="post">
+                <button
+                  className="rounded-lg border border-brand-300 bg-brand-50 px-3 py-2 font-black text-brand-800"
+                  type="submit"
+                >
+                  Billing &amp; cancel
+                </button>
+              </form>
+            )}
           </nav>
           <form action="/api/bin-cleaning/auth/logout" method="post">
             <button
