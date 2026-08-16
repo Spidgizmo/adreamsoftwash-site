@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isValidPortalPassword } from "@/lib/bin-cleaning/password-policy";
 import {
   authRequest,
   databaseRequest,
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     typeof email !== "string" ||
     typeof password !== "string" ||
     !/^\S+@\S+\.\S+$/.test(email) ||
-    password.length < 12
+    !isValidPortalPassword(password)
   ) {
     return NextResponse.redirect(new URL("/bin-cleaning/login?error=invalid", request.url), 303);
   }
