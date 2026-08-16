@@ -12,16 +12,26 @@ type CustomerIdentity = {
 type AuthUser = { id: string; email?: string };
 type AuthUsersResponse = { users?: AuthUser[] };
 
+function validPortalPassword(password: string | undefined) {
+  return Boolean(
+    password &&
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /[^A-Za-z0-9]/.test(password),
+  );
+}
+
 function testAuthConfiguration() {
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV?.trim();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const password = process.env.ADS_TEST_USER_PASSWORD;
   if (!['test', 'staging'].includes(appEnv || '')) throw new Error('Paid test Auth provisioning is allowed only in test or staging');
-  if (!supabaseUrl || !serviceRoleKey || !password || password.length < 8) {
+  if (!supabaseUrl || !serviceRoleKey || !validPortalPassword(password)) {
     throw new Error('Paid test Auth provisioning is not configured');
   }
-  return { supabaseUrl, serviceRoleKey, password };
+  return { supabaseUrl, serviceRoleKey, password: password as string };
 }
 
 async function findExistingAuthUser(supabaseUrl: string, serviceRoleKey: string, email: string) {
