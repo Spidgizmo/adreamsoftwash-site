@@ -18,6 +18,10 @@ export function PermanentErasePanel({ kind, id, name }: PermanentErasePanelProps
           signup, portal-auth, service, billing-reference, referral, and history data
           that belongs to this record. This is not the same as deactivating an account.
         </p>
+        <p className="mt-2 font-semibold">
+          If this record has a Stripe TEST customer, Stripe billing is stopped first.
+          If Stripe cleanup fails, ADS data is not erased.
+        </p>
         <form action="/api/bin-cleaning/crm/permanent-delete" method="post" className="mt-4 max-w-md space-y-3">
           <input type="hidden" name="kind" value={kind} />
           <input type="hidden" name="id" value={id} />
