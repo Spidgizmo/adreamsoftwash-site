@@ -8,6 +8,7 @@ import { authRequest } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const TEST_RECOVERY_ACCESS_COOKIE = "ads-test-recovery-access";
 const HEADERS = {
   "Cache-Control": "no-store, max-age=0",
   Pragma: "no-cache",
@@ -28,7 +29,11 @@ export async function POST(request: NextRequest) {
   const input = body && typeof body === "object" && !Array.isArray(body)
     ? body as Record<string, unknown>
     : {};
-  const accessToken = typeof input.accessToken === "string" ? input.accessToken.trim() : "";
+  const suppliedAccessToken = typeof input.accessToken === "string" ? input.accessToken.trim() : "";
+  const simulatedAccessToken = ["test", "staging"].includes(process.env.NEXT_PUBLIC_APP_ENV?.trim() || "")
+    ? request.cookies.get(TEST_RECOVERY_ACCESS_COOKIE)?.value || ""
+    : "";
+  const accessToken = suppliedAccessToken || simulatedAccessToken;
   const password = typeof input.password === "string" ? input.password : "";
   const confirmPassword = typeof input.confirmPassword === "string" ? input.confirmPassword : "";
 
@@ -74,5 +79,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ ok: true }, { headers: HEADERS });
+  const response = NextResponse.json({ ok: true }, { headers: HEADERS });
+  if (simulatedAccessToken) response.cookies.delete(TEST_RECOVERY_ACCESS_COOKIE);
+  return response;
 }
