@@ -35,6 +35,9 @@ function appBaseUrl() {
   ).replace(/\/$/, "");
 }
 
+const noCashValueCopy =
+  "Referral rewards are promotional service credits only. They may reduce eligible future ADS Monthly invoices but cannot be paid out, withdrawn, exchanged for cash, refunded as cash, or transferred to another account.";
+
 export function referralNotificationCopy(row: Pick<OutboxRow, "kind" | "payload">): NotificationCopy {
   const portalUrl = `${appBaseUrl()}${text(row.payload, "portalPath", "/bin-cleaning/portal")}`;
   const recipientFirstName = text(row.payload, "recipientFirstName", "there");
@@ -55,7 +58,9 @@ export function referralNotificationCopy(row: Pick<OutboxRow, "kind" | "payload"
         `Your own permanent referral code is ${code}. You can always find it, your referral link, and your reward activity in your customer portal:`,
         portalUrl,
         "",
-        `Just like ${referrerFirstName}, your first qualified referral earns ${firstPercent}% off one eligible Monthly base cleaning. Each later qualified referral earns ${laterPercent}% off one eligible Monthly base cleaning. Rewards are applied one per eligible Monthly invoice after the referred Monthly customer successfully pays.`,
+        `Just like ${referrerFirstName}, your first qualified referral earns ${firstPercent}% off your entire next eligible Monthly bin-cleaning charge. Each later qualified referral earns ${laterPercent}% off one eligible Monthly bin-cleaning charge. Rewards are applied one per eligible Monthly invoice after the referred Monthly customer successfully pays.`,
+        "",
+        noCashValueCopy,
         "",
         "Thanks for choosing ADS Bin Cleaning.",
       ].join("\n"),
@@ -72,6 +77,8 @@ export function referralNotificationCopy(row: Pick<OutboxRow, "kind" | "payload"
         "",
         "Your referral reward is being added to your account automatically. You do not have to wait for their first cleaning to earn it.",
         "",
+        noCashValueCopy,
+        "",
         `You can follow the reward in your customer portal: ${portalUrl}`,
       ].join("\n"),
     };
@@ -86,6 +93,8 @@ export function referralNotificationCopy(row: Pick<OutboxRow, "kind" | "payload"
       `${referredFirstName}'s referral has qualified. Your ${percent}% reward is now available in your customer portal.`,
       "",
       "ADS applies one qualified referral reward per eligible Monthly invoice. Any additional qualified rewards stay queued for later eligible invoices.",
+      "",
+      noCashValueCopy,
       "",
       `See your referral activity and credits: ${portalUrl}`,
     ].join("\n"),
