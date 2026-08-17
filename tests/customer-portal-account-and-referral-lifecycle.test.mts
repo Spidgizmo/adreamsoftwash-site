@@ -78,7 +78,7 @@ test("customer portal exposes payment, cancellation/resume, and a detailed refer
   assert.match(ledger, /Rewards waiting/);
   assert.match(ledger, /Rewards used/);
   assert.match(ledger, /successfully pays/);
-  assert.match(ledger, /rejected.*reversed/s);
+  assert.match(ledger, /rejected[\s\S]*reversed/);
 });
 
 test("referral lifecycle qualifies on successful payment, queues tiered rewards, and creates idempotent notifications", async () => {
