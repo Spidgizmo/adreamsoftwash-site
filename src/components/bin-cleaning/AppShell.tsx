@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CrmCancellationAlerts } from "@/components/bin-cleaning/CrmCancellationAlerts";
+import { CustomerBillingActions } from "@/components/bin-cleaning/CustomerBillingActions";
 import { ReferralLedger } from "@/components/bin-cleaning/ReferralLedger";
 import { SubscriptionStatusNotice } from "@/components/bin-cleaning/SubscriptionStatusNotice";
 
@@ -63,28 +65,7 @@ export function AppShell({
                 {link.label}
               </Link>
             ))}
-            {area === "Customer portal" && (
-              <>
-                <form action="/api/bin-cleaning/billing-portal" method="post">
-                  <input type="hidden" name="action" value="payment_method" />
-                  <button
-                    className="rounded-lg border border-brand-300 bg-brand-50 px-3 py-2 font-black text-brand-800"
-                    type="submit"
-                  >
-                    Update payment method
-                  </button>
-                </form>
-                <form action="/api/bin-cleaning/billing-portal" method="post">
-                  <input type="hidden" name="action" value="cancel" />
-                  <button
-                    className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 font-black text-red-800"
-                    type="submit"
-                  >
-                    Cancel service
-                  </button>
-                </form>
-              </>
-            )}
+            {area === "Customer portal" && <CustomerBillingActions />}
           </nav>
           <form action="/api/bin-cleaning/auth/logout" method="post">
             <button
@@ -95,6 +76,7 @@ export function AppShell({
             </button>
           </form>
         </div>
+        {area === "Internal CRM" && <CrmCancellationAlerts />}
         {area === "Customer portal" && (
           <>
             <SubscriptionStatusNotice />
