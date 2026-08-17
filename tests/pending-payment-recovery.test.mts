@@ -87,5 +87,5 @@ test("scheduled processor handles payment reminders with the existing protected 
   assert.match(processor, /processSignupPaymentReminderOutbox/);
   assert.match(processor, /paymentReminders/);
   assert.match(processor, /CRON_SECRET/);
-  assert.match(vercel, /17 \* \* \* \*/);
+  assert.match(vercel, /17 6 \* \* \*/);
 });
