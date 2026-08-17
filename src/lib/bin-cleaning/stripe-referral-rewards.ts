@@ -33,7 +33,7 @@ async function armReward(reward: RewardToArm) {
   if (!/^sub_/.test(reward.stripe_subscription_id)) {
     throw new Error("Referral reward Stripe subscription is invalid");
   }
-  if (!/^ADSREF-[0-9a-f]{32}$/i.test(reward.stripe_coupon_id)) {
+  if (!/^ADSREF-[0-9a-f]{32}-[0-9]{1,10}$/i.test(reward.stripe_coupon_id)) {
     throw new Error("Referral reward Stripe coupon id is invalid");
   }
 
@@ -44,12 +44,13 @@ async function armReward(reward: RewardToArm) {
       duration: "once",
       amount_off: reward.amount_cents,
       currency: "usd",
-      name: `ADS Referral Reward — ${reward.reward_percent}%`,
+      name: `ADS Referral Reward — ${reward.reward_percent}% of Monthly bin cleaning`,
       "metadata[ads_referral_credit_id]": reward.credit_id,
       "metadata[ads_referral_reward_percent]": reward.reward_percent,
+      "metadata[ads_referral_reward_cents]": reward.amount_cents,
       "metadata[ads_environment]": "test",
     },
-    `ads-referral-credit:${reward.credit_id}:coupon`,
+    `ads-referral-credit:${reward.credit_id}:${reward.amount_cents}:coupon`,
   );
   if (coupon.livemode || coupon.id !== reward.stripe_coupon_id) {
     throw new Error("Stripe returned an unsafe referral coupon");
@@ -61,10 +62,11 @@ async function armReward(reward: RewardToArm) {
       "discounts[0][coupon]": reward.stripe_coupon_id,
       "metadata[ads_referral_credit_id]": reward.credit_id,
       "metadata[ads_referral_reward_percent]": reward.reward_percent,
+      "metadata[ads_referral_reward_cents]": reward.amount_cents,
       "metadata[ads_referral_coupon_id]": reward.stripe_coupon_id,
       "metadata[ads_environment]": "test",
     },
-    `ads-referral-credit:${reward.credit_id}:subscription`,
+    `ads-referral-credit:${reward.credit_id}:${reward.amount_cents}:subscription`,
   );
   if (subscription.livemode || subscription.id !== reward.stripe_subscription_id) {
     throw new Error("Stripe returned an unsafe referral subscription update");
@@ -105,6 +107,7 @@ export async function clearStripeReferralRewardState(subscriptionId: string, cre
       discounts: "",
       "metadata[ads_referral_credit_id]": "",
       "metadata[ads_referral_reward_percent]": "",
+      "metadata[ads_referral_reward_cents]": "",
       "metadata[ads_referral_coupon_id]": "",
     },
     `ads-referral-credit:${creditId}:clear`,
