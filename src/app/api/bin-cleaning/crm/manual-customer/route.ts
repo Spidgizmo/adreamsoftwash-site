@@ -100,9 +100,9 @@ export async function POST(request: NextRequest) {
     fieldErrors.trash_bins = "At least one total bin is required.";
     fieldErrors.recycling_bins = "At least one total bin is required.";
   }
-  if (!Number.isInteger(trashWeekday) || trashWeekday < 0 || trashWeekday > 6) fieldErrors.trash_weekday = "Choose the trash pickup day.";
+  if (!Number.isInteger(trashWeekday) || trashWeekday < 1 || trashWeekday > 5) fieldErrors.trash_weekday = "Choose a Monday through Friday trash pickup day.";
   if (recyclingBins > 0) {
-    if (!Number.isInteger(recyclingWeekday) || recyclingWeekday < 0 || recyclingWeekday > 6) fieldErrors.recycling_weekday = "Choose the recycling pickup day.";
+    if (!Number.isInteger(recyclingWeekday) || recyclingWeekday < 1 || recyclingWeekday > 5) fieldErrors.recycling_weekday = "Choose a Monday through Friday recycling pickup day.";
     if (![1, 2].includes(recyclingFrequencyWeeks)) fieldErrors.recycling_frequency_weeks = "Choose the recycling frequency.";
     if (recyclingAnchor) {
       const actualWeekday = dateWeekday(recyclingAnchor);
