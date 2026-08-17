@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/bin-cleaning/referrals/process",
-      "schedule": "17 * * * *"
+      "schedule": "17 6 * * *"
     }
   ]
 }
