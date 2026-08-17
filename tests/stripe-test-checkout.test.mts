@@ -63,6 +63,7 @@ test("checkout uses trusted lead identity, canonical pricing, and Stripe idempot
   assert.match(source, /subscription_data\[metadata\]/);
   assert.match(source, /payment_intent_data\[metadata\]/);
   assert.match(source, /session\.livemode/);
+  assert.doesNotMatch(source, /payment_method_collection/);
   assert.doesNotMatch(source, /input\.amount/);
   assert.doesNotMatch(source, /input\.planId/);
   assert.doesNotMatch(source, /input\.binCount/);
