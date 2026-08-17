@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { CrmCancellationAlerts } from "@/components/bin-cleaning/CrmCancellationAlerts";
 import { CustomerBillingActions } from "@/components/bin-cleaning/CustomerBillingActions";
-import { MarketingPreferenceControl } from "@/components/bin-cleaning/MarketingPreferenceControl";
-import { ReferralLedger } from "@/components/bin-cleaning/ReferralLedger";
 import { SubscriptionStatusNotice } from "@/components/bin-cleaning/SubscriptionStatusNotice";
 
 export function TestBanner() {
@@ -79,13 +77,7 @@ export function AppShell({
           </form>
         </div>
         {area === "Internal CRM" && <CrmCancellationAlerts />}
-        {area === "Customer portal" && (
-          <>
-            <SubscriptionStatusNotice />
-            <MarketingPreferenceControl />
-            <ReferralLedger />
-          </>
-        )}
+        {area === "Customer portal" && <SubscriptionStatusNotice />}
         {children}
       </main>
     </>
