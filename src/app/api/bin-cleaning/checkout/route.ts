@@ -8,6 +8,7 @@ import {
 import { serviceRoleDatabaseRequest } from "@/lib/supabase/server";
 import {
   ensureStripeTestCouponForDiscount,
+  stripeDeleteTestCustomer,
   stripePost,
   stripeTestConfig,
 } from "@/lib/stripe/server";
@@ -40,6 +41,7 @@ type PreparedLead = {
 
 type StripeCustomer = { id: string };
 type StripeSession = { id: string; url: string | null; livemode: boolean };
+type FailedCheckout = { stripe_customer_id: string | null };
 
 function asText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -121,6 +123,25 @@ export async function POST(request: NextRequest) {
     if (!coupon) {
       return NextResponse.json({ ok: false, error: "The Stripe TEST discount could not be prepared." }, { status: 502, headers: RESPONSE_HEADERS });
     }
+  }
+
+  // Failed checkout creation can leave a TEST customer behind even though no ADS
+  // customer was activated. Clear those stale Stripe customers before retrying the
+  // same submitted lead so test failures do not accumulate orphan billing records.
+  const staleAttempts = await serviceRoleDatabaseRequest<FailedCheckout[]>(
+    `stripe_checkout_attempts?signup_lead_id=eq.${lead.id}&status=eq.canceled&livemode=eq.false&stripe_customer_id=not.is.null&select=stripe_customer_id&order=created_at.desc&limit=5`,
+  ).catch(() => []);
+  try {
+    for (const stale of staleAttempts) {
+      if (stale.stripe_customer_id?.startsWith("cus_")) {
+        await stripeDeleteTestCustomer(stale.stripe_customer_id);
+      }
+    }
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "The previous failed Stripe TEST checkout could not be cleaned up safely. Try again shortly." },
+      { status: 502, headers: RESPONSE_HEADERS },
+    );
   }
 
   const checkoutMode = plan.chargeType === "recurring" ? "subscription" : "payment";
