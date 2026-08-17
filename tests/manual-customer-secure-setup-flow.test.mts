@@ -74,6 +74,22 @@ test("secure setup credential stays in URL fragment and is verified server-side"
   assert.match(page, /referrer: "no-referrer"/);
 });
 
+test("customer can finish the required recycling-cycle anchor before payment", async () => {
+  const [component, finalize] = await Promise.all([
+    readFile(setupComponentPath, "utf8"),
+    readFile(finalizePath, "utf8"),
+  ]);
+  assert.match(component, /Next recycling pickup date \*/);
+  assert.match(component, /setRecyclingAnchorCollectionDate/);
+  assert.match(component, /dateWeekday\(recyclingAnchorCollectionDate\)/);
+  assert.match(component, /recyclingAnchorCollectionDate,/);
+  assert.match(finalize, /requestedRecyclingAnchor/);
+  assert.match(finalize, /const recyclingAnchor = requestedRecyclingAnchor \|\| lead\.recycling_anchor_collection_date/);
+  assert.match(finalize, /dateWeekday\(recyclingAnchor\)/);
+  assert.match(finalize, /recycling_anchor_collection_date: recyclingBins > 0 \? recyclingAnchor : null/);
+  assert.match(finalize, /status=eq\.incomplete/);
+});
+
 test("customer creates portal identity, accepts required terms, then starts existing Stripe checkout", async () => {
   const [component, finalize] = await Promise.all([
     readFile(setupComponentPath, "utf8"),
