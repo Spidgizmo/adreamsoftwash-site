@@ -67,9 +67,22 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
+      const authError = await response.json().catch(() => null) as { code?: string; message?: string } | null;
+      if (response.status === 422 && authError?.code === "same_password") {
+        return NextResponse.json(
+          { ok: false, error: "Choose a new password that is different from your current password." },
+          { status: 400, headers: HEADERS },
+        );
+      }
+      if (response.status === 401 || response.status === 403) {
+        return NextResponse.json(
+          { ok: false, error: "This password reset link is invalid or has expired." },
+          { status: 401, headers: HEADERS },
+        );
+      }
       return NextResponse.json(
-        { ok: false, error: "This password reset link is invalid or has expired." },
-        { status: 401, headers: HEADERS },
+        { ok: false, error: "The password could not be updated. Choose a different password and try again." },
+        { status: 400, headers: HEADERS },
       );
     }
   } catch {
