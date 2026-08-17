@@ -128,10 +128,11 @@ export async function POST(request: NextRequest) {
   if (!supabaseUrl || !serviceRoleKey) return fail(request, "The staging database connection is unavailable. Your entries have been kept.", 503);
 
   const now = new Date().toISOString();
-  const editTokenHash = createHash("sha256").update(randomBytes(32)).digest("hex");
+  const editToken = randomBytes(32).toString("hex");
+  const editTokenHash = createHash("sha256").update(editToken).digest("hex");
   const payload = {
     edit_token_hash: editTokenHash,
-    status: "submitted_unpaid",
+    status: "incomplete",
     full_name: fullName,
     email,
     phone,
@@ -152,10 +153,10 @@ export async function POST(request: NextRequest) {
     gate_information: gateInformation || null,
     animal_warning: animalWarning || null,
     safety_notes: null,
-    email_allowed: true,
-    sms_allowed: true,
-    phone_allowed: true,
-    terms_accepted: true,
+    email_allowed: false,
+    sms_allowed: false,
+    phone_allowed: false,
+    terms_accepted: false,
     source_path: "/bin-cleaning/crm/manual-customer",
     estimated_subtotal_cents: price.subtotalCents,
     estimated_discount_cents: 0,
@@ -168,10 +169,10 @@ export async function POST(request: NextRequest) {
       manual_intake: true,
       signup_method: "manual",
       lead_source: leadSource,
+      customer_setup_completed: false,
     },
     is_test: true,
     last_activity_at: now,
-    submitted_at: now,
     updated_at: now,
   };
 
@@ -181,13 +182,23 @@ export async function POST(request: NextRequest) {
       apikey: serviceRoleKey,
       Authorization: `Bearer ${serviceRoleKey}`,
       "Content-Type": "application/json",
-      Prefer: "return=minimal",
+      Prefer: "return=representation",
     },
     cache: "no-store",
     body: JSON.stringify(payload),
   }).catch(() => null);
 
   if (!response?.ok) return fail(request, "The server could not save the customer. Your entries have been kept so you can correct or retry without starting over.", 500);
-  if (wantsJson(request)) return NextResponse.json({ ok: true });
-  return redirect(request, "saved=1");
+  const rows = await response.json().catch(() => []) as { id?: string }[];
+  const leadId = rows[0]?.id;
+  if (!leadId) return fail(request, "The customer intake was saved without a usable setup identity. Try again before sending a payment link.", 500);
+
+  const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || request.nextUrl.origin;
+  const fragment = new URLSearchParams({ lead: leadId, token: editToken }).toString();
+  const setupUrl = `${origin}/bin-cleaning/setup#${fragment}`;
+
+  if (wantsJson(request)) {
+    return NextResponse.json({ ok: true, leadId, setupUrl, email, phone });
+  }
+  return redirect(request, `saved=1&lead=${encodeURIComponent(leadId)}`);
 }
