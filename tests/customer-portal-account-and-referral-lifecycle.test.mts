@@ -11,6 +11,7 @@ const accountRoutePath = new URL("../src/app/api/bin-cleaning/signup-account/rou
 const authProvisioningPath = new URL("../src/lib/bin-cleaning/test-auth-provisioning.ts", import.meta.url);
 const loginRoutePath = new URL("../src/app/api/bin-cleaning/auth/login/route.ts", import.meta.url);
 const appShellPath = new URL("../src/components/bin-cleaning/AppShell.tsx", import.meta.url);
+const portalPath = new URL("../src/app/bin-cleaning/portal/page.tsx", import.meta.url);
 const billingActionsPath = new URL("../src/components/bin-cleaning/CustomerBillingActions.tsx", import.meta.url);
 const ledgerPath = new URL("../src/components/bin-cleaning/ReferralLedger.tsx", import.meta.url);
 const notificationPath = new URL("../src/lib/bin-cleaning/referral-notification-outbox.ts", import.meta.url);
@@ -60,14 +61,18 @@ test("verified payment activates the same signup identity and login uses the sha
   assert.doesNotMatch(login, /password\.length\s*<\s*12/);
 });
 
-test("customer portal exposes payment, cancellation/resume, and a detailed referral ledger", async () => {
-  const [shell, billingActions, ledger] = await Promise.all([
+test("customer portal exposes payment, cancellation/resume, and the referral ledger inside the portal page", async () => {
+  const [shell, portal, billingActions, ledger] = await Promise.all([
     readFile(appShellPath, "utf8"),
+    readFile(portalPath, "utf8"),
     readFile(billingActionsPath, "utf8"),
     readFile(ledgerPath, "utf8"),
   ]);
   assert.match(shell, /<CustomerBillingActions \/>/);
-  assert.match(shell, /<ReferralLedger \/>/);
+  assert.doesNotMatch(shell, /<ReferralLedger \/>/);
+  assert.doesNotMatch(shell, /<MarketingPreferenceControl \/>/);
+  assert.match(portal, /<ReferralLedger \/>/);
+  assert.match(portal, /title="Your referrals"/);
   assert.match(billingActions, /Update payment method/);
   assert.match(billingActions, /Cancel service/);
   assert.match(billingActions, /Resume service/);
@@ -78,6 +83,7 @@ test("customer portal exposes payment, cancellation/resume, and a detailed refer
   assert.match(ledger, /Rewards waiting/);
   assert.match(ledger, /Rewards used/);
   assert.match(ledger, /successfully pays/);
+  assert.match(ledger, /no cash value/);
   assert.match(ledger, /rejected[\s\S]*reversed/);
 });
 
@@ -99,8 +105,9 @@ test("referral lifecycle qualifies on successful payment, queues tiered rewards,
   assert.match(originalLifecycle, /referrer_joined_pending/);
   assert.match(originalLifecycle, /referrer_reward_qualified/);
   assert.match(notifications, /thanks you for subscribing/);
-  assert.match(notifications, /one eligible Monthly base cleaning/);
+  assert.match(notifications, /entire next eligible Monthly bin-cleaning charge/);
   assert.match(notifications, /one qualified referral reward per eligible Monthly invoice/);
+  assert.match(notifications, /promotional service credits only/);
   assert.match(notifications, /payment was confirmed/);
   assert.match(notifications, /do not have to wait for their first cleaning/);
   assert.match(notifications, /Hosted test referral notifications must remain in simulator mode/);
