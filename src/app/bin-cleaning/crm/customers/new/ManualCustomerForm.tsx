@@ -25,6 +25,12 @@ const leadSources = [
 ] as const;
 
 type Errors = Record<string, string>;
+type SavedSetup = Readonly<{
+  leadId: string;
+  setupUrl: string;
+  email: string;
+  phone: string;
+}>;
 
 function fieldClass(hasError: boolean) {
   return `mt-1 w-full rounded-lg border p-3 outline-none ${hasError ? "border-red-600 bg-red-50 ring-2 ring-red-200 focus:border-red-700 focus:ring-red-300" : "focus:border-brand-600 focus:ring-2 focus:ring-brand-100"}`;
@@ -45,6 +51,8 @@ export function ManualCustomerForm() {
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savedSetup, setSavedSetup] = useState<SavedSetup | null>(null);
+  const [copyMessage, setCopyMessage] = useState("");
 
   function validate(form: HTMLFormElement) {
     const data = new FormData(form);
@@ -120,9 +128,17 @@ export function ManualCustomerForm() {
         body: new FormData(form),
         headers: { "x-ads-manual-intake": "1" },
       });
-      const result = await response.json().catch(() => null) as { ok?: boolean; error?: string; fieldErrors?: Errors } | null;
+      const result = await response.json().catch(() => null) as {
+        ok?: boolean;
+        error?: string;
+        fieldErrors?: Errors;
+        leadId?: string;
+        setupUrl?: string;
+        email?: string;
+        phone?: string;
+      } | null;
 
-      if (!response.ok || !result?.ok) {
+      if (!response.ok || !result?.ok || !result.leadId || !result.setupUrl) {
         if (result?.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
           setErrors(result.fieldErrors);
           focusFirstError(form);
@@ -131,12 +147,56 @@ export function ManualCustomerForm() {
         return;
       }
 
-      window.location.assign("/bin-cleaning/crm/customers/new?saved=1");
+      setErrors({});
+      setSavedSetup({
+        leadId: result.leadId,
+        setupUrl: result.setupUrl,
+        email: result.email || String(new FormData(form).get("email") || ""),
+        phone: result.phone || String(new FormData(form).get("phone") || ""),
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setServerError("The customer could not be saved because the server request failed. Your entries have been kept; try again after checking the connection.");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function copySetupLink() {
+    if (!savedSetup) return;
+    try {
+      await navigator.clipboard.writeText(savedSetup.setupUrl);
+      setCopyMessage("Secure setup/payment link copied.");
+    } catch {
+      setCopyMessage("Copy failed on this device. Open the setup link and copy it from the address/share controls.");
+    }
+  }
+
+  if (savedSetup) {
+    const emailSubject = "Finish your ADS Bin Cleaning setup";
+    const message = `ADS Bin Cleaning entered your service information. Review it, create your portal password, accept the service/payment terms, and enter your card securely in Stripe TEST here: ${savedSetup.setupUrl}`;
+    const emailHref = `mailto:${savedSetup.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(message)}`;
+    const smsHref = `sms:${savedSetup.phone}?&body=${encodeURIComponent(message)}`;
+
+    return (
+      <section className="card mt-6 p-6">
+        <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5 text-emerald-950">
+          <h2 className="text-2xl font-black">Manual customer intake saved</h2>
+          <p className="mt-2 text-sm leading-relaxed">The customer is still unpaid and inactive. Staff did not accept terms or collect a card. The secure customer-facing link below is the only next step needed before Stripe TEST checkout.</p>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          <a href={emailHref} className="rounded-xl bg-brand-700 px-4 py-3 text-center font-black text-white">Send setup/payment link by EMAIL</a>
+          <a href={smsHref} className="rounded-xl bg-brand-700 px-4 py-3 text-center font-black text-white">Send setup/payment link by TEXT</a>
+          <button type="button" onClick={() => void copySetupLink()} className="rounded-xl border-2 border-brand-700 bg-white px-4 py-3 font-black text-brand-800">Copy setup/payment link</button>
+          <a href={savedSetup.setupUrl} target="_blank" rel="noreferrer" className="rounded-xl border-2 border-zinc-700 bg-white px-4 py-3 text-center font-black text-zinc-900">Open customer setup link</a>
+        </div>
+        {copyMessage && <p className="mt-3 rounded-lg bg-blue-50 p-3 text-sm font-bold text-blue-950">{copyMessage}</p>}
+        <p className="mt-4 text-xs leading-relaxed text-zinc-600">TEST environment: the email and text buttons hand the message to this device&apos;s email/SMS composer. Fictional .test and reserved 555 recipients are not actually delivered by ADS. Copy/Open is the reliable end-to-end test path.</p>
+        <p className="mt-2 text-xs text-zinc-500">Signup lead: {savedSetup.leadId}</p>
+        <button type="button" onClick={() => window.location.reload()} className="mt-5 rounded-xl bg-zinc-900 px-4 py-3 font-black text-white">Add another manual customer</button>
+      </section>
+    );
   }
 
   const invalid = (name: string) => Boolean(errors[name]);
@@ -162,8 +222,8 @@ export function ManualCustomerForm() {
       </label>
 
       <label data-field-error={invalid("full_name")} className="font-semibold">Full name *<input name="full_name" className={fieldClass(invalid("full_name"))} /><ErrorText message={errors.full_name} /></label>
-      <label data-field-error={invalid("email")} className="font-semibold">Email *<input name="email" placeholder="Any fictional test email/value" className={fieldClass(invalid("email"))} /><ErrorText message={errors.email} /></label>
-      <label data-field-error={invalid("phone")} className="font-semibold">Phone *<input name="phone" placeholder="Any fictional test phone/value" className={fieldClass(invalid("phone"))} /><ErrorText message={errors.phone} /></label>
+      <label data-field-error={invalid("email")} className="font-semibold">Email *<input name="email" placeholder="Fictional staging email ending in .test" className={fieldClass(invalid("email"))} /><ErrorText message={errors.email} /></label>
+      <label data-field-error={invalid("phone")} className="font-semibold">Phone *<input name="phone" placeholder="Reserved fictional 1-555 test number" className={fieldClass(invalid("phone"))} /><ErrorText message={errors.phone} /></label>
       <label className="font-semibold">Plan *<select name="plan_id" defaultValue="monthly" className={fieldClass(false)}><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="twice-yearly">Twice a Year</option><option value="one-time">One-Time</option></select></label>
       <label data-field-error={invalid("line1")} className="font-semibold sm:col-span-2">Street address *<input name="line1" className={fieldClass(invalid("line1"))} /><ErrorText message={errors.line1} /></label>
       <label className="font-semibold">Unit / Apt<input name="line2" className={fieldClass(false)} /></label>
@@ -182,7 +242,7 @@ export function ManualCustomerForm() {
       <label className="font-semibold">Gate information<input name="gate_information" className={fieldClass(false)} /></label>
       <label className="font-semibold">Animal warning<input name="animal_warning" className={fieldClass(false)} /></label>
       <label className="font-semibold sm:col-span-2">Staff note<textarea name="staff_note" placeholder="Anything you learned on the phone that staff should know." className={fieldClass(false)} /></label>
-      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:col-span-2"><strong>Payment:</strong> Save the customer first. ADS will then generate a customer-specific secure payment request for the customer to complete on their own device; staff never types or stores card details.</div>
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:col-span-2"><strong>Payment:</strong> Save the intake first. ADS creates a customer-specific secure setup/payment link. The customer creates the portal password, accepts terms, and enters the card in Stripe TEST on their own device. Staff never types or stores card details.</div>
       <button disabled={saving} className="rounded-xl bg-brand-700 p-3 font-black text-white disabled:cursor-wait disabled:opacity-60 sm:col-span-2">{saving ? "Saving..." : "Save manual customer intake"}</button>
     </form>
   );
