@@ -21,6 +21,10 @@ function cronAuthorized(request: NextRequest) {
   return Boolean(secret && request.headers.get("authorization") === `Bearer ${secret}`);
 }
 
+function browserForm(request: NextRequest) {
+  return request.headers.get("accept")?.includes("text/html") ?? false;
+}
+
 export async function GET(request: NextRequest) {
   if (!cronAuthorized(request)) {
     return NextResponse.json({ ok: false, error: "Cron authorization is required." }, { status: 401 });
@@ -40,8 +44,20 @@ export async function POST(request: NextRequest) {
   }
   try {
     const result = await processReferralWork();
+    if (browserForm(request)) {
+      const armed = result.stripeRewards.armed;
+      const failures = result.stripeRewards.failures.length;
+      const url = new URL("/bin-cleaning/crm", request.url);
+      url.searchParams.set("referrals_processed", "1");
+      url.searchParams.set("rewards_armed", String(armed));
+      if (failures) url.searchParams.set("reward_failures", String(failures));
+      return NextResponse.redirect(url, 303);
+    }
     return NextResponse.json({ ok: true, ...result });
   } catch {
+    if (browserForm(request)) {
+      return NextResponse.redirect(new URL("/bin-cleaning/crm?referrals_process_error=1", request.url), 303);
+    }
     return NextResponse.json({ ok: false, error: "Referral processing failed." }, { status: 500 });
   }
 }
