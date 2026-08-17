@@ -55,6 +55,21 @@ export function stripeFormBody(values: Record<string, unknown>) {
   return params;
 }
 
+export async function stripeGet<T>(path: string): Promise<T> {
+  const { secretKey } = stripeTestConfig();
+  const response = await fetch(`${STRIPE_API}/${path.replace(/^\//, "")}`, {
+    headers: { Authorization: `Bearer ${secretKey}` },
+    cache: "no-store",
+  });
+  const payload = (await response.json().catch(() => ({}))) as T & {
+    error?: { message?: string };
+  };
+  if (!response.ok) {
+    throw new Error(payload.error?.message || `Stripe request failed (${response.status})`);
+  }
+  return payload;
+}
+
 export async function stripePost<T>(
   path: string,
   values: Record<string, unknown>,
@@ -81,20 +96,12 @@ export async function stripePost<T>(
 }
 
 async function retrieveStripeTestCoupon(couponId: string): Promise<StripeCoupon | null> {
-  const { secretKey } = stripeTestConfig();
-  const response = await fetch(`${STRIPE_API}/coupons/${encodeURIComponent(couponId)}`, {
-    headers: { Authorization: `Bearer ${secretKey}` },
-    cache: "no-store",
-  });
-  if (response.status === 404) return null;
-  const payload = (await response.json().catch(() => ({}))) as StripeCoupon & {
-    error?: { message?: string };
-  };
-  if (!response.ok) {
-    throw new Error(payload.error?.message || `Stripe coupon lookup failed (${response.status})`);
+  try {
+    return await stripeGet<StripeCoupon>(`coupons/${encodeURIComponent(couponId)}`);
+  } catch (error) {
+    if (error instanceof Error && /No such coupon|resource_missing/i.test(error.message)) return null;
+    throw error;
   }
-  if (payload.livemode) throw new Error("A live Stripe coupon cannot be used in staging");
-  return payload;
 }
 
 function couponSpec(kind: string, promoCode: string | null): TestCouponSpec | null {
