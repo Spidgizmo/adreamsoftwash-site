@@ -5,6 +5,24 @@ const SIGNATURE_TOLERANCE_SECONDS = 300;
 
 export type StripeCheckoutMode = "payment" | "subscription";
 
+type StripeCoupon = {
+  id: string;
+  livemode: boolean;
+  valid: boolean;
+  duration: string;
+  percent_off: number | null;
+  amount_off: number | null;
+  currency: string | null;
+};
+
+type TestCouponSpec = {
+  id: string;
+  name: string;
+  percentOff?: number;
+  amountOff?: number;
+  currency?: string;
+};
+
 export function stripeTestConfig() {
   const mode = process.env.STRIPE_INTEGRATION_MODE?.trim();
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
@@ -62,6 +80,98 @@ export async function stripePost<T>(
   return payload;
 }
 
+async function retrieveStripeTestCoupon(couponId: string): Promise<StripeCoupon | null> {
+  const { secretKey } = stripeTestConfig();
+  const response = await fetch(`${STRIPE_API}/coupons/${encodeURIComponent(couponId)}`, {
+    headers: { Authorization: `Bearer ${secretKey}` },
+    cache: "no-store",
+  });
+  if (response.status === 404) return null;
+  const payload = (await response.json().catch(() => ({}))) as StripeCoupon & {
+    error?: { message?: string };
+  };
+  if (!response.ok) {
+    throw new Error(payload.error?.message || `Stripe coupon lookup failed (${response.status})`);
+  }
+  if (payload.livemode) throw new Error("A live Stripe coupon cannot be used in staging");
+  return payload;
+}
+
+function couponSpec(kind: string, promoCode: string | null): TestCouponSpec | null {
+  if (kind === "referral") {
+    return {
+      id: "ADS_REFERRAL50_TEST_V1",
+      name: "ADS Referral 50% TEST",
+      percentOff: 50,
+    };
+  }
+  if (kind !== "promotion") return null;
+  if (promoCode === "NEW25") {
+    return {
+      id: "ADS_NEW25_TEST_V1",
+      name: "ADS NEW25 25% TEST",
+      percentOff: 25,
+    };
+  }
+  if (promoCode === "ONE45") {
+    return {
+      id: "ADS_ONE45_TEST_V1",
+      name: "ADS ONE45 $15 TEST",
+      amountOff: 1500,
+      currency: "usd",
+    };
+  }
+  return null;
+}
+
+function assertCouponMatches(coupon: StripeCoupon, spec: TestCouponSpec) {
+  if (!coupon.valid || coupon.duration !== "once") {
+    throw new Error(`Stripe TEST coupon ${spec.id} is not a valid one-time coupon`);
+  }
+  if (spec.percentOff !== undefined && Number(coupon.percent_off) !== spec.percentOff) {
+    throw new Error(`Stripe TEST coupon ${spec.id} has the wrong percentage`);
+  }
+  if (spec.amountOff !== undefined) {
+    if (coupon.amount_off !== spec.amountOff || coupon.currency?.toLowerCase() !== spec.currency) {
+      throw new Error(`Stripe TEST coupon ${spec.id} has the wrong fixed discount`);
+    }
+  }
+}
+
+export async function ensureStripeTestCouponForDiscount(kind: string, promoCode: string | null) {
+  const spec = couponSpec(kind, promoCode);
+  if (!spec) return null;
+
+  let coupon = await retrieveStripeTestCoupon(spec.id);
+  if (!coupon) {
+    try {
+      coupon = await stripePost<StripeCoupon>(
+        "coupons",
+        {
+          id: spec.id,
+          name: spec.name,
+          duration: "once",
+          percent_off: spec.percentOff,
+          amount_off: spec.amountOff,
+          currency: spec.currency,
+          "metadata[ads_environment]": "test",
+          "metadata[ads_discount_key]": spec.id,
+        },
+        `ads-bin-test-coupon:${spec.id}`,
+      );
+    } catch (error) {
+      // A concurrent request may have created the deterministic coupon after our
+      // initial GET. Re-read it before surfacing an error.
+      coupon = await retrieveStripeTestCoupon(spec.id);
+      if (!coupon) throw error;
+    }
+  }
+
+  if (coupon.livemode) throw new Error("A live Stripe coupon cannot be used in staging");
+  assertCouponMatches(coupon, spec);
+  return coupon.id;
+}
+
 export async function stripeDeleteTestCustomer(customerId: string) {
   if (!/^cus_[A-Za-z0-9]+$/.test(customerId)) {
     throw new Error("Stripe customer id is invalid");
@@ -116,12 +226,4 @@ export function verifyStripeSignature(
     const candidateBytes = Buffer.from(candidate, "hex");
     return candidateBytes.length === expectedBytes.length && timingSafeEqual(candidateBytes, expectedBytes);
   });
-}
-
-export function stripeCouponForDiscount(kind: string, promoCode: string | null) {
-  if (kind === "referral") return process.env.STRIPE_TEST_COUPON_REFERRAL50?.trim() || null;
-  if (kind !== "promotion") return null;
-  if (promoCode === "NEW25") return process.env.STRIPE_TEST_COUPON_NEW25?.trim() || null;
-  if (promoCode === "ONE45") return process.env.STRIPE_TEST_COUPON_ONE45?.trim() || null;
-  return null;
 }
