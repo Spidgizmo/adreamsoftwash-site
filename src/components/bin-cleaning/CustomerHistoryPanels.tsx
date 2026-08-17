@@ -68,13 +68,13 @@ export function CustomerHistoryPanels({ changes, audit }: Readonly<{ changes: re
 
   return (
     <>
-      <details className="card mt-5" open>
+      <details className="card mt-5">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 [&::-webkit-details-marker]:hidden">
           <div>
             <h3 className="text-xl font-black">Customer request history</h3>
             <p className="mt-1 text-sm text-zinc-500">Every customer request remains in permanent history.</p>
           </div>
-          <span className="rounded-lg border px-3 py-2 text-xs font-black text-zinc-700">Collapse / expand</span>
+          <span className="rounded-lg border px-3 py-2 text-xs font-black text-zinc-700">Open / close</span>
         </summary>
         <div className="border-t px-5 pb-5">
           {changes.length === 0 ? (
@@ -91,13 +91,13 @@ export function CustomerHistoryPanels({ changes, audit }: Readonly<{ changes: re
         </div>
       </details>
 
-      <details className="card mt-5" open>
+      <details className="card mt-5">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 [&::-webkit-details-marker]:hidden">
           <div>
             <h3 className="text-xl font-black">Audit history</h3>
             <p className="mt-1 text-sm text-zinc-500">System activity and customer requests are shown together here.</p>
           </div>
-          <span className="rounded-lg border px-3 py-2 text-xs font-black text-zinc-700">Collapse / expand</span>
+          <span className="rounded-lg border px-3 py-2 text-xs font-black text-zinc-700">Open / close</span>
         </summary>
         <div className="border-t px-5 pb-5">
           <label className="mt-4 block text-sm font-bold text-zinc-900">
