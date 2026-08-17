@@ -54,7 +54,7 @@ export default async function SignupPage({
             <p className="mt-4 text-lg leading-relaxed text-zinc-700">
               Complete the test form on phone or desktop. Drafts, abandoned
               signups, and submitted-but-unpaid signups are recorded for the
-              staging CRM. The flow deliberately ends before Stripe Checkout.
+              staging CRM. Before payment, the customer creates their own Supabase Auth account; Stripe TEST then handles card entry. If checkout is abandoned, that same account can sign back in later and continue payment. Service activates only after verified Stripe webhook processing.
             </p>
           </div>
 
