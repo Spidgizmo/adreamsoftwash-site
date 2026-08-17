@@ -150,7 +150,11 @@ async function activatePaidTestCustomer(body: Record<string, unknown>) {
   await provisionPaidStripeTestCustomerAuth(activated.customerId);
 }
 
-async function flushReferralNotifications() {
+async function flushReferralSideEffects() {
+  // Reward arming is deliberately retryable and must never turn an otherwise
+  // successful customer payment into a failed payment event. The daily processor
+  // is the fallback if Stripe is temporarily unavailable.
+  await armAvailableStripeReferralRewards(20).catch(() => null);
   await processReferralNotificationOutbox(20).catch(() => null);
 }
 
@@ -178,7 +182,9 @@ export async function POST(request: NextRequest) {
     p_livemode: event.livemode,
   });
   if (!claimed) {
-    await flushReferralNotifications();
+    // A replay is also a healing opportunity for a reward that was issued while
+    // Stripe was unavailable during the original event.
+    await flushReferralSideEffects();
     return NextResponse.json({ ok: true, duplicate: true }, { headers: HEADERS });
   }
 
@@ -236,7 +242,6 @@ export async function POST(request: NextRequest) {
             p_stripe_invoice_id: text(object.id),
           });
           await clearStripeReferralRewardState(subscriptionId, referralCreditId);
-          await armAvailableStripeReferralRewards(20);
         }
         break;
       }
@@ -272,12 +277,12 @@ export async function POST(request: NextRequest) {
       }
       default:
         await rpc("rpc/finish_stripe_test_webhook_event", { p_event_id: event.id, p_status: "ignored", p_error: null });
-        await flushReferralNotifications();
+        await flushReferralSideEffects();
         return NextResponse.json({ ok: true, ignored: true }, { headers: HEADERS });
     }
 
     await rpc("rpc/finish_stripe_test_webhook_event", { p_event_id: event.id, p_status: "processed", p_error: null });
-    await flushReferralNotifications();
+    await flushReferralSideEffects();
     return NextResponse.json({ ok: true }, { headers: HEADERS });
   } catch (error) {
     await rpc("rpc/finish_stripe_test_webhook_event", {
