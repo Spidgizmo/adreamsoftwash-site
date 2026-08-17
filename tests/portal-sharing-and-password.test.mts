@@ -46,7 +46,7 @@ test("portal referral sharing supports native share, text, email, code, and link
   assert.match(referral, /does not\s+collect or store your friend/);
 });
 
-test("referral invitations explain the service, sender, future code, and tiered rewards", async () => {
+test("referral invitations explain the service, sender, future code, and tiered whole-charge rewards", async () => {
   const referral = await readFile(referralPath, "utf8");
 
   assert.match(referral, /senderFirstName/);
@@ -56,23 +56,26 @@ test("referral invitations explain the service, sender, future code, and tiered 
   assert.match(referral, /grime, odors, germs, leaked waste, and nasty buildup/);
   assert.match(referral, /cleans, sanitizes, and deodorizes/);
   assert.match(referral, /returns them to the designated storage spot/);
-  assert.match(referral, /50% off your first eligible Monthly base cleaning/);
+  assert.match(referral, /50% off your first eligible Monthly bin-cleaning charge/);
   assert.match(
     referral,
-    /50% off an eligible base cleaning for their first qualified referral/,
+    /50% off their entire next eligible Monthly bin-cleaning charge for their first qualified referral/,
   );
   assert.match(
     referral,
-    /25% off an eligible base cleaning for each later qualified referral/,
+    /25% off one eligible Monthly bin-cleaning charge for each later qualified referral/,
   );
   assert.match(referral, /your own permanent referral code to share/);
-  assert.match(referral, /Rewards apply one per invoice and do not stack/);
+  assert.match(referral, /Rewards apply one per[\s\S]*invoice and do not stack/);
+  assert.match(referral, /Promotional service credits only; no cash value or cash payout/);
   assert.match(referral, /Invitations identify \{senderFirstName\} as the sender/);
 });
 
-test("portal explains which bins need cleaning without changing paid bin count", async () => {
+test("portal removes the per-visit dirty-bin selector and uses paid bin management instead", async () => {
   const portal = await readFile(portalPath, "utf8");
 
-  assert.match(portal, /Which bins need cleaning on your next visit\?/);
-  assert.match(portal, /does not add or remove a bin from your plan/);
+  assert.doesNotMatch(portal, /Which bins need cleaning on your next visit\?/);
+  assert.doesNotMatch(portal, /name="dirty_bin"/);
+  assert.match(portal, /title="Manage your bins"/);
+  assert.match(portal, /Add or remove trash and recycling bins/);
 });
