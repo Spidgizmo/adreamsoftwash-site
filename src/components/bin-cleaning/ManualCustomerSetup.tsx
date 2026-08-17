@@ -48,7 +48,6 @@ type BootstrapResult = Readonly<{
   setupState?: SetupState;
   lead?: SetupLead;
 }>;
-
 type StepState = "loading" | "ready" | "saving" | "checkout" | "error";
 
 function value(value: string | null | undefined) {
@@ -67,6 +66,12 @@ function weekday(value: number | null) {
 function cleanDay(value: number | null) {
   return value === null || value < 0 || value > 6 ? "Pending" : DAYS[(value + 1) % 7];
 }
+function dateWeekday(dateValue: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return null;
+  const parsed = new Date(`${dateValue}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== dateValue) return null;
+  return parsed.getUTCDay();
+}
 function SummaryItem({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
   return <div><dt className="text-xs font-black uppercase tracking-wide text-zinc-500">{label}</dt><dd className="mt-1 font-semibold text-zinc-950">{children}</dd></div>;
 }
@@ -80,6 +85,7 @@ export function ManualCustomerSetup() {
   const [message, setMessage] = useState("Verifying your secure ADS setup link…");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [recyclingAnchorCollectionDate, setRecyclingAnchorCollectionDate] = useState("");
   const [emailAllowed, setEmailAllowed] = useState(false);
   const [smsAllowed, setSmsAllowed] = useState(false);
   const [phoneAllowed, setPhoneAllowed] = useState(false);
@@ -91,9 +97,6 @@ export function ManualCustomerSetup() {
     const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const leadId = fragment.get("lead")?.trim() || "";
     const editToken = fragment.get("token")?.trim() || "";
-
-    // Remove the credential from the visible URL immediately. The original link
-    // can be reopened from the customer's message if the page is refreshed.
     window.history.replaceState(null, "", window.location.pathname);
 
     if (!/^[0-9a-f-]{36}$/i.test(leadId) || editToken.length < 32) {
@@ -120,6 +123,7 @@ export function ManualCustomerSetup() {
         }
         setLead(result.lead);
         setSetupState(result.setupState);
+        setRecyclingAnchorCollectionDate(result.lead.recyclingAnchorCollectionDate || "");
         setEmailAllowed(result.lead.emailAllowed);
         setSmsAllowed(result.lead.smsAllowed);
         setPhoneAllowed(result.lead.phoneAllowed);
@@ -129,7 +133,7 @@ export function ManualCustomerSetup() {
           ? "Your account setup is complete. Continue to secure Stripe TEST checkout."
           : result.setupState === "converted"
             ? "This setup has already been paid and converted to a customer account."
-            : "Review the information ADS entered, create your portal password, accept the terms, and continue to Stripe TEST checkout.");
+            : "Review the information ADS entered, finish any required schedule detail, create your portal password, accept the terms, and continue to Stripe TEST checkout.");
       } catch {
         setStepState("error");
         setMessage("The secure setup service could not be reached. Reopen this link and try again.");
@@ -163,6 +167,21 @@ export function ManualCustomerSetup() {
 
   async function completeSetup() {
     if (!identity || !lead) return;
+    const recyclingBins = Number(lead.binStreams.recycling ?? 0);
+    if (recyclingBins > 0) {
+      const actualWeekday = dateWeekday(recyclingAnchorCollectionDate);
+      if (actualWeekday === null) {
+        setStepState("error");
+        setMessage("Enter the next real recycling pickup date before continuing.");
+        return;
+      }
+      if (lead.recyclingWeekday === null || actualWeekday !== lead.recyclingWeekday) {
+        setStepState("error");
+        setMessage(`The next recycling pickup date must fall on the selected ${weekday(lead.recyclingWeekday)} recycling pickup day.`);
+        return;
+      }
+    }
+
     const passwordIssues = portalPasswordErrors(password);
     if (passwordIssues.length) {
       setStepState("error");
@@ -209,6 +228,7 @@ export function ManualCustomerSetup() {
         body: JSON.stringify({
           leadId: identity.leadId,
           editToken: identity.editToken,
+          recyclingAnchorCollectionDate,
           emailAllowed,
           smsAllowed,
           phoneAllowed,
@@ -237,6 +257,7 @@ export function ManualCustomerSetup() {
     return <section className="rounded-2xl border border-red-300 bg-red-50 p-6 text-red-950 shadow-sm"><h2 className="text-xl font-black">Setup link problem</h2><p className="mt-2">{message}</p></section>;
   }
 
+  const recyclingBins = Number(lead.binStreams.recycling ?? 0);
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border bg-white p-6 shadow-sm">
@@ -254,6 +275,21 @@ export function ManualCustomerSetup() {
           <SummaryItem label="Gate / animals">{value(lead.gateInformation)} · {value(lead.animalWarning)}</SummaryItem>
           <SummaryItem label="Estimated first charge">{lead.estimatedFirstChargeCents == null ? "Pending" : `${formatCurrency(lead.estimatedFirstChargeCents)} before tax`}</SummaryItem>
         </dl>
+
+        {recyclingBins > 0 && setupState === "pending_customer_setup" && (
+          <div className="mt-6 rounded-2xl border-2 border-blue-300 bg-blue-50 p-4 text-blue-950">
+            <label className="font-black">Next recycling pickup date *
+              <input
+                type="date"
+                value={recyclingAnchorCollectionDate}
+                onChange={(event) => setRecyclingAnchorCollectionDate(event.target.value)}
+                className="mt-2 block w-full max-w-sm rounded-lg border border-blue-300 bg-white p-3 text-zinc-950"
+              />
+            </label>
+            <p className="mt-2 text-sm">This date anchors the recycling cycle and must be a {weekday(lead.recyclingWeekday)}. {lead.recyclingFrequencyWeeks === 2 ? "Your recycling is marked every other week." : "Your recycling is marked weekly."}</p>
+          </div>
+        )}
+
         <p className="mt-5 rounded-xl bg-amber-50 p-4 text-sm font-semibold text-amber-950">If the service address, plan, bin count, or pickup day above is wrong, contact ADS before paying so staff can correct the intake.</p>
       </section>
 
