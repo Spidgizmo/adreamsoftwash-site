@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const standardPickupDays = days.map((day,index)=>({day,index})).filter(({index})=>index>=1&&index<=5);
 const leadSources = [
   ["unknown", "Not asked / unknown"],
   ["flyer", "Flyer"],
@@ -68,11 +69,12 @@ export function ManualCustomerForm() {
       next.recycling_bins = "At least one total bin is required.";
     }
 
-    if (!value("trash_weekday")) next.trash_weekday = "Choose the trash pickup day.";
+    const trashWeekday = number("trash_weekday");
+    if (!Number.isInteger(trashWeekday) || trashWeekday < 1 || trashWeekday > 5) next.trash_weekday = "Choose a Monday through Friday trash pickup day.";
     if (recycling > 0) {
       const recyclingWeekday = number("recycling_weekday");
-      if (!Number.isInteger(recyclingWeekday) || recyclingWeekday < 0 || recyclingWeekday > 6) {
-        next.recycling_weekday = "Choose the recycling pickup day.";
+      if (!Number.isInteger(recyclingWeekday) || recyclingWeekday < 1 || recyclingWeekday > 5) {
+        next.recycling_weekday = "Choose a Monday through Friday recycling pickup day.";
       }
       if (!["1", "2"].includes(value("recycling_frequency_weeks"))) next.recycling_frequency_weeks = "Choose the recycling frequency.";
 
@@ -171,8 +173,8 @@ export function ManualCustomerForm() {
       <label data-field-error={invalid("trash_bins")} className="font-semibold">Trash bins *<input type="number" min="0" name="trash_bins" defaultValue="1" className={fieldClass(invalid("trash_bins"))} /><ErrorText message={errors.trash_bins} /></label>
       <label data-field-error={invalid("recycling_bins")} className="font-semibold">Recycling bins *<input type="number" min="0" name="recycling_bins" defaultValue="1" className={fieldClass(invalid("recycling_bins"))} /><ErrorText message={errors.recycling_bins} /></label>
       <p className="-mt-2 text-xs text-zinc-500 sm:col-span-2">At least one total bin is required.</p>
-      <label data-field-error={invalid("trash_weekday")} className="font-semibold">Trash pickup day *<select name="trash_weekday" defaultValue="1" className={fieldClass(invalid("trash_weekday"))}>{days.map((day, index) => <option key={day} value={index}>{day}</option>)}</select><ErrorText message={errors.trash_weekday} /></label>
-      <label data-field-error={invalid("recycling_weekday")} className="font-semibold">Recycling pickup day<select name="recycling_weekday" defaultValue="1" className={fieldClass(invalid("recycling_weekday"))}>{days.map((day, index) => <option key={day} value={index}>{day}</option>)}</select><ErrorText message={errors.recycling_weekday} /></label>
+      <label data-field-error={invalid("trash_weekday")} className="font-semibold">Trash pickup day *<select name="trash_weekday" defaultValue="1" className={fieldClass(invalid("trash_weekday"))}>{standardPickupDays.map(({day,index}) => <option key={day} value={index}>{day}</option>)}</select><ErrorText message={errors.trash_weekday} /></label>
+      <label data-field-error={invalid("recycling_weekday")} className="font-semibold">Recycling pickup day<select name="recycling_weekday" defaultValue="1" className={fieldClass(invalid("recycling_weekday"))}>{standardPickupDays.map(({day,index}) => <option key={day} value={index}>{day}</option>)}</select><ErrorText message={errors.recycling_weekday} /></label>
       <label data-field-error={invalid("recycling_frequency_weeks")} className="font-semibold">Recycling frequency<select name="recycling_frequency_weeks" defaultValue="2" className={fieldClass(invalid("recycling_frequency_weeks"))}><option value="1">Every week</option><option value="2">Every other week</option></select><ErrorText message={errors.recycling_frequency_weeks} /></label>
       <label data-field-error={invalid("recycling_anchor_collection_date")} className="font-semibold">Next recycling pickup<input type="date" name="recycling_anchor_collection_date" className={fieldClass(invalid("recycling_anchor_collection_date"))} /><ErrorText message={errors.recycling_anchor_collection_date} /><span className="mt-1 block text-xs font-normal text-zinc-500">If entered, the date must fall on the recycling pickup weekday selected above.</span></label>
       <label data-field-error={invalid("preferred_return_location")} className="font-semibold sm:col-span-2">Return location *<input name="preferred_return_location" placeholder="Behind side gate / garage / etc." className={fieldClass(invalid("preferred_return_location"))} /><ErrorText message={errors.preferred_return_location} /></label>
@@ -180,7 +182,7 @@ export function ManualCustomerForm() {
       <label className="font-semibold">Gate information<input name="gate_information" className={fieldClass(false)} /></label>
       <label className="font-semibold">Animal warning<input name="animal_warning" className={fieldClass(false)} /></label>
       <label className="font-semibold sm:col-span-2">Staff note<textarea name="staff_note" placeholder="Anything you learned on the phone that staff should know." className={fieldClass(false)} /></label>
-      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:col-span-2"><strong>Payment:</strong> Not collected yet. Stripe remains disabled while we finish non-payment testing.</div>
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:col-span-2"><strong>Payment:</strong> Save the customer first. ADS will then generate a customer-specific secure payment request for the customer to complete on their own device; staff never types or stores card details.</div>
       <button disabled={saving} className="rounded-xl bg-brand-700 p-3 font-black text-white disabled:cursor-wait disabled:opacity-60 sm:col-span-2">{saving ? "Saving..." : "Save manual customer intake"}</button>
     </form>
   );
