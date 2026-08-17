@@ -25,16 +25,15 @@ test("first lifetime referral is 50 percent and every later referral is 25 perce
   }
 });
 
-test("monthly referral reward applies only to the base cleaning", () => {
-  assert.equal(referralRewardCents(2000, 50), 1000);
-  assert.equal(referralRewardCents(2000, 25), 500);
+test("monthly referral reward uses the entire recurring Monthly charge", () => {
+  assert.equal(referralRewardCents(2500, 50), 1250);
+  assert.equal(referralRewardCents(2500, 25), 625);
 });
 
 test("billing automatically chooses only the oldest queued reward for an invoice", () => {
   const queuedRewards = Array.from({ length: 10 }, (_, index) => reward(index + 1));
   const result = automaticReferralDiscountForInvoice({
     planId: "monthly",
-    monthlyBasePriceCents: 2000,
     regularChargeCents: 2500,
     queuedRewards,
     now: new Date("2026-02-01T12:00:00.000Z"),
@@ -42,14 +41,13 @@ test("billing automatically chooses only the oldest queued reward for an invoice
 
   assert.equal(result.reward?.id, "reward-1");
   assert.equal(result.reward?.reward_percent, 50);
-  assert.equal(result.discountCents, 1000);
+  assert.equal(result.discountCents, 1250);
 });
 
 test("after the first reward is consumed the next invoice receives exactly one 25 percent reward", () => {
   const queuedRewards = Array.from({ length: 9 }, (_, index) => reward(index + 2));
   const result = automaticReferralDiscountForInvoice({
     planId: "monthly",
-    monthlyBasePriceCents: 2000,
     regularChargeCents: 2500,
     queuedRewards,
     now: new Date("2026-02-01T12:00:00.000Z"),
@@ -57,7 +55,7 @@ test("after the first reward is consumed the next invoice receives exactly one 2
 
   assert.equal(result.reward?.id, "reward-2");
   assert.equal(result.reward?.reward_percent, 25);
-  assert.equal(result.discountCents, 500);
+  assert.equal(result.discountCents, 625);
 });
 
 test("ten qualified referrals therefore represent one 50 percent month plus nine 25 percent months", () => {
@@ -66,8 +64,8 @@ test("ten qualified referrals therefore represent one 50 percent month plus nine
   );
   assert.deepEqual(percentages, [50, 25, 25, 25, 25, 25, 25, 25, 25, 25]);
   assert.equal(
-    percentages.reduce((total, percent) => total + referralRewardCents(2000, percent), 0),
-    5500,
+    percentages.reduce((total, percent) => total + referralRewardCents(2500, percent), 0),
+    6875,
   );
 });
 
@@ -75,7 +73,6 @@ test("non-monthly invoices do not consume queued monthly referral rewards", () =
   const queuedRewards = [reward(1)];
   const result = automaticReferralDiscountForInvoice({
     planId: "quarterly",
-    monthlyBasePriceCents: 3500,
     regularChargeCents: 4000,
     queuedRewards,
     now: new Date("2026-02-01T12:00:00.000Z"),
