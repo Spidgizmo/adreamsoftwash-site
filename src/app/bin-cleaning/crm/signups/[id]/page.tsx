@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/bin-cleaning/AppShell";
+import { ManualSetupLinkPanel } from "@/components/bin-cleaning/ManualSetupLinkPanel";
 import { PermanentErasePanel } from "@/components/bin-cleaning/PermanentErasePanel";
 import { crmSignupLead } from "@/lib/bin-cleaning/signup-queries";
 import { formatCurrency } from "@/lib/bin-cleaning-plans";
@@ -46,6 +47,7 @@ export default async function SignupDetail({ params, searchParams }: { params: P
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const lead = await crmSignupLead(id).catch(() => null);
   if (!lead) notFound();
+  const isManualIntake = lead.form_data?.manual_intake === true;
 
   return (
     <AppShell area="Internal CRM">
@@ -61,6 +63,7 @@ export default async function SignupDetail({ params, searchParams }: { params: P
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex rounded-full bg-emerald-100 px-2 py-1 text-xs font-black uppercase text-emerald-900">{lead.status.replaceAll("_", " ")}</span>
               <span className="inline-flex rounded-full bg-zinc-100 px-2 py-1 text-xs font-black uppercase text-zinc-600">Fictional test record</span>
+              {isManualIntake && <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-black uppercase text-blue-800">Manual staff intake</span>}
             </div>
             <h1 className="mt-3 text-3xl font-black">{lead.full_name || "Incomplete name"}</h1>
             <p className="mt-1 text-zinc-600">{lead.email || "No email"} · {lead.phone || "No phone"}</p>
@@ -71,6 +74,16 @@ export default async function SignupDetail({ params, searchParams }: { params: P
           </div>
         </div>
       </header>
+
+      {isManualIntake && lead.status === "incomplete" && (
+        <ManualSetupLinkPanel leadId={lead.id} email={lead.email} phone={lead.phone} />
+      )}
+      {isManualIntake && lead.status === "submitted_unpaid" && (
+        <section className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-950 shadow-sm">
+          <h2 className="text-lg font-black">Customer setup finished — payment pending</h2>
+          <p className="mt-2">The customer created the portal identity and accepted the required terms. This submitted signup is locked. Service remains inactive until a verified Stripe TEST webhook confirms payment.</p>
+        </section>
+      )}
 
       <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Card title="Customer & service address">
