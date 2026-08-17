@@ -55,7 +55,7 @@ export function referralNotificationCopy(row: Pick<OutboxRow, "kind" | "payload"
         `Your own permanent referral code is ${code}. You can always find it, your referral link, and your reward activity in your customer portal:`,
         portalUrl,
         "",
-        `Just like ${referrerFirstName}, your first qualified referral earns ${firstPercent}% off one eligible Monthly base cleaning. Each later qualified referral earns ${laterPercent}% off one eligible Monthly base cleaning. Rewards are applied one per eligible Monthly invoice.`,
+        `Just like ${referrerFirstName}, your first qualified referral earns ${firstPercent}% off one eligible Monthly base cleaning. Each later qualified referral earns ${laterPercent}% off one eligible Monthly base cleaning. Rewards are applied one per eligible Monthly invoice after the referred Monthly customer successfully pays.`,
         "",
         "Thanks for choosing ADS Bin Cleaning.",
       ].join("\n"),
@@ -68,11 +68,11 @@ export function referralNotificationCopy(row: Pick<OutboxRow, "kind" | "payload"
       body: [
         `Hi ${recipientFirstName},`,
         "",
-        `${referredFirstName} joined ADS Bin Cleaning using your referral.`,
+        `${referredFirstName} joined ADS Bin Cleaning using your referral and their payment was confirmed.`,
         "",
-        "The referral is now in progress. Your reward will move into available credit after the referred customer's first eligible paid service is completed and the referral hold clears.",
+        "Your referral reward is being added to your account automatically. You do not have to wait for their first cleaning to earn it.",
         "",
-        `You can follow its status in your customer portal: ${portalUrl}`,
+        `You can follow the reward in your customer portal: ${portalUrl}`,
       ].join("\n"),
     };
   }
