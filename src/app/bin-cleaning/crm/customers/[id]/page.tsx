@@ -34,6 +34,7 @@ export default async function Customer({params,searchParams}:{params:Promise<{id
  const recyclingSchedule=address?.recycling_pickup_schedules[0];
  const subscription=customer.subscriptions[0];
  const pendingChanges=changes.filter(c=>c.status==="pending_staff_review");
+ const normalCleanDay=trashSchedule?.cleaning_day_assignments[0]?.normal_weekday;
 
  return <AppShell area="Internal CRM">
   <h2 className="text-3xl font-black">{customer.full_name}</h2>
@@ -50,6 +51,8 @@ export default async function Customer({params,searchParams}:{params:Promise<{id
      <Definition label="Account status">{customer.account_status}</Definition>
      <Definition label="Service address">{address?.line1}, {address?.city}, {address?.region} {address?.postal_code}</Definition>
      <Definition label="Plan">{subscription?.service_plan_versions.service_plans.display_name??"None"}</Definition>
+     <Definition label="Pickup day">{trashSchedule?.weekday==null?"Unverified":days[trashSchedule.weekday]}</Definition>
+     <Definition label="Clean day">{normalCleanDay==null?"Pending":days[normalCleanDay]}</Definition>
      <Definition label="Return/access">{address?.preferred_return_location} · {address?.access_instructions}</Definition>
      <Definition label="Safety">{address?.animal_warning??"None recorded"}</Definition>
      <Definition label="Last portal activity">{displayDate(customer.last_portal_activity_at)}</Definition>
@@ -75,7 +78,7 @@ export default async function Customer({params,searchParams}:{params:Promise<{id
    </section>
   </div>
 
-  <section className="card mt-5 p-5"><h3 className="text-xl font-black">Referral & billing snapshot</h3><dl className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-4"><Definition label="Referral code">{summary.referralCode??"Not assigned"}</Definition><Definition label="Submitted referrals">{summary.submittedReferrals}</Definition><Definition label="Qualified referrals">{summary.qualifiedReferrals}</Definition><Definition label="Available referral rewards">{formatCurrency(summary.availableCreditCents)}</Definition><Definition label={summary.nextChargeLabel}>{nextCharge}</Definition><Definition label="Bins on account">{bins.length}</Definition></dl></section>
+  <details className="card mt-5 p-5"><summary className="flex cursor-pointer list-none items-center justify-between gap-4"><div><h3 className="text-xl font-black">Referral & billing snapshot</h3><p className="mt-1 text-sm text-zinc-600">Open when staff needs referral balances or next-charge information.</p></div><span className="rounded-lg border px-3 py-2 text-xs font-black">Open / close</span></summary><dl className="mt-5 grid gap-5 border-t pt-5 sm:grid-cols-2 lg:grid-cols-4"><Definition label="Referral code">{summary.referralCode??"Not assigned"}</Definition><Definition label="Submitted referrals">{summary.submittedReferrals}</Definition><Definition label="Qualified referrals">{summary.qualifiedReferrals}</Definition><Definition label="Available referral rewards">{formatCurrency(summary.availableCreditCents)}</Definition><Definition label={summary.nextChargeLabel}>{nextCharge}</Definition><Definition label="Bins on account">{bins.length}</Definition></dl></details>
 
   <details className="card mt-5 p-5"><summary className="flex cursor-pointer list-none items-center justify-between gap-4"><div><h3 className="text-xl font-black">Customer account & service details</h3><p className="mt-1 text-sm text-zinc-600">Open this section when staff needs to change customer information, service details, move status, or add an internal note.</p></div><span className="rounded-lg border px-3 py-2 text-xs font-black">Open / close</span></summary>
    <form action="/api/bin-cleaning/crm/customer-update" method="post" className="mt-5 grid gap-4 border-t pt-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -108,7 +111,7 @@ export default async function Customer({params,searchParams}:{params:Promise<{id
    </form>
   </details>
 
-  <section className="card mt-5 p-5"><h3 className="text-xl font-black">Staff notes</h3>{notes.map(n=><div key={n.id} className="mt-3 border-t pt-3"><p>{n.body}</p><p className="text-xs text-zinc-500">{displayDate(n.created_at)}</p></div>)}</section>
+  <details className="card mt-5 p-5"><summary className="flex cursor-pointer list-none items-center justify-between gap-4"><div><h3 className="text-xl font-black">Staff notes</h3><p className="mt-1 text-sm text-zinc-600">Internal notes for this customer.</p></div><span className="rounded-lg border px-3 py-2 text-xs font-black">Open / close</span></summary><div className="mt-5 border-t pt-5">{notes.length===0?<p className="text-sm text-zinc-500">No staff notes.</p>:notes.map(n=><div key={n.id} className="mt-3 border-t pt-3 first:mt-0 first:border-t-0 first:pt-0"><p>{n.body}</p><p className="text-xs text-zinc-500">{displayDate(n.created_at)}</p></div>)}</div></details>
   <CustomerHistoryPanels changes={changes.map(c=>({id:c.id,requestType:c.request_type,requestedText:requestedText(c.requested_value),status:c.status,createdAt:c.created_at,displayDate:displayDate(c.created_at)}))} audit={audit.map(a=>({id:a.id,action:a.action,entityTable:a.entity_table,createdAt:a.created_at,displayDate:displayDate(a.created_at)}))}/>
   <PermanentErasePanel kind="customer" id={customer.id} name={customer.full_name}/>
  </AppShell>;
