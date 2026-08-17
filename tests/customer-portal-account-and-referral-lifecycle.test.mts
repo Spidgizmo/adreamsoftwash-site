@@ -11,6 +11,7 @@ const accountRoutePath = new URL("../src/app/api/bin-cleaning/signup-account/rou
 const authProvisioningPath = new URL("../src/lib/bin-cleaning/test-auth-provisioning.ts", import.meta.url);
 const loginRoutePath = new URL("../src/app/api/bin-cleaning/auth/login/route.ts", import.meta.url);
 const appShellPath = new URL("../src/components/bin-cleaning/AppShell.tsx", import.meta.url);
+const billingActionsPath = new URL("../src/components/bin-cleaning/CustomerBillingActions.tsx", import.meta.url);
 const ledgerPath = new URL("../src/components/bin-cleaning/ReferralLedger.tsx", import.meta.url);
 const notificationPath = new URL("../src/lib/bin-cleaning/referral-notification-outbox.ts", import.meta.url);
 const signupIdentityMigrationPath = new URL("../supabase/migrations/202608160003_signup_portal_identity.sql", import.meta.url);
@@ -60,15 +61,17 @@ test("verified payment activates the same signup identity and login uses the sha
 });
 
 test("customer portal exposes payment, cancellation/resume, and a detailed referral ledger", async () => {
-  const [shell, ledger] = await Promise.all([
+  const [shell, billingActions, ledger] = await Promise.all([
     readFile(appShellPath, "utf8"),
+    readFile(billingActionsPath, "utf8"),
     readFile(ledgerPath, "utf8"),
   ]);
-  assert.match(shell, /Update payment method/);
-  assert.match(shell, /Cancel service/);
-  assert.match(shell, /Resume service/);
-  assert.match(shell, /\/api\/bin-cleaning\/billing-portal/);
+  assert.match(shell, /<CustomerBillingActions \/>/);
   assert.match(shell, /<ReferralLedger \/>/);
+  assert.match(billingActions, /Update payment method/);
+  assert.match(billingActions, /Cancel service/);
+  assert.match(billingActions, /Resume service/);
+  assert.match(billingActions, /\/api\/bin-cleaning\/billing-portal/);
   assert.match(ledger, /Submitted, unpaid/);
   assert.match(ledger, /Paid \/ processing/);
   assert.match(ledger, /Qualified/);
