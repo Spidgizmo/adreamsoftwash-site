@@ -206,7 +206,6 @@ export async function POST(request: NextRequest) {
       "metadata[ads_plan_id]": plan.id,
       "metadata[ads_bin_count]": lead.binCount,
       "metadata[ads_environment]": "test",
-      "payment_method_collection": "always",
     };
     if (checkoutMode === "subscription") {
       values["line_items[0][price_data][recurring][interval]"] = "month";
