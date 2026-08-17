@@ -49,7 +49,7 @@ export async function ReferralLedger() {
   ).catch(() => []);
   const code = codes[0]?.code;
 
-  const [relationships, credits, unpaidSignups] = await Promise.all([
+  const [allRelationships, credits, unpaidSignups] = await Promise.all([
     databaseRequest<Relationship[]>(
       `referral_relationships?referrer_customer_id=eq.${customer.id}&select=id,status,created_at,hold_until&order=created_at.desc`,
     ).catch(() => []),
@@ -63,6 +63,9 @@ export async function ReferralLedger() {
       : Promise.resolve([]),
   ]);
 
+  // Rejected/reversed claims are internal fraud/validation outcomes, not customer
+  // referrals. Do not number or display them as if they were additional people.
+  const relationships = allRelationships.filter((item) => !["rejected", "reversed"].includes(item.status));
   const qualified = relationships.filter((item) => QUALIFIED_STATUSES.has(item.status)).length;
   const inProgress = relationships.filter((item) => PENDING_STATUSES.has(item.status)).length;
   const waitingRewards = credits.filter((credit) => ["issued", "partially_applied"].includes(credit.status)).length;
@@ -75,13 +78,13 @@ export async function ReferralLedger() {
         <div>
           <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Referral rewards</p>
           <h2 className="mt-1 text-xl font-black text-emerald-950">Your referral activity &amp; credits</h2>
-          <p className="mt-1 text-sm text-emerald-900">First qualified referral: 50% off one eligible Monthly base cleaning. Each later qualified referral: 25%. One reward is applied per eligible Monthly invoice.</p>
+          <p className="mt-1 text-sm text-emerald-900">A referral is earned after the referred Monthly customer successfully pays. First qualified referral: 50% off one eligible Monthly base cleaning. Each later qualified referral: 25%. One reward is applied per eligible Monthly invoice.</p>
         </div>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-xl bg-white p-3"><p className="text-xs text-zinc-600">Submitted, unpaid</p><p className="text-2xl font-black">{unpaidSignups.length}</p></div>
-        <div className="rounded-xl bg-white p-3"><p className="text-xs text-zinc-600">Paid / in progress</p><p className="text-2xl font-black">{inProgress}</p></div>
+        <div className="rounded-xl bg-white p-3"><p className="text-xs text-zinc-600">Paid / processing</p><p className="text-2xl font-black">{inProgress}</p></div>
         <div className="rounded-xl bg-white p-3"><p className="text-xs text-zinc-600">Qualified</p><p className="text-2xl font-black">{qualified}</p></div>
         <div className="rounded-xl bg-white p-3"><p className="text-xs text-zinc-600">Rewards waiting</p><p className="text-2xl font-black">{waitingRewards}</p></div>
         <div className="rounded-xl bg-white p-3"><p className="text-xs text-zinc-600">Rewards used</p><p className="text-2xl font-black">{usedRewards}</p></div>
