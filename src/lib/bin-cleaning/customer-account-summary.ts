@@ -77,17 +77,16 @@ export async function customerAccountSummary(
   ).length;
 
   const availableCreditCents =
-    planId === "monthly"
+    planId === "monthly" && regularChargeCents != null
       ? credits.reduce(
           (sum, credit) =>
-            sum + referralRewardCents(basePriceCents, credit.reward_percent),
+            sum + referralRewardCents(regularChargeCents, credit.reward_percent),
           0,
         )
       : 0;
 
   const nextReward = automaticReferralDiscountForInvoice({
     planId,
-    monthlyBasePriceCents: basePriceCents,
     regularChargeCents,
     queuedRewards: credits,
     now,
