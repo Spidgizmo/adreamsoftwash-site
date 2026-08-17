@@ -34,7 +34,7 @@ test("referral credits track the Stripe coupon, subscription, and paid invoice",
   assert.match(migration, /status='credit_applied'/);
 });
 
-test("matured rewards become deterministic one-time Stripe subscription discounts", async () => {
+test("matured rewards become deterministic amount-versioned one-time Stripe subscription discounts", async () => {
   const [helper, processor] = await Promise.all([
     readFile(helperPath, "utf8"),
     readFile(processorPath, "utf8"),
@@ -44,8 +44,8 @@ test("matured rewards become deterministic one-time Stripe subscription discount
   assert.match(helper, /currency:\s*"usd"/);
   assert.match(helper, /discounts\[0\]\[coupon\]/);
   assert.match(helper, /metadata\[ads_referral_credit_id\]/);
-  assert.match(helper, /ads-referral-credit:\$\{reward\.credit_id\}:coupon/);
-  assert.match(helper, /ads-referral-credit:\$\{reward\.credit_id\}:subscription/);
+  assert.match(helper, /ads-referral-credit:\$\{reward\.credit_id\}:\$\{reward\.amount_cents\}:coupon/);
+  assert.match(helper, /ads-referral-credit:\$\{reward\.credit_id\}:\$\{reward\.amount_cents\}:subscription/);
   assert.match(processor, /armAvailableStripeReferralRewards\(50\)/);
 });
 
