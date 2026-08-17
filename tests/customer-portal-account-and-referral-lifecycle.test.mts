@@ -15,6 +15,7 @@ const ledgerPath = new URL("../src/components/bin-cleaning/ReferralLedger.tsx", 
 const notificationPath = new URL("../src/lib/bin-cleaning/referral-notification-outbox.ts", import.meta.url);
 const signupIdentityMigrationPath = new URL("../supabase/migrations/202608160003_signup_portal_identity.sql", import.meta.url);
 const referralLifecycleMigrationPath = new URL("../supabase/migrations/202608160004_referral_lifecycle_notifications.sql", import.meta.url);
+const referralPaymentMigrationPath = new URL("../supabase/migrations/202608170002_referrals_qualify_on_payment_and_signup_conversion.sql", import.meta.url);
 
 test("customer portal password policy is 8+ with upper, lower, and special character", () => {
   assert.equal(isValidPortalPassword("Abcdefg!"), true);
@@ -58,35 +59,46 @@ test("verified payment activates the same signup identity and login uses the sha
   assert.doesNotMatch(login, /password\.length\s*<\s*12/);
 });
 
-test("customer portal exposes billing cancellation and a detailed referral ledger", async () => {
+test("customer portal exposes payment, cancellation/resume, and a detailed referral ledger", async () => {
   const [shell, ledger] = await Promise.all([
     readFile(appShellPath, "utf8"),
     readFile(ledgerPath, "utf8"),
   ]);
-  assert.match(shell, /Billing &amp; cancel/);
+  assert.match(shell, /Update payment method/);
+  assert.match(shell, /Cancel service/);
+  assert.match(shell, /Resume service/);
   assert.match(shell, /\/api\/bin-cleaning\/billing-portal/);
   assert.match(shell, /<ReferralLedger \/>/);
   assert.match(ledger, /Submitted, unpaid/);
-  assert.match(ledger, /Paid \/ in progress/);
+  assert.match(ledger, /Paid \/ processing/);
   assert.match(ledger, /Qualified/);
   assert.match(ledger, /Rewards waiting/);
   assert.match(ledger, /Rewards used/);
+  assert.match(ledger, /successfully pays/);
+  assert.match(ledger, /rejected.*reversed/s);
 });
 
-test("referral lifecycle starts the hold, queues tiered rewards, and creates idempotent notifications", async () => {
-  const [migration, notifications] = await Promise.all([
+test("referral lifecycle qualifies on successful payment, queues tiered rewards, and creates idempotent notifications", async () => {
+  const [originalLifecycle, paymentLifecycle, notifications] = await Promise.all([
     readFile(referralLifecycleMigrationPath, "utf8"),
+    readFile(referralPaymentMigrationPath, "utf8"),
     readFile(notificationPath, "utf8"),
   ]);
-  assert.match(migration, /interval '7 days'/);
-  assert.match(migration, /process_mature_referral_rewards/);
-  assert.match(migration, /case when next_sequence=1 then 50 else 25 end/);
-  assert.match(migration, /idempotency_key text not null unique/);
-  assert.match(migration, /referred_customer_welcome/);
-  assert.match(migration, /referrer_joined_pending/);
-  assert.match(migration, /referrer_reward_qualified/);
+  assert.match(paymentLifecycle, /issue_referral_reward_after_paid_activation/);
+  assert.match(paymentLifecycle, /hold_until=now\(\)/);
+  assert.match(paymentLifecycle, /drop trigger if exists begin_referral_hold_after_first_service/);
+  assert.match(paymentLifecycle, /status='converted'/);
+  assert.match(paymentLifecycle, /duplicate_active_claim/);
+  assert.match(originalLifecycle, /process_mature_referral_rewards/);
+  assert.match(originalLifecycle, /case when next_sequence=1 then 50 else 25 end/);
+  assert.match(originalLifecycle, /idempotency_key text not null unique/);
+  assert.match(originalLifecycle, /referred_customer_welcome/);
+  assert.match(originalLifecycle, /referrer_joined_pending/);
+  assert.match(originalLifecycle, /referrer_reward_qualified/);
   assert.match(notifications, /thanks you for subscribing/);
   assert.match(notifications, /one eligible Monthly base cleaning/);
   assert.match(notifications, /one qualified referral reward per eligible Monthly invoice/);
+  assert.match(notifications, /payment was confirmed/);
+  assert.match(notifications, /do not have to wait for their first cleaning/);
   assert.match(notifications, /Hosted test referral notifications must remain in simulator mode/);
 });
