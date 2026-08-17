@@ -1,10 +1,11 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
   PUBLIC_BIN_CLEANING_PLANS,
   calculateBinCleaningPrice,
   evaluateBinCleaningPromotion,
 } from "@/lib/bin-cleaning-plans";
+import { queuePendingPaymentReminder } from "@/lib/bin-cleaning/payment-reminder-outbox";
 import {
   currentAuthenticatedUser,
   serviceRoleDatabaseRequest,
@@ -87,31 +88,34 @@ async function recoverPendingSignupCheckout() {
         `checkout/sessions/${encodeURIComponent(attempt.stripe_checkout_session_id)}`,
       );
       if (!session.livemode && session.status === "open" && session.payment_status === "unpaid" && session.url) {
+        await queuePendingPaymentReminder(lead.id).catch(() => null);
         return { checkoutUrl: session.url, checkoutSessionId: session.id } as const;
       }
       if (!session.livemode && session.status === "complete" && session.payment_status !== "unpaid") {
         return { error: "Stripe received the payment. ADS is waiting for verified webhook activation before opening the portal.", status: 409 } as const;
       }
     } catch {
-      // If the old TEST session can no longer be retrieved, rotate the signup
-      // edit credential below and safely create a replacement checkout session.
+      // If the old TEST session expired or can no longer be retrieved, the trusted
+      // Auth-owned recovery RPC below revalidates the immutable submitted signup
+      // without weakening its original edit-token or payment security boundaries.
     }
   }
 
-  const editToken = randomBytes(32).toString("base64url");
-  const editTokenHash = createHash("sha256").update(editToken).digest("hex");
-  const updated = await serviceRoleDatabaseRequest<{ id: string }[]>(
-    `signup_leads?id=eq.${encodeURIComponent(lead.id)}&auth_user_id=eq.${encodeURIComponent(authenticatedUser.id)}&status=eq.submitted_unpaid&is_test=eq.true`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ edit_token_hash: editTokenHash, updated_at: new Date().toISOString() }),
-    },
-  ).catch(() => []);
-  if (!updated[0]?.id) {
-    return { error: "The pending signup changed while payment recovery was starting. Sign in again and retry.", status: 409 } as const;
+  try {
+    const preparedLead = await serviceRoleDatabaseRequest<PreparedLead>(
+      "rpc/prepare_stripe_test_checkout_for_auth",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          p_lead_id: lead.id,
+          p_auth_user_id: authenticatedUser.id,
+        }),
+      },
+    );
+    return { preparedLead } as const;
+  } catch {
+    return { error: "The pending signup could not be safely prepared for another checkout. Sign in again and retry.", status: 409 } as const;
   }
-
-  return { leadId: lead.id, editToken } as const;
 }
 
 export async function POST(request: NextRequest) {
@@ -131,8 +135,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Checkout request must be valid JSON." }, { status: 400, headers: RESPONSE_HEADERS });
   }
   const input = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string, unknown> : {};
-  let leadId = asText(input.leadId);
-  let editToken = asText(input.editToken);
+  const leadId = asText(input.leadId);
+  const editToken = asText(input.editToken);
+  let recoveredLead: PreparedLead | null = null;
 
   if ((!/^[0-9a-f-]{36}$/i.test(leadId) || editToken.length < 32) && input.resumePendingPayment === true) {
     const recovery = await recoverPendingSignupCheckout();
@@ -148,22 +153,25 @@ export async function POST(request: NextRequest) {
         { headers: RESPONSE_HEADERS },
       );
     }
-    leadId = recovery.leadId;
-    editToken = recovery.editToken;
+    recoveredLead = recovery.preparedLead;
   }
 
-  if (!/^[0-9a-f-]{36}$/i.test(leadId) || editToken.length < 32) {
+  if (!recoveredLead && (!/^[0-9a-f-]{36}$/i.test(leadId) || editToken.length < 32)) {
     return NextResponse.json({ ok: false, error: "A valid submitted signup is required before checkout." }, { status: 400, headers: RESPONSE_HEADERS });
   }
 
   let lead: PreparedLead;
-  try {
-    lead = await serviceRoleDatabaseRequest<PreparedLead>("rpc/prepare_stripe_test_checkout", {
-      method: "POST",
-      body: JSON.stringify({ p_lead_id: leadId, p_edit_token: editToken }),
-    });
-  } catch {
-    return NextResponse.json({ ok: false, error: "This signup is not eligible to start checkout." }, { status: 400, headers: RESPONSE_HEADERS });
+  if (recoveredLead) {
+    lead = recoveredLead;
+  } else {
+    try {
+      lead = await serviceRoleDatabaseRequest<PreparedLead>("rpc/prepare_stripe_test_checkout", {
+        method: "POST",
+        body: JSON.stringify({ p_lead_id: leadId, p_edit_token: editToken }),
+      });
+    } catch {
+      return NextResponse.json({ ok: false, error: "This signup is not eligible to start checkout." }, { status: 400, headers: RESPONSE_HEADERS });
+    }
   }
 
   const plan = PUBLIC_BIN_CLEANING_PLANS.find((item) => item.id === lead.planId && item.status === "active" && item.checkoutEnabled);
@@ -312,6 +320,7 @@ export async function POST(request: NextRequest) {
       method: "PATCH",
       body: JSON.stringify({ stripe_checkout_session_id: session.id, status: "open", updated_at: new Date().toISOString() }),
     });
+    await queuePendingPaymentReminder(lead.id).catch(() => null);
 
     return NextResponse.json({ ok: true, checkoutUrl: session.url, checkoutSessionId: session.id }, { headers: RESPONSE_HEADERS });
   } catch (error) {
