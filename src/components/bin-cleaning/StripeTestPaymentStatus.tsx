@@ -40,16 +40,32 @@ export function StripeTestPaymentStatus({ sessionId }: Props) {
     };
   }, [sessionId]);
 
+  useEffect(() => {
+    if (!result.paid) return;
+    const timer = window.setTimeout(() => {
+      window.location.assign("/bin-cleaning/portal?payment=confirmed");
+    }, 1400);
+    return () => window.clearTimeout(timer);
+  }, [result.paid]);
+
   if (result.paid) {
     return (
       <div className="rounded-3xl border-2 border-emerald-300 bg-emerald-50 p-6 text-emerald-950 shadow-sm">
         <h2 className="text-2xl font-black">Stripe TEST payment confirmed</h2>
-        <p className="mt-3 leading-relaxed">The signed webhook was processed and the test payment is recorded as paid. Your test service record can now be used to verify CRM, subscription, and entitlement behavior.</p>
+        <p className="mt-3 leading-relaxed">
+          Payment is verified. Taking you directly to your customer portal…
+        </p>
         <dl className="mt-5 grid gap-2 text-sm sm:grid-cols-3">
           <div><dt className="font-bold">Plan</dt><dd>{result.planId}</dd></div>
           <div><dt className="font-bold">Bins</dt><dd>{result.binCount}</dd></div>
           <div><dt className="font-bold">First charge</dt><dd>{typeof result.firstChargeCents === "number" ? formatCurrency(result.firstChargeCents) : "—"}</dd></div>
         </dl>
+        <a
+          href="/bin-cleaning/portal?payment=confirmed"
+          className="mt-5 inline-block rounded-xl bg-brand-700 px-5 py-3 font-black text-white"
+        >
+          Open customer portal now
+        </a>
       </div>
     );
   }
