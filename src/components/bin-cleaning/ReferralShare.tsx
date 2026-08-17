@@ -24,23 +24,8 @@ export function ReferralShare({
   const shortPath = `/r/${encodeURIComponent(code)}`;
   const shortUrl = origin ? `${origin}${shortPath}` : shortPath;
   const subject = `${senderFirstName} sent you 50% off ADS Bin Cleaning`;
-  const textMessage = `Hey! ${senderFirstName} thinks your bins probably stink—but everybody's do. ADS cleans, sanitizes, deodorizes, and returns them. Get 50% off your first eligible Monthly base cleaning. Clean My Bins: ${shortUrl} ${senderFirstName} earns a referral reward too. You'll get your own referral code after signup.`;
-  const emailMessage = `Hey,
-
-${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. Trash and recycling bins collect grime, odors, germs, leaked waste, and nasty buildup that a quick hose-off does not really remove.
-
-${senderFirstName} found a solution: ADS Bin Cleaning professionally cleans, sanitizes, and deodorizes the bins after collection, then returns them to the designated storage spot.
-
-${senderFirstName} sent you this referral so you can receive 50% off your first eligible Monthly base cleaning. The referral is attached automatically when you open the signup link.
-
-Clean My Bins:
-${shortUrl}
-
-Full disclosure: ${senderFirstName} earns a referral reward after your referral qualifies—50% off an eligible base cleaning for their first qualified referral, then 25% off an eligible base cleaning for each later qualified referral.
-
-Once your signup is complete and your ADS account is active, you will receive your own permanent referral code to share with friends and family. Your referred friends can receive 50% off their first eligible Monthly base cleaning, while you can earn 50% for your first qualified referral and 25% for later qualified referrals.
-
-${senderFirstName} thought this might save you the mess of cleaning the bins yourself!`;
+  const textMessage = `Hey! ${senderFirstName} thinks your bins probably stink—but everybody's do. ADS cleans, sanitizes, deodorizes, and returns them. Get 50% off your first eligible Monthly bin-cleaning charge. Clean My Bins: ${shortUrl} ${senderFirstName} earns a referral reward too. You'll get your own referral code after signup.`;
+  const emailMessage = `Hey,\n\n${senderFirstName} thinks your trash bins probably stink—but let’s be honest, everybody’s do. Trash and recycling bins collect grime, odors, germs, leaked waste, and nasty buildup that a quick hose-off does not really remove.\n\n${senderFirstName} found a solution: ADS Bin Cleaning professionally cleans, sanitizes, and deodorizes the bins after collection, then returns them to the designated storage spot.\n\n${senderFirstName} sent you this referral so you can receive 50% off your first eligible Monthly bin-cleaning charge. The referral is attached automatically when you open the signup link.\n\nClean My Bins:\n${shortUrl}\n\nFull disclosure: ${senderFirstName} earns a referral reward after your referral qualifies—50% off their entire next eligible Monthly bin-cleaning charge for their first qualified referral, then 25% off one eligible Monthly bin-cleaning charge for each later qualified referral.\n\nOnce your signup is complete and your ADS account is active, you will receive your own permanent referral code to share with friends and family. Your referred friends can receive 50% off their first eligible Monthly bin-cleaning charge, while you can earn 50% for your first qualified referral and 25% for later qualified referrals. Referral rewards are promotional service credits only and have no cash value.\n\n${senderFirstName} thought this might save you the mess of cleaning the bins yourself!`;
 
   async function copy(value: string, successMessage: string) {
     try {
@@ -53,7 +38,7 @@ ${senderFirstName} thought this might save you the mess of cleaning the bins you
 
   async function inviteFriends() {
     const absoluteShortUrl = `${window.location.origin}${shortPath}`;
-    const shareText = `${senderFirstName} thinks your bins probably stink—but everybody's do. ADS cleans, sanitizes, deodorizes, and returns them. Get 50% off your first eligible Monthly base cleaning. ${senderFirstName} earns a referral reward too, and you'll get your own referral code after signup.`;
+    const shareText = `${senderFirstName} thinks your bins probably stink—but everybody's do. ADS cleans, sanitizes, deodorizes, and returns them. Get 50% off your first eligible Monthly bin-cleaning charge. ${senderFirstName} earns a referral reward too, and you'll get your own referral code after signup.`;
 
     if (typeof navigator.share === "function") {
       try {
@@ -83,9 +68,13 @@ ${senderFirstName} thought this might save you the mess of cleaning the bins you
           Invitations identify {senderFirstName} as the sender.
         </p>
         <p className="mt-2 text-sm text-zinc-700">
-          Your first qualified referral earns 50% off one eligible Monthly base
-          cleaning. Each later qualified referral earns 25% off one eligible
-          Monthly base cleaning. Rewards apply one per invoice and do not stack.
+          Your first qualified referral earns 50% off your entire next eligible
+          Monthly bin-cleaning charge. Each later qualified referral earns 25%
+          off one eligible Monthly bin-cleaning charge. Rewards apply one per
+          invoice and do not stack on the same Monthly bill.
+        </p>
+        <p className="mt-2 text-xs font-semibold text-zinc-600">
+          Promotional service credits only; no cash value or cash payout.
         </p>
         <p className="mt-2 break-all text-sm text-zinc-700">{shortUrl}</p>
       </div>
