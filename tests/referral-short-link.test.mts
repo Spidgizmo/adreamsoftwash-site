@@ -20,7 +20,7 @@ test("text invitations use a short branded referral path", async () => {
     /const shortPath = `\/r\/\$\{encodeURIComponent\(code\)\}`/,
   );
   assert.match(referral, /Clean My Bins: \$\{shortUrl\}/);
-  assert.match(referral, /Get 50% off your first eligible Monthly base cleaning/);
+  assert.match(referral, /Get 50% off your first eligible Monthly bin-cleaning charge/);
   assert.match(referral, /earns a referral reward too/);
   assert.doesNotMatch(
     referral,
