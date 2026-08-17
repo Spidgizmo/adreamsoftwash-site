@@ -7,6 +7,7 @@ type LoginSearchParams = {
   unauthorized?: string;
   error?: string;
   logged_out?: string;
+  payment?: string;
 };
 
 export default async function LoginPage({
@@ -15,15 +16,17 @@ export default async function LoginPage({
   searchParams: Promise<LoginSearchParams>;
 }) {
   const query = await searchParams;
-  const message = query.unauthorized
-    ? "This test identity is not linked to an active staff role or customer account."
-    : query.expired
-      ? "Your test session expired. Sign in again."
-      : query.logged_out
-        ? "You have signed out."
-        : query.error
-          ? "Sign-in failed. Check your email and password."
-          : null;
+  const message = query.payment === "required"
+    ? "Your signup is saved. Sign in with the customer account you already created to continue secure payment."
+    : query.unauthorized
+      ? "This test identity is not linked to an active staff role, active customer account, or recoverable unpaid signup."
+      : query.expired
+        ? "Your test session expired. Sign in again."
+        : query.logged_out
+          ? "You have signed out."
+          : query.error
+            ? "Sign-in failed. Check your email and password."
+            : null;
 
   return (
     <>
@@ -34,6 +37,9 @@ export default async function LoginPage({
           Supabase Auth accepts only fictional users connected to the hosted
           ADS Bin Cleaning staging database. No real customer or payment data
           belongs here.
+        </p>
+        <p className="mt-3 rounded-xl border border-brand-200 bg-brand-50 p-3 text-sm font-semibold text-brand-950">
+          Left Stripe before paying? Sign in with the account you created during signup. If payment is still incomplete, ADS will take you back to your saved signup so you can finish secure payment without creating another account.
         </p>
         <form
           action="/api/bin-cleaning/auth/login"
