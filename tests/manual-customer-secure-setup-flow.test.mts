@@ -4,6 +4,9 @@ import test from "node:test";
 
 const manualFormPath = new URL("../src/app/bin-cleaning/crm/customers/new/ManualCustomerForm.tsx", import.meta.url);
 const manualRoutePath = new URL("../src/app/api/bin-cleaning/crm/manual-customer/route.ts", import.meta.url);
+const reissueRoutePath = new URL("../src/app/api/bin-cleaning/crm/manual-customer/setup-link/route.ts", import.meta.url);
+const reissuePanelPath = new URL("../src/components/bin-cleaning/ManualSetupLinkPanel.tsx", import.meta.url);
+const signupDetailPath = new URL("../src/app/bin-cleaning/crm/signups/[id]/page.tsx", import.meta.url);
 const bootstrapPath = new URL("../src/app/api/bin-cleaning/manual-setup/bootstrap/route.ts", import.meta.url);
 const finalizePath = new URL("../src/app/api/bin-cleaning/manual-setup/finalize/route.ts", import.meta.url);
 const setupComponentPath = new URL("../src/components/bin-cleaning/ManualCustomerSetup.tsx", import.meta.url);
@@ -31,6 +34,29 @@ test("manual CRM exposes email text copy and open actions without collecting car
   assert.match(form, /Open customer setup link/);
   assert.match(form, /navigator\.clipboard\.writeText\(savedSetup\.setupUrl\)/);
   assert.match(form, /Staff never types or stores card details/);
+});
+
+test("staff can reissue an incomplete manual setup link from signup detail without unlocking submitted records", async () => {
+  const [route, panel, detail] = await Promise.all([
+    readFile(reissueRoutePath, "utf8"),
+    readFile(reissuePanelPath, "utf8"),
+    readFile(signupDetailPath, "utf8"),
+  ]);
+  assert.match(route, /\["administrator", "dispatcher"\]/);
+  assert.match(route, /lead\.form_data\?\.manual_intake !== true/);
+  assert.match(route, /lead\.status !== "incomplete"/);
+  assert.match(route, /submitted and converted signup records remain locked/i);
+  assert.match(route, /randomBytes\(32\)\.toString\("hex"\)/);
+  assert.match(route, /edit_token_hash: editTokenHash/);
+  assert.match(route, /\/bin-cleaning\/setup#/);
+  assert.match(panel, /Issue \/ reissue secure setup link/);
+  assert.match(panel, /Reissuing rotates the credential/);
+  assert.match(panel, /Send setup\/payment link by EMAIL/);
+  assert.match(panel, /Send setup\/payment link by TEXT/);
+  assert.match(panel, /Copy setup\/payment link/);
+  assert.match(detail, /lead\.form_data\?\.manual_intake === true/);
+  assert.match(detail, /lead\.status === "incomplete"/);
+  assert.match(detail, /Customer setup finished — payment pending/);
 });
 
 test("secure setup credential stays in URL fragment and is verified server-side", async () => {
