@@ -6,7 +6,11 @@ import {
   evaluateBinCleaningPromotion,
 } from "@/lib/bin-cleaning-plans";
 import { serviceRoleDatabaseRequest } from "@/lib/supabase/server";
-import { stripeCouponForDiscount, stripePost, stripeTestConfig } from "@/lib/stripe/server";
+import {
+  ensureStripeTestCouponForDiscount,
+  stripePost,
+  stripeTestConfig,
+} from "@/lib/stripe/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -101,9 +105,22 @@ export async function POST(request: NextRequest) {
   }
 
   const firstChargeCents = price.subtotalCents - discountCents;
-  const coupon = stripeCouponForDiscount(discountKind, lead.promoCode);
-  if (discountCents > 0 && !coupon) {
-    return NextResponse.json({ ok: false, error: "The Stripe TEST discount coupon is not configured yet." }, { status: 503, headers: RESPONSE_HEADERS });
+  let coupon: string | null = null;
+  if (discountCents > 0) {
+    try {
+      coupon = await ensureStripeTestCouponForDiscount(discountKind, lead.promoCode);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: error instanceof Error ? error.message : "The Stripe TEST discount could not be prepared.",
+        },
+        { status: 502, headers: RESPONSE_HEADERS },
+      );
+    }
+    if (!coupon) {
+      return NextResponse.json({ ok: false, error: "The Stripe TEST discount could not be prepared." }, { status: 502, headers: RESPONSE_HEADERS });
+    }
   }
 
   const checkoutMode = plan.chargeType === "recurring" ? "subscription" : "payment";
