@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CrmCancellationAlerts } from "@/components/bin-cleaning/CrmCancellationAlerts";
 import { CustomerBillingActions } from "@/components/bin-cleaning/CustomerBillingActions";
+import { MarketingPreferenceControl } from "@/components/bin-cleaning/MarketingPreferenceControl";
 import { ReferralLedger } from "@/components/bin-cleaning/ReferralLedger";
 import { SubscriptionStatusNotice } from "@/components/bin-cleaning/SubscriptionStatusNotice";
 
@@ -20,6 +21,7 @@ const AREA_LINKS: Record<AppArea, { href: string; label: string }[]> = {
   ],
   "Internal CRM": [
     { href: "/bin-cleaning/crm", label: "CRM" },
+    { href: "/bin-cleaning/crm/marketing", label: "Marketing preferences" },
     { href: "/bin-cleaning/crm/activity", label: "Messages & notes" },
     {
       href: "/bin-cleaning/field/visits/assigned",
@@ -80,6 +82,7 @@ export function AppShell({
         {area === "Customer portal" && (
           <>
             <SubscriptionStatusNotice />
+            <MarketingPreferenceControl />
             <ReferralLedger />
           </>
         )}
