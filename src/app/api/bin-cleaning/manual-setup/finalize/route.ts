@@ -53,6 +53,12 @@ function tokenMatches(editToken: string, expectedHash: string) {
 function weekdayIsStandard(value: number | null) {
   return value !== null && Number.isInteger(value) && value >= 1 && value <= 5;
 }
+function dateWeekday(dateValue: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return null;
+  const parsed = new Date(`${dateValue}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== dateValue) return null;
+  return parsed.getUTCDay();
+}
 
 export async function POST(request: NextRequest) {
   if (!isStagingEnvironment()) {
@@ -68,6 +74,7 @@ export async function POST(request: NextRequest) {
   const input = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string, unknown> : {};
   const leadId = text(input.leadId);
   const editToken = text(input.editToken);
+  const requestedRecyclingAnchor = text(input.recyclingAnchorCollectionDate);
   const emailAllowed = input.emailAllowed === true;
   const smsAllowed = input.smsAllowed === true;
   const phoneAllowed = input.phoneAllowed === true;
@@ -102,6 +109,9 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ ok: false, error: "This submitted signup is locked and is missing required setup confirmations. Staff review is required." }, { status: 409, headers: HEADERS });
   }
+  if (lead.status !== "incomplete") {
+    return NextResponse.json({ ok: false, error: "This manual signup is not available for customer setup." }, { status: 409, headers: HEADERS });
+  }
   if (!lead.full_name || !lead.email || !lead.phone || !lead.line1 || !lead.city || !lead.region || !lead.postal_code || !lead.preferred_return_location) {
     return NextResponse.json({ ok: false, error: "Staff intake is missing required customer or service-address information." }, { status: 409, headers: HEADERS });
   }
@@ -111,9 +121,20 @@ export async function POST(request: NextRequest) {
   if (!weekdayIsStandard(lead.trash_weekday)) {
     return NextResponse.json({ ok: false, error: "Staff intake needs a Monday through Friday trash pickup day." }, { status: 409, headers: HEADERS });
   }
+
   const recyclingBins = Number(lead.bin_streams?.recycling ?? 0);
-  if (recyclingBins > 0 && (!weekdayIsStandard(lead.recycling_weekday) || ![1, 2].includes(lead.recycling_frequency_weeks ?? 0) || !lead.recycling_anchor_collection_date)) {
-    return NextResponse.json({ ok: false, error: "Recycling service is missing its pickup day, frequency, or anchor date." }, { status: 409, headers: HEADERS });
+  const recyclingAnchor = requestedRecyclingAnchor || lead.recycling_anchor_collection_date?.trim() || "";
+  if (recyclingBins > 0) {
+    if (!weekdayIsStandard(lead.recycling_weekday) || ![1, 2].includes(lead.recycling_frequency_weeks ?? 0)) {
+      return NextResponse.json({ ok: false, error: "Recycling service is missing its pickup day or frequency." }, { status: 409, headers: HEADERS });
+    }
+    const actualWeekday = dateWeekday(recyclingAnchor);
+    if (actualWeekday === null) {
+      return NextResponse.json({ ok: false, error: "Enter the next real recycling pickup date before checkout." }, { status: 400, headers: HEADERS });
+    }
+    if (actualWeekday !== lead.recycling_weekday) {
+      return NextResponse.json({ ok: false, error: "Next recycling pickup date must fall on the selected recycling pickup weekday." }, { status: 400, headers: HEADERS });
+    }
   }
 
   const now = new Date().toISOString();
@@ -126,10 +147,11 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    await serviceRoleDatabaseRequest(`signup_leads?id=eq.${encodeURIComponent(lead.id)}&status=neq.submitted_unpaid`, {
+    await serviceRoleDatabaseRequest(`signup_leads?id=eq.${encodeURIComponent(lead.id)}&status=eq.incomplete`, {
       method: "PATCH",
       body: JSON.stringify({
         status: "submitted_unpaid",
+        recycling_anchor_collection_date: recyclingBins > 0 ? recyclingAnchor : null,
         email_allowed: true,
         sms_allowed: true,
         phone_allowed: true,
