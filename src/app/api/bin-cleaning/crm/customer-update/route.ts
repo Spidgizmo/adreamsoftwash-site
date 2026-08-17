@@ -100,6 +100,10 @@ export async function POST(request: NextRequest) {
     recyclingBins < 0 ||
     trashBins + recyclingBins < 1 ||
     trashBins + recyclingBins > 20 ||
+    !Number.isInteger(trashWeekday) ||
+    trashWeekday < 1 ||
+    trashWeekday > 5 ||
+    (recyclingBins > 0 && (!Number.isInteger(recyclingWeekday) || recyclingWeekday < 1 || recyclingWeekday > 5)) ||
     (cancellationReason === "moved" && !datePattern.test(moveOutDate))
   ) {
     return NextResponse.redirect(
@@ -184,7 +188,7 @@ export async function POST(request: NextRequest) {
   await syncBins(addressId, "trash", trashBins);
   await syncBins(addressId, "recycling", recyclingBins);
 
-  if (Number.isInteger(trashWeekday) && trashWeekday >= 0 && trashWeekday <= 6) {
+  if (Number.isInteger(trashWeekday) && trashWeekday >= 1 && trashWeekday <= 5) {
     const schedules = await databaseRequest<{ id: string }[]>(
       `trash_pickup_schedules?service_address_id=eq.${addressId}&effective_to=is.null&select=id&limit=1`,
     );
@@ -204,8 +208,8 @@ export async function POST(request: NextRequest) {
   if (
     recyclingBins > 0 &&
     Number.isInteger(recyclingWeekday) &&
-    recyclingWeekday >= 0 &&
-    recyclingWeekday <= 6 &&
+    recyclingWeekday >= 1 &&
+    recyclingWeekday <= 5 &&
     [1, 2].includes(recyclingFrequency) &&
     datePattern.test(recyclingAnchor)
   ) {
