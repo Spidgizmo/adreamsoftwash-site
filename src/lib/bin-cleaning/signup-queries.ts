@@ -2,7 +2,7 @@ import { serviceRoleDatabaseRequest } from "@/lib/supabase/server";
 
 export type SignupLeadRow = Readonly<{
   id: string;
-  status: "incomplete" | "abandoned" | "submitted_unpaid";
+  status: "incomplete" | "abandoned" | "submitted_unpaid" | "converted";
   full_name: string | null;
   email: string | null;
   phone: string | null;
