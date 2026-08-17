@@ -4,7 +4,11 @@ import {
   PORTAL_PASSWORD_REQUIREMENTS,
   portalPasswordErrors,
 } from "@/lib/bin-cleaning/password-policy";
-import { serviceRoleDatabaseRequest } from "@/lib/supabase/server";
+import {
+  authRequest,
+  serviceRoleDatabaseRequest,
+  storeSession,
+} from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,6 +31,7 @@ type SignupLead = {
 };
 
 type AuthUser = { id: string; email?: string };
+type SessionTokens = { access_token: string; refresh_token: string; expires_in: number };
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -196,10 +201,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "The portal identity could not be linked to the signup." }, { status: 500, headers: HEADERS });
   }
 
+  // Establish the browser's Supabase session before leaving for Stripe. The app
+  // still refuses customer access while login_status is pending_payment. Once the
+  // signed Stripe webhook activates this same identity, the returning browser can
+  // go directly into the customer portal without asking for the password again.
+  let autoPortalReady = false;
+  try {
+    const signIn = await authRequest("token?grant_type=password", {
+      method: "POST",
+      body: JSON.stringify({ email: lead.email, password }),
+    });
+    if (signIn.ok) {
+      const tokens = await signIn.json() as SessionTokens;
+      await storeSession(tokens);
+      autoPortalReady = true;
+    }
+  } catch {
+    // Session bootstrap is convenience only; checkout remains available and the
+    // payment-return page retains a normal login fallback.
+  }
+
   return NextResponse.json(
     {
       ok: true,
       accountPrepared: true,
+      autoPortalReady,
       email: lead.email,
       message: "Portal sign-in is prepared and will activate only after verified payment.",
     },
