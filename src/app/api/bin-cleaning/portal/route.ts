@@ -7,6 +7,7 @@ import {
 
 const phone = /^[+()\- .0-9]{7,24}$/;
 const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
+const postalCode = /^\d{5}(?:-\d{4})?$/;
 const lockedVisitStatuses = [
   "assigned",
   "en_route",
@@ -35,6 +36,10 @@ function recurringPrice(
   );
 }
 
+function formText(form: FormData, key: string, max: number) {
+  return String(form.get(key) ?? "").trim().slice(0, max);
+}
+
 export async function POST(request: NextRequest) {
   const session = await currentSession();
   if (!session || session.role !== "customer") {
@@ -61,6 +66,123 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "No current service address" },
       { status: 409 },
+    );
+  }
+
+  if (form.get("move_request_present") === "1") {
+    const line1 = formText(form, "move_line1", 180);
+    const line2 = formText(form, "move_line2", 80);
+    const city = formText(form, "move_city", 100);
+    const region = formText(form, "move_region", 2).toUpperCase();
+    const zip = formText(form, "move_postal_code", 10);
+    const moveDate = formText(form, "move_date", 10);
+    const trashWeekday = Number(form.get("move_trash_weekday"));
+    const returnLocation = formText(form, "move_return_location", 180);
+    const accessInstructions = formText(form, "move_access_instructions", 1000);
+    const gateInformation = formText(form, "move_gate_information", 500);
+    const animalWarning = formText(form, "move_animal_warning", 500);
+
+    if (
+      !line1 ||
+      !city ||
+      !/^[A-Z]{2}$/.test(region) ||
+      !postalCode.test(zip) ||
+      !dateOnly.test(moveDate) ||
+      dateWeekday(moveDate) === null ||
+      !Number.isInteger(trashWeekday) ||
+      trashWeekday < 1 ||
+      trashWeekday > 5
+    ) {
+      return NextResponse.json(
+        { error: "Enter a complete new address, move date, and Monday-through-Friday trash pickup day." },
+        { status: 400 },
+      );
+    }
+
+    const activeBins = await databaseRequest<
+      { collection_stream: "trash" | "recycling" | "other" }[]
+    >(
+      `bins?service_address_id=eq.${addressId}&active=eq.true&select=collection_stream`,
+    );
+    const recyclingCount = activeBins.filter(
+      (bin) => bin.collection_stream === "recycling",
+    ).length;
+
+    let recyclingWeekday: number | null = null;
+    let recyclingFrequency: number | null = null;
+    let recyclingAnchor: string | null = null;
+    if (recyclingCount > 0) {
+      recyclingWeekday = Number(form.get("move_recycling_weekday"));
+      recyclingFrequency = Number(form.get("move_recycling_frequency_weeks"));
+      recyclingAnchor = formText(form, "move_recycling_anchor", 10);
+      if (
+        !Number.isInteger(recyclingWeekday) ||
+        recyclingWeekday < 1 ||
+        recyclingWeekday > 5 ||
+        !Number.isInteger(recyclingFrequency) ||
+        ![1, 2].includes(recyclingFrequency) ||
+        dateWeekday(recyclingAnchor) !== recyclingWeekday
+      ) {
+        return NextResponse.json(
+          { error: "Enter the new address recycling weekday, frequency, and a matching next recycling pickup date." },
+          { status: 400 },
+        );
+      }
+    }
+
+    const requestedValue = {
+      line1,
+      line2: line2 || null,
+      city,
+      region,
+      postal_code: zip,
+      move_date: moveDate,
+      trash_weekday: trashWeekday,
+      recycling_weekday: recyclingWeekday,
+      recycling_frequency_weeks: recyclingFrequency,
+      recycling_anchor_collection_date: recyclingAnchor,
+      preferred_return_location: returnLocation || null,
+      access_instructions: accessInstructions || null,
+      gate_information: gateInformation || null,
+      animal_warning: animalWarning || null,
+      submitted_from: "customer_portal",
+    };
+
+    const existingMove = (
+      await serviceRoleDatabaseRequest<{ id: string }[]>(
+        `customer_change_requests?customer_id=eq.${customer.id}&request_type=eq.service_address_move&status=eq.pending_staff_review&select=id&order=created_at.desc&limit=1`,
+      ).catch(() => [])
+    )[0];
+
+    if (existingMove) {
+      await serviceRoleDatabaseRequest(
+        `customer_change_requests?id=eq.${existingMove.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            service_address_id: addressId,
+            requested_value: requestedValue,
+            requested_by: session.id,
+          }),
+        },
+      );
+    } else {
+      await serviceRoleDatabaseRequest("customer_change_requests", {
+        method: "POST",
+        body: JSON.stringify({
+          customer_id: customer.id,
+          service_address_id: addressId,
+          request_type: "service_address_move",
+          requested_value: requestedValue,
+          requested_by: session.id,
+          status: "pending_staff_review",
+        }),
+      });
+    }
+
+    return NextResponse.redirect(
+      new URL("/bin-cleaning/portal?move=requested", request.url),
+      303,
     );
   }
 
@@ -171,8 +293,8 @@ export async function POST(request: NextRequest) {
       const anchorWeekday = dateWeekday(recyclingAnchor);
       if (
         !Number.isInteger(recyclingWeekday) ||
-        recyclingWeekday < 0 ||
-        recyclingWeekday > 6 ||
+        recyclingWeekday < 1 ||
+        recyclingWeekday > 5 ||
         !Number.isInteger(recyclingFrequencyWeeks) ||
         ![1, 2].includes(recyclingFrequencyWeeks) ||
         anchorWeekday === null ||
@@ -181,7 +303,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error:
-              "Adding recycling requires a valid pickup day, frequency, and a pickup date that falls on that weekday.",
+              "Adding recycling requires a Monday-through-Friday pickup day, frequency, and a pickup date that falls on that weekday.",
           },
           { status: 400 },
         );
@@ -387,18 +509,17 @@ export async function POST(request: NextRequest) {
 
     if (
       !Number.isInteger(recyclingWeekday) ||
-      recyclingWeekday < 0 ||
-      recyclingWeekday > 6 ||
+      recyclingWeekday < 1 ||
+      recyclingWeekday > 5 ||
       !Number.isInteger(frequencyWeeks) ||
-      frequencyWeeks < 1 ||
-      frequencyWeeks > 4 ||
+      ![1, 2].includes(frequencyWeeks) ||
       actualWeekday === null ||
       actualWeekday !== recyclingWeekday
     ) {
       return NextResponse.json(
         {
           error:
-            "Recycling schedule requires a valid weekday, frequency, and matching next collection date.",
+            "Recycling schedule requires a Monday-through-Friday weekday, weekly/every-other-week frequency, and matching next collection date.",
         },
         { status: 400 },
       );
@@ -418,25 +539,6 @@ export async function POST(request: NextRequest) {
         requested_by: session.id,
       }),
     });
-  }
-
-  const dirty = form
-    .getAll("dirty_bin")
-    .map(String)
-    .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
-
-  await databaseRequest(`bins?service_address_id=eq.${addressId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ dirty_this_visit: false }),
-  });
-  if (dirty.length) {
-    await databaseRequest(
-      `bins?service_address_id=eq.${addressId}&id=in.(${dirty.join(",")})`,
-      {
-        method: "PATCH",
-        body: JSON.stringify({ dirty_this_visit: true }),
-      },
-    );
   }
 
   return NextResponse.redirect(
