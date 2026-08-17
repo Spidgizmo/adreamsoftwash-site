@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isValidPortalPassword } from "@/lib/bin-cleaning/password-policy";
 import {
+  authenticatedUserFromToken,
   authRequest,
   databaseRequest,
   destinationForRole,
+  serviceRoleDatabaseRequest,
   sessionFromToken,
   storeSession,
 } from "@/lib/supabase/server";
@@ -42,8 +44,32 @@ export async function POST(request: NextRequest) {
     ).catch(() => null);
   }
 
+  if (session) {
+    return NextResponse.redirect(
+      new URL(destinationForRole(session.role), request.url),
+      303,
+    );
+  }
+
+  // A customer creates their Supabase Auth identity before Stripe payment. That
+  // identity deliberately has no active customer role yet, but it must still be
+  // able to sign back in and finish an abandoned checkout. Keep the Auth session
+  // and route only the matching submitted/unpaid signup to the recovery page.
+  const authenticatedUser = await authenticatedUserFromToken(tokens.access_token);
+  if (authenticatedUser) {
+    const pending = await serviceRoleDatabaseRequest<{ id: string }[]>(
+      `signup_leads?auth_user_id=eq.${encodeURIComponent(authenticatedUser.id)}&status=eq.submitted_unpaid&is_test=eq.true&select=id&order=submitted_at.desc&limit=1`,
+    ).catch(() => []);
+    if (pending.length > 0) {
+      return NextResponse.redirect(
+        new URL("/bin-cleaning/complete-payment", request.url),
+        303,
+      );
+    }
+  }
+
   return NextResponse.redirect(
-    new URL(session ? destinationForRole(session.role) : "/bin-cleaning/login?error=session", request.url),
+    new URL("/bin-cleaning/login?error=session", request.url),
     303,
   );
 }
