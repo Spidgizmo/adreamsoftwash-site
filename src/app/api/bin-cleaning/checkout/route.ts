@@ -1,14 +1,18 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
   PUBLIC_BIN_CLEANING_PLANS,
   calculateBinCleaningPrice,
   evaluateBinCleaningPromotion,
 } from "@/lib/bin-cleaning-plans";
-import { serviceRoleDatabaseRequest } from "@/lib/supabase/server";
+import {
+  currentAuthenticatedUser,
+  serviceRoleDatabaseRequest,
+} from "@/lib/supabase/server";
 import {
   ensureStripeTestCouponForDiscount,
   stripeDeleteTestCustomer,
+  stripeGet,
   stripePost,
   stripeTestConfig,
 } from "@/lib/stripe/server";
@@ -41,10 +45,73 @@ type PreparedLead = {
 
 type StripeCustomer = { id: string };
 type StripeSession = { id: string; url: string | null; livemode: boolean };
+type StripeSessionLookup = StripeSession & {
+  status: "open" | "complete" | "expired" | null;
+  payment_status: "paid" | "unpaid" | "no_payment_required" | null;
+};
 type FailedCheckout = { stripe_customer_id: string | null };
+type PendingSignup = { id: string };
+type OpenCheckoutAttempt = {
+  id: string;
+  stripe_checkout_session_id: string | null;
+};
 
 function asText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+async function recoverPendingSignupCheckout() {
+  const authenticatedUser = await currentAuthenticatedUser();
+  if (!authenticatedUser) {
+    return { error: "Sign in with the customer account before resuming payment.", status: 401 } as const;
+  }
+
+  const pending = await serviceRoleDatabaseRequest<PendingSignup[]>(
+    `signup_leads?auth_user_id=eq.${encodeURIComponent(authenticatedUser.id)}&status=eq.submitted_unpaid&is_test=eq.true&select=id&order=submitted_at.desc&limit=1`,
+  ).catch(() => []);
+  const lead = pending[0];
+  if (!lead) {
+    return { error: "No submitted unpaid signup is available for this customer account.", status: 409 } as const;
+  }
+
+  // Reuse the most recent still-open Stripe TEST Checkout Session when possible.
+  // This prevents one abandoned signup from accumulating multiple simultaneously
+  // payable sessions and multiple Stripe customers.
+  const attempts = await serviceRoleDatabaseRequest<OpenCheckoutAttempt[]>(
+    `stripe_checkout_attempts?signup_lead_id=eq.${encodeURIComponent(lead.id)}&status=eq.open&livemode=eq.false&stripe_checkout_session_id=not.is.null&select=id,stripe_checkout_session_id&order=created_at.desc&limit=1`,
+  ).catch(() => []);
+  const attempt = attempts[0];
+  if (attempt?.stripe_checkout_session_id?.startsWith("cs_test_")) {
+    try {
+      const session = await stripeGet<StripeSessionLookup>(
+        `checkout/sessions/${encodeURIComponent(attempt.stripe_checkout_session_id)}`,
+      );
+      if (!session.livemode && session.status === "open" && session.payment_status === "unpaid" && session.url) {
+        return { checkoutUrl: session.url, checkoutSessionId: session.id } as const;
+      }
+      if (!session.livemode && session.status === "complete" && session.payment_status !== "unpaid") {
+        return { error: "Stripe received the payment. ADS is waiting for verified webhook activation before opening the portal.", status: 409 } as const;
+      }
+    } catch {
+      // If the old TEST session can no longer be retrieved, rotate the signup
+      // edit credential below and safely create a replacement checkout session.
+    }
+  }
+
+  const editToken = randomBytes(32).toString("base64url");
+  const editTokenHash = createHash("sha256").update(editToken).digest("hex");
+  const updated = await serviceRoleDatabaseRequest<{ id: string }[]>(
+    `signup_leads?id=eq.${encodeURIComponent(lead.id)}&auth_user_id=eq.${encodeURIComponent(authenticatedUser.id)}&status=eq.submitted_unpaid&is_test=eq.true`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ edit_token_hash: editTokenHash, updated_at: new Date().toISOString() }),
+    },
+  ).catch(() => []);
+  if (!updated[0]?.id) {
+    return { error: "The pending signup changed while payment recovery was starting. Sign in again and retry.", status: 409 } as const;
+  }
+
+  return { leadId: lead.id, editToken } as const;
 }
 
 export async function POST(request: NextRequest) {
@@ -64,8 +131,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Checkout request must be valid JSON." }, { status: 400, headers: RESPONSE_HEADERS });
   }
   const input = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string, unknown> : {};
-  const leadId = asText(input.leadId);
-  const editToken = asText(input.editToken);
+  let leadId = asText(input.leadId);
+  let editToken = asText(input.editToken);
+
+  if ((!/^[0-9a-f-]{36}$/i.test(leadId) || editToken.length < 32) && input.resumePendingPayment === true) {
+    const recovery = await recoverPendingSignupCheckout();
+    if ("error" in recovery) {
+      return NextResponse.json(
+        { ok: false, error: recovery.error },
+        { status: recovery.status, headers: RESPONSE_HEADERS },
+      );
+    }
+    if ("checkoutUrl" in recovery) {
+      return NextResponse.json(
+        { ok: true, checkoutUrl: recovery.checkoutUrl, checkoutSessionId: recovery.checkoutSessionId, resumed: true },
+        { headers: RESPONSE_HEADERS },
+      );
+    }
+    leadId = recovery.leadId;
+    editToken = recovery.editToken;
+  }
+
   if (!/^[0-9a-f-]{36}$/i.test(leadId) || editToken.length < 32) {
     return NextResponse.json({ ok: false, error: "A valid submitted signup is required before checkout." }, { status: 400, headers: RESPONSE_HEADERS });
   }
@@ -196,7 +282,7 @@ export async function POST(request: NextRequest) {
       customer: customer.id,
       client_reference_id: lead.id,
       success_url: `${origin}/bin-cleaning/signup/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/bin-cleaning/signup?checkout=canceled`,
+      cancel_url: `${origin}/bin-cleaning/complete-payment?checkout=canceled`,
       "line_items[0][quantity]": 1,
       "line_items[0][price_data][currency]": "usd",
       "line_items[0][price_data][unit_amount]": price.subtotalCents,
