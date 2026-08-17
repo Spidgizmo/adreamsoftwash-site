@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { processSignupPaymentReminderOutbox } from "@/lib/bin-cleaning/payment-reminder-outbox";
 import { processReferralNotificationOutbox } from "@/lib/bin-cleaning/referral-notification-outbox";
 import { armAvailableStripeReferralRewards } from "@/lib/bin-cleaning/stripe-referral-rewards";
 import { currentSession, serviceRoleDatabaseRequest } from "@/lib/supabase/server";
@@ -13,7 +14,8 @@ async function processReferralWork() {
   });
   const stripeRewards = await armAvailableStripeReferralRewards(50);
   const notifications = await processReferralNotificationOutbox(50);
-  return { matured: Number(matured || 0), stripeRewards, notifications };
+  const paymentReminders = await processSignupPaymentReminderOutbox(50);
+  return { matured: Number(matured || 0), stripeRewards, notifications, paymentReminders };
 }
 
 function cronAuthorized(request: NextRequest) {
@@ -33,7 +35,7 @@ export async function GET(request: NextRequest) {
     const result = await processReferralWork();
     return NextResponse.json({ ok: true, ...result });
   } catch {
-    return NextResponse.json({ ok: false, error: "Referral processing failed." }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Referral and payment-reminder processing failed." }, { status: 500 });
   }
 }
 
@@ -50,6 +52,7 @@ export async function POST(request: NextRequest) {
       const url = new URL("/bin-cleaning/crm", request.url);
       url.searchParams.set("referrals_processed", "1");
       url.searchParams.set("rewards_armed", String(armed));
+      url.searchParams.set("payment_reminders_processed", String(result.paymentReminders.processed));
       if (failures) url.searchParams.set("reward_failures", String(failures));
       return NextResponse.redirect(url, 303);
     }
@@ -58,6 +61,6 @@ export async function POST(request: NextRequest) {
     if (browserForm(request)) {
       return NextResponse.redirect(new URL("/bin-cleaning/crm?referrals_process_error=1", request.url), 303);
     }
-    return NextResponse.json({ ok: false, error: "Referral processing failed." }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Referral and payment-reminder processing failed." }, { status: 500 });
   }
 }
