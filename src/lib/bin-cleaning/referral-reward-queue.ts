@@ -15,13 +15,13 @@ export function rewardPercentForLifetimeReferral(sequence: number): ReferralRewa
 }
 
 export function referralRewardCents(
-  monthlyBasePriceCents: number,
+  monthlyChargeCents: number,
   rewardPercent: ReferralRewardPercent,
 ): number {
-  if (!Number.isInteger(monthlyBasePriceCents) || monthlyBasePriceCents < 0) {
-    throw new Error("Monthly base price must be a non-negative integer");
+  if (!Number.isInteger(monthlyChargeCents) || monthlyChargeCents < 0) {
+    throw new Error("Monthly charge must be a non-negative integer");
   }
-  return Math.round((monthlyBasePriceCents * rewardPercent) / 100);
+  return Math.round((monthlyChargeCents * rewardPercent) / 100);
 }
 
 export function nextReferralReward(
@@ -43,7 +43,6 @@ export function nextReferralReward(
 
 export function automaticReferralDiscountForInvoice(args: {
   planId: string | null;
-  monthlyBasePriceCents: number;
   regularChargeCents: number | null;
   queuedRewards: readonly QueuedReferralReward[];
   now?: Date;
@@ -51,7 +50,7 @@ export function automaticReferralDiscountForInvoice(args: {
   reward: QueuedReferralReward | null;
   discountCents: number;
 }> {
-  const { planId, monthlyBasePriceCents, regularChargeCents, queuedRewards, now } = args;
+  const { planId, regularChargeCents, queuedRewards, now } = args;
 
   if (planId !== "monthly" || regularChargeCents == null) {
     return { reward: null, discountCents: 0 };
@@ -63,7 +62,7 @@ export function automaticReferralDiscountForInvoice(args: {
   }
 
   const rewardValue = referralRewardCents(
-    monthlyBasePriceCents,
+    regularChargeCents,
     reward.reward_percent,
   );
 
