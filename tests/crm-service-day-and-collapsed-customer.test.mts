@@ -6,6 +6,7 @@ const crmPath = new URL("../src/app/bin-cleaning/crm/page.tsx", import.meta.url)
 const customerPath = new URL("../src/app/bin-cleaning/crm/customers/[id]/page.tsx", import.meta.url);
 const manualFormPath = new URL("../src/app/bin-cleaning/crm/customers/new/ManualCustomerForm.tsx", import.meta.url);
 const manualRoutePath = new URL("../src/app/api/bin-cleaning/crm/manual-customer/route.ts", import.meta.url);
+const customerUpdateRoutePath = new URL("../src/app/api/bin-cleaning/crm/customer-update/route.ts", import.meta.url);
 const historyPath = new URL("../src/components/bin-cleaning/CustomerHistoryPanels.tsx", import.meta.url);
 
 test("CRM exposes pickup and clean day separately and normal pickup filters are weekdays only", async () => {
@@ -17,16 +18,21 @@ test("CRM exposes pickup and clean day separately and normal pickup filters are 
   assert.doesNotMatch(crm, /<option value="">All pickup days<\/option>\{days\.map/);
 });
 
-test("manual customer intake rejects weekend municipality pickup days on client and server", async () => {
-  const [form, route] = await Promise.all([
+test("manual intake and staff edits reject weekend municipality pickup days", async () => {
+  const [form, manualRoute, customerUpdateRoute] = await Promise.all([
     readFile(manualFormPath, "utf8"),
     readFile(manualRoutePath, "utf8"),
+    readFile(customerUpdateRoutePath, "utf8"),
   ]);
   assert.match(form, /trashWeekday < 1 \|\| trashWeekday > 5/);
   assert.match(form, /recyclingWeekday < 1 \|\| recyclingWeekday > 5/);
   assert.match(form, /standardPickupDays\.map/);
-  assert.match(route, /trashWeekday < 1 \|\| trashWeekday > 5/);
-  assert.match(route, /recyclingWeekday < 1 \|\| recyclingWeekday > 5/);
+  assert.match(manualRoute, /trashWeekday < 1 \|\| trashWeekday > 5/);
+  assert.match(manualRoute, /recyclingWeekday < 1 \|\| recyclingWeekday > 5/);
+  assert.match(customerUpdateRoute, /trashWeekday < 1 \|\|\s*trashWeekday > 5/);
+  assert.match(customerUpdateRoute, /recyclingWeekday < 1 \|\| recyclingWeekday > 5/);
+  assert.match(customerUpdateRoute, /trashWeekday >= 1 && trashWeekday <= 5/);
+  assert.match(customerUpdateRoute, /recyclingWeekday >= 1 &&\s*recyclingWeekday <= 5/);
 });
 
 test("customer CRM keeps only summary and pending review open by default", async () => {
