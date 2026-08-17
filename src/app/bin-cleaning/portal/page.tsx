@@ -4,6 +4,7 @@ import {
   Stat,
 } from "@/components/bin-cleaning/AppShell";
 import { ManageBinsForm } from "@/components/bin-cleaning/ManageBinsForm";
+import { ReferralLedger } from "@/components/bin-cleaning/ReferralLedger";
 import { ReferralShare } from "@/components/bin-cleaning/ReferralShare";
 import { customerAccountSummary } from "@/lib/bin-cleaning/customer-account-summary";
 import { portalCustomer } from "@/lib/bin-cleaning/queries";
@@ -32,6 +33,33 @@ function cadenceLabel(frequencyWeeks: number) {
     : frequencyWeeks === 2
       ? "every other week"
       : `every ${frequencyWeeks} weeks`;
+}
+
+function CollapsibleSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="card mt-4 p-5">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-black">{title}</h2>
+          {description && (
+            <p className="mt-1 text-sm leading-6 text-zinc-600">{description}</p>
+          )}
+        </div>
+        <span className="shrink-0 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-black text-zinc-700">
+          Open / close
+        </span>
+      </summary>
+      <div className="mt-5 border-t border-zinc-200 pt-5">{children}</div>
+    </details>
+  );
 }
 
 export default async function PortalPage({
@@ -183,25 +211,15 @@ export default async function PortalPage({
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Account" value={customer.account_status} />
-        <Stat
-          label="Current plan"
-          value={
-            subscription?.service_plan_versions.service_plans.display_name ??
-            "None"
-          }
-        />
-        <Stat label="Bins" value={currentTotalBins} />
-        <Stat label={accountSummary.nextChargeLabel} value={nextChargeValue} />
-      </div>
-      <p className="mt-2 text-xs text-zinc-500">
-        *Staging estimate before tax. One qualified referral reward is included when available; additional earned rewards stay queued for later eligible Monthly bills.
-      </p>
-
-      <section className="card mt-6 p-5">
+      <section className="card p-5">
         <h2 className="text-xl font-black">Hello, {customer.full_name}</h2>
-        <dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Definition label="Account">{customer.account_status}</Definition>
+          <Definition label="Current plan">
+            {subscription?.service_plan_versions.service_plans.display_name ?? "None"}
+          </Definition>
+          <Definition label="Bins">{currentTotalBins}</Definition>
+          <Definition label={accountSummary.nextChargeLabel}>{nextChargeValue}</Definition>
           <Definition label="Service address">
             {address.line1}, {address.city}, {address.region} {address.postal_code}
           </Definition>
@@ -238,6 +256,9 @@ export default async function PortalPage({
             {address.access_instructions ?? "None"}
           </Definition>
         </dl>
+        <p className="mt-4 text-xs text-zinc-500">
+          *Staging estimate before tax. One qualified referral reward is included when available; additional earned rewards stay queued for later eligible Monthly bills. Referral rewards are promotional service credits only and have no cash redemption value.
+        </p>
 
         {currentRecyclingBins > 0 && (
           <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
@@ -247,87 +268,67 @@ export default async function PortalPage({
         )}
       </section>
 
-      <section className="card mt-6 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-black">Optional marketing offers</h2>
-            <p className="mt-2 text-sm text-zinc-600">
-              Promotions and special offers are separate from required account, billing, scheduling, safety, and service-completion messages.
+      <CollapsibleSection title="Service history" description="Open to review completed and scheduled service records and photo documentation.">
+        {visits.length === 0 && <p className="text-sm text-zinc-500">No service history yet.</p>}
+        {visits.map((visit) => (
+          <div className="mt-3 rounded-xl bg-zinc-50 p-4" key={visit.id}>
+            <strong>{visit.status}</strong>
+            <p className="text-sm">
+              {visit.scheduled_for ?? "Unscheduled"} ·{" "}
+              {visit.visit_photographs.map((photo) => photo.kind).join(" / ") ||
+                "No photo records"}
             </p>
           </div>
-          <span className={`rounded-full px-4 py-2 text-sm font-black ${preferences?.marketing_allowed ? "bg-emerald-100 text-emerald-900" : "bg-zinc-100 text-zinc-700"}`}>
-            {preferences?.marketing_allowed ? "ON" : "OFF"}
+        ))}
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Your referrals"
+        description="Share your code, review qualified referrals, and see promotional service credits waiting for future Monthly invoices."
+      >
+        <p className="text-sm text-zinc-600">
+          Share your permanent referral code or link with friends. A new eligible Monthly customer receives 50% off their first eligible Monthly charge. Your first qualified referral earns 50% off your entire next eligible Monthly bin-cleaning charge; every later qualified referral earns 25% off an entire eligible Monthly charge. One reward is used per Monthly bill and additional rewards stay queued (promotional service credits only; no cash value).
+        </p>
+        <ReferralShare
+          code={accountSummary.referralCode ?? undefined}
+          senderName={customer.full_name}
+        />
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <Stat label="Submitted referrals" value={accountSummary.submittedReferrals} />
+          <Stat label="Qualified referrals" value={accountSummary.qualifiedReferrals} />
+          <Stat
+            label="Available promotional service credits"
+            value={formatCurrency(accountSummary.availableCreditCents)}
+          />
+        </div>
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm">
+          <strong>{accountSummary.nextChargeLabel}:</strong>{" "}
+          {accountSummary.nextChargeCents == null
+            ? "No recurring charge"
+            : `${formatCurrency(accountSummary.nextChargeCents)} before tax`}
+          {accountSummary.nextAppliedCreditCents > 0 && (
+            <span className="block text-emerald-800">
+              Includes {formatCurrency(accountSummary.nextAppliedCreditCents)} from one qualified referral reward.
+            </span>
+          )}
+          {accountSummary.queuedReferralRewards > 1 && (
+            <span className="block text-zinc-600">
+              {accountSummary.queuedReferralRewards - 1} additional earned reward{accountSummary.queuedReferralRewards - 1 === 1 ? " is" : "s are"} queued for later Monthly bills.
+            </span>
+          )}
+          <span className="mt-2 block font-semibold text-zinc-700">
+            Referral rewards are promotional service credits only. They may reduce eligible future ADS Monthly invoices, but they cannot be paid out, withdrawn, exchanged for cash, refunded as cash, or transferred to another account.
           </span>
         </div>
-        <form action="/api/bin-cleaning/marketing-preference" method="post" className="mt-4">
-          <input type="hidden" name="action" value={preferences?.marketing_allowed ? "disable" : "enable"} />
-          <button className="rounded-xl border border-brand-300 bg-brand-50 px-4 py-3 font-black text-brand-800">
-            {preferences?.marketing_allowed ? "Turn marketing offers off" : "Turn marketing offers on"}
-          </button>
-        </form>
-        {preferences?.marketing_updated_at && (
-          <p className="mt-3 text-xs text-zinc-500">
-            Last changed {new Date(preferences.marketing_updated_at).toLocaleString()}.
-          </p>
-        )}
-      </section>
+        <ReferralLedger />
+      </CollapsibleSection>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="card p-5">
-          <h2 className="text-xl font-black">Service history</h2>
-          {visits.length === 0 && <p className="mt-3 text-sm text-zinc-500">No service history yet.</p>}
-          {visits.map((visit) => (
-            <div className="mt-3 rounded-xl bg-zinc-50 p-4" key={visit.id}>
-              <strong>{visit.status}</strong>
-              <p className="text-sm">
-                {visit.scheduled_for ?? "Unscheduled"} ·{" "}
-                {visit.visit_photographs.map((photo) => photo.kind).join(" / ") ||
-                  "No photo records"}
-              </p>
-            </div>
-          ))}
-        </section>
-
-        <section className="card p-5">
-          <h2 className="text-xl font-black">Your referrals</h2>
-          <p className="mt-2 text-sm text-zinc-600">
-            Share your permanent referral code or link with friends. A new eligible Monthly customer receives 50% off their first eligible Monthly charge. Your first qualified referral earns 50% off your entire next eligible Monthly bin-cleaning charge; every later qualified referral earns 25% off an entire eligible Monthly charge. One reward is used per Monthly bill and additional rewards stay queued.
-          </p>
-          <ReferralShare
-            code={accountSummary.referralCode ?? undefined}
-            senderName={customer.full_name}
-          />
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Stat label="Submitted referrals" value={accountSummary.submittedReferrals} />
-            <Stat label="Qualified referrals" value={accountSummary.qualifiedReferrals} />
-            <Stat
-              label="Available rewards"
-              value={formatCurrency(accountSummary.availableCreditCents)}
-            />
-          </div>
-          <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm">
-            <strong>{accountSummary.nextChargeLabel}:</strong>{" "}
-            {accountSummary.nextChargeCents == null
-              ? "No recurring charge"
-              : `${formatCurrency(accountSummary.nextChargeCents)} before tax`}
-            {accountSummary.nextAppliedCreditCents > 0 && (
-              <span className="block text-emerald-800">
-                Includes {formatCurrency(accountSummary.nextAppliedCreditCents)} from one qualified referral reward.
-              </span>
-            )}
-            {accountSummary.queuedReferralRewards > 1 && (
-              <span className="block text-zinc-600">
-                {accountSummary.queuedReferralRewards - 1} additional earned reward{accountSummary.queuedReferralRewards - 1 === 1 ? " is" : "s are"} queued for later Monthly bills.
-              </span>
-            )}
-          </div>
-        </section>
-      </div>
-
-      <section className="card mt-6 p-5">
-        <h2 className="text-xl font-black">Manage your bins</h2>
-        <p className="mt-2 text-sm leading-6 text-zinc-600">
-          Add or remove trash and recycling bins here. Every change is time-stamped and kept in account history. A route-locked visit keeps its own immutable bin snapshot, so later changes cannot rewrite what ADS was scheduled to clean.
+      <CollapsibleSection
+        title="Manage your bins"
+        description="Add or remove trash and recycling bins. Changes are time-stamped and preserved in account history."
+      >
+        <p className="text-sm leading-6 text-zinc-600">
+          A route-locked visit keeps its own immutable bin snapshot, so later changes cannot rewrite what ADS was scheduled to clean.
         </p>
         {canManageBinPricing && planVersion ? (
           <ManageBinsForm
@@ -370,14 +371,36 @@ export default async function PortalPage({
             </div>
           </div>
         )}
-      </section>
+      </CollapsibleSection>
 
-      <section className="card mt-6 p-5">
-        <h2 className="text-xl font-black">Update contact & service details</h2>
+      <CollapsibleSection
+        title="Update contact & service details"
+        description="Update your phone and request changes to access, return-location, safety, or recycling details."
+      >
+        <div className="mb-5 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-black">Optional marketing offers</p>
+              <span className={`rounded-full px-2 py-1 text-xs font-black ${preferences?.marketing_allowed ? "bg-emerald-100 text-emerald-900" : "bg-zinc-200 text-zinc-700"}`}>
+                {preferences?.marketing_allowed ? "ON" : "OFF"}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-zinc-600">
+              Promotions only. Required account, billing, scheduling, safety, and service messages are unaffected.
+            </p>
+          </div>
+          <form action="/api/bin-cleaning/marketing-preference" method="post">
+            <input type="hidden" name="action" value={preferences?.marketing_allowed ? "disable" : "enable"} />
+            <button className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-black text-zinc-800">
+              {preferences?.marketing_allowed ? "Turn off" : "Turn on"}
+            </button>
+          </form>
+        </div>
+
         <form
           action="/api/bin-cleaning/portal"
           method="post"
-          className="mt-4 grid gap-4 sm:grid-cols-2"
+          className="grid gap-4 sm:grid-cols-2"
         >
           <input type="hidden" name="customer_id" value={customer.id} />
           <label>
@@ -440,7 +463,7 @@ export default async function PortalPage({
               Recycling schedule correction
             </legend>
             <p className="mb-4 text-sm text-blue-950">
-              Use this only to correct an existing recycling schedule without changing your number of bins. Use Manage your bins above when adding or removing a recycling bin.
+              Use this only to correct an existing recycling schedule without changing your number of bins. Use Manage your bins when adding or removing a recycling bin.
             </p>
             <div className="grid gap-4 md:grid-cols-3">
               <label className="font-semibold">
@@ -485,12 +508,14 @@ export default async function PortalPage({
             Save account changes
           </button>
         </form>
-      </section>
+      </CollapsibleSection>
 
-      <section className="card mt-6 p-5">
-        <h2 className="text-xl font-black">Moving? Update your service address</h2>
-        <p className="mt-2 text-sm leading-6 text-zinc-600">
-          Keep the same ADS account, plan, referral history, and billing relationship when you move. Submit the new address and pickup schedule here. Your current service address stays active until ADS confirms the new address is in our service area and updates the route, so submitting a move does not shut off your existing service.
+      <CollapsibleSection
+        title="Moving? Update your service address"
+        description="Keep the same ADS account, plan, referral history, and billing relationship when you move."
+      >
+        <p className="text-sm leading-6 text-zinc-600">
+          Submit the new address and pickup schedule here. Your current service address stays active until ADS confirms the new address is in our service area and updates the route, so submitting a move does not shut off your existing service.
         </p>
         <form action="/api/bin-cleaning/portal" method="post" className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <input type="hidden" name="customer_id" value={customer.id} />
@@ -574,7 +599,7 @@ export default async function PortalPage({
             Submit new address for service-area & routing review
           </button>
         </form>
-      </section>
+      </CollapsibleSection>
     </AppShell>
   );
 }
