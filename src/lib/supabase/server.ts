@@ -13,6 +13,7 @@ type SessionTokens = {
 };
 
 export type SessionUser = { id: string; email: string; role: AppRole };
+export type AuthenticatedUser = { id: string; email: string };
 
 function config() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -99,6 +100,21 @@ export async function serviceRoleDatabaseRequest<T>(
   return parseDatabaseResponse<T>(response);
 }
 
+export async function authenticatedUserFromToken(
+  token: string,
+): Promise<AuthenticatedUser | null> {
+  try {
+    const response = await authRequest("user", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    const user = (await response.json()) as { id: string; email?: string };
+    return { id: user.id, email: user.email ?? "" };
+  } catch {
+    return null;
+  }
+}
+
 async function profileRole(userId: string, token?: string): Promise<AppRole> {
   const profiles = await databaseRequest<{ login_status: string }[]>(
     `user_profiles?id=eq.${userId}&select=login_status`,
@@ -135,14 +151,10 @@ export async function sessionFromToken(
   token: string,
 ): Promise<SessionUser | null> {
   try {
-    const response = await authRequest("user", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) return null;
-    const user = (await response.json()) as { id: string; email?: string };
+    const user = await authenticatedUserFromToken(token);
+    if (!user) return null;
     return {
-      id: user.id,
-      email: user.email ?? "",
+      ...user,
       role: await profileRole(user.id, token),
     };
   } catch {
@@ -159,6 +171,24 @@ async function rotateSession(refreshToken: string) {
   const tokens = (await response.json()) as SessionTokens;
   await storeSession(tokens);
   return tokens;
+}
+
+export async function currentAuthenticatedUser(): Promise<AuthenticatedUser | null> {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get(ACCESS_COOKIE)?.value;
+  if (accessToken) {
+    const user = await authenticatedUserFromToken(accessToken);
+    if (user) return user;
+  }
+
+  const refreshToken = cookieStore.get(REFRESH_COOKIE)?.value;
+  if (!refreshToken) return null;
+  try {
+    const tokens = await rotateSession(refreshToken);
+    return tokens ? authenticatedUserFromToken(tokens.access_token) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function currentSession(): Promise<SessionUser | null> {
