@@ -73,13 +73,16 @@ export async function ReferralLedger() {
   const creditForRelationship = new Map(credits.map((credit) => [credit.referral_relationship_id, credit]));
 
   return (
-    <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Referral rewards</p>
-          <h2 className="mt-1 text-xl font-black text-emerald-950">Your referral activity &amp; credits</h2>
-          <p className="mt-1 text-sm text-emerald-900">A referral is earned after the referred Monthly customer successfully pays. First qualified referral: 50% off one eligible Monthly base cleaning. Each later qualified referral: 25%. One reward is applied per eligible Monthly invoice.</p>
-        </div>
+    <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Referral reward history</p>
+        <h3 className="mt-1 text-lg font-black text-emerald-950">Your referral activity &amp; service credits</h3>
+        <p className="mt-1 text-sm text-emerald-900">
+          A referral is earned after the referred Monthly customer successfully pays. Your first qualified referral earns 50% off your entire next eligible Monthly bin-cleaning charge; each later qualified referral earns 25% off one eligible Monthly charge. One reward is applied per eligible Monthly invoice and additional rewards remain queued.
+        </p>
+        <p className="mt-2 text-xs font-semibold text-emerald-950">
+          Promotional service credits only. Rewards have no cash value and cannot be paid out, withdrawn, exchanged for cash, refunded as cash, or transferred to another account.
+        </p>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -123,6 +126,6 @@ export async function ReferralLedger() {
       ) : (
         <p className="mt-4 rounded-xl bg-white p-4 text-sm text-zinc-700">No paid referral relationships yet. Submitted unpaid referral signups are counted above while they finish checkout.</p>
       )}
-    </section>
+    </div>
   );
 }
