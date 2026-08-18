@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
           lead_source: "website-online",
           marketingAllowed,
           marketingConsentVersion: "ads-marketing-v1",
+          termsVersion: value.payload.termsAccepted ? "ads-bin-cleaning-service-payment-v1" : null,
           estimate: trustedEstimate,
         },
         p_lead_id: value.leadId,
