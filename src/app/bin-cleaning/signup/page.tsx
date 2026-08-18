@@ -73,6 +73,12 @@ export default async function SignupPage({
             </p>
           </aside>
 
+          <aside className="mt-5 max-w-4xl rounded-2xl border-2 border-brand-300 bg-white p-5 text-sm leading-relaxed text-zinc-800 shadow-sm">
+            <p className="font-black text-zinc-950">Read the service and payment terms before creating the account.</p>
+            <p className="mt-2">They cover billing, cancellation, preparation, missed or unsafe bins, contamination and extra work, promotions, referrals, service communications, and payment security.</p>
+            <Link href="/bin-cleaning/terms" target="_blank" className="mt-3 inline-flex rounded-lg bg-brand-700 px-4 py-2 font-black text-white hover:bg-brand-600">Read ADS Bin Cleaning Service &amp; Payment Terms →</Link>
+          </aside>
+
           <div className="mt-8">
             <BinCleaningSignupForm
               initialPlanId={selection.planId}
