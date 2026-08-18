@@ -24,6 +24,13 @@ export default function ManualSetupPage() {
             </div>
             <Link href="/bin-cleaning" className="text-sm font-black text-brand-800">ADS Bin Cleaning</Link>
           </div>
+
+          <aside className="mb-6 rounded-2xl border-2 border-brand-300 bg-white p-5 shadow-sm">
+            <p className="font-black text-zinc-950">Read the terms before accepting them below.</p>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-700">The service and payment terms cover billing, cancellation, preparation, missed or unsafe bins, contamination and extra work, promotions, referrals, service communications, and payment security.</p>
+            <Link href="/bin-cleaning/terms" target="_blank" className="mt-3 inline-flex rounded-lg bg-brand-700 px-4 py-2 text-sm font-black text-white hover:bg-brand-600">Read ADS Bin Cleaning Service &amp; Payment Terms →</Link>
+          </aside>
+
           <ManualCustomerSetup />
         </div>
       </Container>
