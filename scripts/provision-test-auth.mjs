@@ -1,0 +1,5 @@
+const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.SUPABASE_SERVICE_ROLE_KEY;const password=process.env.ADS_TEST_USER_PASSWORD;
+if(!url||!key||!password||password.length<16)throw new Error("Set disposable test Supabase URL, server-only service key, and a unique ADS_TEST_USER_PASSWORD of at least 16 characters.");
+const ids=["00000000-0000-4000-8000-000000000001","00000000-0000-4000-8000-000000000002","00000000-0000-4000-8000-000000000010","00000000-0000-4000-8000-000000000011","00000000-0000-4000-8000-000000000012","00000000-0000-4000-8000-000000000013"];
+for(const id of ids){const response=await fetch(`${url}/auth/v1/admin/users/${id}`,{method:"PUT",headers:{apikey:key,Authorization:`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify({password,email_confirm:true})});if(!response.ok)throw new Error(`Could not provision ${id}: ${await response.text()}`)}
+console.log("Six disposable fictional identities provisioned. The password was read only from the environment.");

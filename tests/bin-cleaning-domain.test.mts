@@ -1,0 +1,17 @@
+import assert from "node:assert/strict"; import test from "node:test";
+import { APP_ROLES, REFERRAL_STATUSES, referralRejection, canCompleteVisit, cleaningDate, makeReferralCode, nextCleaningDay, referralCreditCents } from "../src/lib/bin-cleaning/domain.ts";
+
+test("all four application roles are explicit",()=>assert.deepEqual(APP_ROLES,["customer","administrator","dispatcher","field_technician"]));
+test("pickup is followed by next-day cleaning including Friday to Saturday",()=>{assert.equal(nextCleaningDay("monday"),"tuesday");assert.equal(nextCleaningDay("friday"),"saturday")});
+test("holiday shift changes pickup then cleaning date",()=>assert.equal(cleaningDate("2026-09-07",1),"2026-09-09"));
+test("invalid date input is rejected",()=>assert.throws(()=>cleaningDate("not-a-date"),RangeError));
+test("referral codes are opaque and deterministic from random bytes",()=>{const a=makeReferralCode(Uint8Array.from([1,2,3,4,5,6,7,8]));const b=makeReferralCode(Uint8Array.from([8,7,6,5,4,3,2,1]));assert.match(a,/^ADS-[A-Z0-9]+$/);assert.notEqual(a,b)});
+test("self referral is rejected",()=>assert.equal(referralRejection({referrerCustomerId:"a",referredCustomerId:"a",now:new Date("2026-08-02"),duplicateActiveClaim:false}),"self_referral"));
+test("address claim inside lookback is rejected",()=>assert.equal(referralRejection({referrerCustomerId:"a",referredCustomerId:"b",addressClaimedAt:new Date("2026-01-01"),now:new Date("2026-08-02"),duplicateActiveClaim:false}),"address_lookback"));
+test("same address after lookback is allowed",()=>assert.equal(referralRejection({referrerCustomerId:"a",referredCustomerId:"b",addressClaimedAt:new Date("2025-01-01"),now:new Date("2026-08-02"),duplicateActiveClaim:false}),null));
+test("duplicate active referral claim is rejected",()=>assert.equal(referralRejection({referrerCustomerId:"a",referredCustomerId:"b",now:new Date("2026-08-02"),duplicateActiveClaim:true}),"duplicate_active_claim"));
+test("referral lifecycle retains every auditable state",()=>assert.deepEqual(REFERRAL_STATUSES,["code_entered","pending_signup","pending_first_service","pending_successful_payment","seven_day_hold","qualified","credit_issued","credit_applied","rejected","reversed"]));
+test("first lifetime monthly referral reward is half of eligible base",()=>assert.equal(referralCreditCents("monthly",1),1000));
+test("second and later lifetime monthly referral rewards are one quarter of eligible base",()=>{assert.equal(referralCreditCents("monthly",2),500);assert.equal(referralCreditCents("monthly",10),500)});
+test("inactive plan cannot earn referral credit",()=>assert.throws(()=>referralCreditCents("every-two-weeks"),/not referral eligible/));
+test("visit completion requires photos, cleaning, and return",()=>{assert.equal(canCompleteVisit({beforePhoto:true,cleaningConfirmed:true,afterPhoto:true,binsReturned:true,authorizedException:false}),true);assert.equal(canCompleteVisit({beforePhoto:false,cleaningConfirmed:true,afterPhoto:true,binsReturned:true,authorizedException:false}),false);assert.equal(canCompleteVisit({beforePhoto:true,cleaningConfirmed:true,afterPhoto:true,binsReturned:false,authorizedException:false}),false);assert.equal(canCompleteVisit({beforePhoto:true,cleaningConfirmed:true,afterPhoto:true,binsReturned:false,authorizedException:true}),true)});

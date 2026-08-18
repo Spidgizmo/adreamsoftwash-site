@@ -4,6 +4,8 @@ import "./globals.css";
 import { MobileCTA } from "@/components/MobileCTA";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { StagingBanner } from "@/components/StagingBanner";
+import { isStagingEnvironment } from "@/lib/app-environment";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -17,6 +19,9 @@ export const metadata: Metadata = {
     icon: "/favicon.ico?v=2",
     apple: "/apple-touch-icon.png?v=2",
   },
+  robots: isStagingEnvironment()
+    ? { index: false, follow: false, nocache: true }
+    : undefined,
 };
 
 export default function RootLayout({
@@ -27,9 +32,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      style={{ "--font-inter": 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' } as React.CSSProperties}
+      style={{
+        "--font-inter":
+          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      } as React.CSSProperties}
     >
       <body className="min-h-screen bg-brand-50 text-zinc-900 antialiased">
+        <StagingBanner />
         <SiteHeader />
         <div className="pb-24 md:pb-0">{children}</div>
         <SiteFooter />

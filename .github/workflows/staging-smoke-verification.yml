@@ -1,0 +1,49 @@
+name: Verify ADS Bin Cleaning hosted staging
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - feature/ads-bin-cleaning-launch
+    paths:
+      - ".github/workflows/staging-smoke-verification.yml"
+      - "scripts/verify-hosted-staging.mjs"
+      - "src/app/api/bin-cleaning/test-integrations/**"
+      - "src/lib/bin-cleaning/test-integrations.ts"
+      - "src/lib/bin-cleaning/test-integration-simulators.ts"
+      - "tests/secure-test-integrations.test.mts"
+      - ".env.example"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+  deployments: read
+
+jobs:
+  verify-hosted-staging:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.head_ref == 'codex/begin-agent-2-for-ads-bin-cleaning'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ads-bin-cleaning-staging
+    env:
+      EXPECTED_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_TOKEN: ${{ github.token }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - name: Execute fictional simulator and redaction tests
+        run: npm test
+      - name: Verify successful Vercel Preview and probe when accessible
+        run: npm run test:staging:verify

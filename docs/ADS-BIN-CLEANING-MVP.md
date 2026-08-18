@@ -3,6 +3,8 @@
 **Owner and final decision-maker:** James Gibbs
 **Status:** Planning; no live activation is authorized
 
+The current controlling promotion and operating rules are in `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.md`. That latest owner-approved configuration supersedes historical wording if another planning record conflicts.
+
 ## 1. Purpose and boundaries
 
 ADS Bin Cleaning will be a connected system within the existing American Dream Softwash Next.js repository. A fully responsive public page, self-signup, staff-assisted CRM signup, customer accounts and portal, Stripe billing, dynamic address-based tax, the internal CRM, cleaning entitlements, and future route/field workflows will use one shared backend and customer database. They are not separate applications to connect later.
@@ -48,17 +50,42 @@ After plan and bin count selection, show selected plan, bin count, base price, a
 
 ### Customer self-signup
 
-Collect plan, bin count, full name, mobile, email, validated service address, customer-confirmed normal trash day, applicable recycling schedule, designated bin-return location, gate/driveway/access/return instructions, optional referral code, terms acceptance, and the reviewed subtotal/tax/total.
+Collect plan, bin count, full name, mobile, email, validated service address, customer-confirmed normal trash day, applicable recycling schedule, designated bin-return location, gate/driveway/access/return instructions, optional referral code, optional promotional code, terms acceptance, and the reviewed subtotal/tax/total.
 
 The action may read **Create Account & Continue to Payment**. It must securely create login credentials, a provisional customer and unique internal customer ID, save signup data, set signup to `pending payment`, expose that record in CRM, and then continue to Stripe. Account creation is not proof of payment or active service.
 
+### NEW25 marketing promotion
+
+NEW25 is an active marketing code for new Monthly subscribers only. It discounts the first month's selected Monthly subscription subtotal by 25% before tax. The first-charge summary must show the normal subtotal, promotional discount, discounted first-month subtotal, tax, and total. Later monthly renewals use the regular selected-plan price before tax.
+
+The signup page accepts typed NEW25 and a normalized marketing-link parameter. Code matching is case-insensitive for usability, but the stored/displayed code is NEW25. Quarterly, Twice a Year, One-Time Cleaning, and inactive plans receive no NEW25 discount. The browser preview is not authoritative: the server/checkout service must revalidate the code, plan, account history, new-subscriber eligibility, effective status, non-stacking eligibility, and final cents before creating Stripe Checkout or a subscription.
+
+NEW25 does **not** stack with the **Share 50%. Get 50%.** new-customer referral discount, ONE45, or another discount. Checkout must apply only one eligible discount, and the chosen/declined decision must be preserved in the audit trail.
+
+### ONE45 public new-customer promotion
+
+ONE45 is publicly advertised on the website and signup page. The exact code is letters `O-N-E` followed by digits `4-5`; it is not numeric `145`.
+
+- Eligible purchase: One-Time Cleaning with exactly two bins.
+- Normal pre-tax subtotal: $60.
+- ONE45 pre-tax subtotal: $45.
+- Discount: $15.
+- Eligible customer: genuinely new ADS Bin Cleaning customer only.
+- Usage: one successful redemption per customer. An established customer cannot return six months, one year, or later and receive the offer again.
+- Service-address history is checked against duplicate-account abuse.
+- Expiration: none. ONE45 has no expiration date.
+- Non-stacking: cannot combine with NEW25, a referral discount, or another promotion.
+- Matching: case-insensitive entry; normalized stored/displayed code is ONE45.
+
+The normal One-Time catalog price remains $60 for up to two bins. ONE45 is shown as a new-customer promotion and does not replace that catalog price. The browser may display an eligible preview, but the trusted checkout service must verify identity/customer history, service-address history, prior redemption, selected plan, exact bin count, tax basis, and final cents. Future One-Time purchases by that customer use the regular price.
+
 ### Staff-assisted signup and leads
 
-The protected CRM includes **Add New Customer** for phone, in-person, door-hanger, advertising, and assisted customers. Staff collect the same information and use the identical catalog, pricing, address validation, tax, referral, account, entitlement, and status services. Staff can review subtotal/tax/total, create a pending account, and text or email a secure Stripe payment link.
+The protected CRM includes **Add New Customer** for phone, in-person, door-hanger, advertising, and assisted customers. Staff collect the same information and use the identical catalog, pricing, address validation, tax, referral, promotion, account, entitlement, and status services. Staff can review subtotal/tax/total, create a pending account, and text or email a secure Stripe payment link.
 
 Signup sources include Website, Staff phone, Staff in person, Door-hanger call, Existing ADS customer, Manual import, and another approved marketing source. Leads/incomplete signups remain visible with at least: New lead, Information requested, Signup started, Payment link sent, Pending payment, Active, Declined, Not interested, and Canceled.
 
-Website and staff-assisted customers share the same database, account type, portal, billing, CRM, referral, tax, automation, entitlements, and route records. Full card numbers, security codes, or raw card data must never enter notes, the database, repository, or logs.
+Website and staff-assisted customers share the same database, account type, portal, billing, CRM, referral, promotion, tax, automation, entitlements, and route records. Full card numbers, security codes, or raw card data must never enter notes, the database, repository, or logs.
 
 ## 4. Accounts, portal, CRM, and security
 
@@ -68,23 +95,25 @@ Customers can access only their own data. Staff and administrator areas require 
 
 ### Customer portal
 
-Display customer/name/login/account/payment/subscription/service states; current plan/version, frequency and recurring status; bin count, base price, tax and total; address, normal pickup day, expected cleaning day; current entitlement, next eligible service date when known, and last completed cleaning; return/access instructions; billing history, invoices and Stripe payment-method access; eligible referral details; service history and requests; and payment-hold, suspension, and reactivation messages.
+Display customer/name/login/account/payment/subscription/service states; current plan/version, frequency and recurring status; bin count, base price, tax and total; address, normal pickup day, expected cleaning day; current entitlement, next eligible service date when known, and last completed cleaning; return/access instructions; billing history, invoices and Stripe payment-method access; eligible referral details; promotional redemption history; service history and requests; and payment-hold, suspension, and reactivation messages.
 
-One-time customers can view receipt, schedule, service status/history and future photos; buy another one-time service; and request a recurring-plan upgrade.
+One-time customers can view receipt, schedule, service status/history and future photos; buy another one-time service; and request a recurring-plan upgrade. A previous ONE45 customer sees regular pricing for a later One-Time purchase.
 
 ### Internal CRM
 
-The CRM receives every lead, website/staff/incomplete/pending signup, active/past-due/suspended/canceled customer. It stores/displays customer ID, source, contact details, validated address/result, plan/version/type/frequency, bins, base/tax/total, pickup/cleaning/holiday schedule, return/access details, referral details, payment/subscription/service states, grace deadline, current entitlement, last service, zone/next eligible run, schedule verification, notes, activity, plan-change history, and pricing history.
+The CRM receives every lead, website/staff/incomplete/pending signup, active/past-due/suspended/canceled customer. It stores/displays customer ID, source, contact details, validated address/result, plan/version/type/frequency, bins, base/discount/tax/total, pickup/cleaning/holiday schedule, return/access details, referral details, promotion/redemption details, discount-conflict/selection details, payment/subscription/service states, grace deadline, current entitlement, last service, zone/next eligible run, schedule verification, notes, activity, plan-change history, and pricing history.
+
+For ONE45, CRM history must make prior successful use and established-customer ineligibility visible without requiring staff to inspect raw Stripe or database records.
 
 ## 5. Billing, tax, and payment lifecycle
 
-Use Stripe Checkout, Billing subscriptions, customer billing portal, secure payment links, and webhooks in **test mode only** until separately approved. Support monthly, three-month, six-month, and one-time charges with anniversary-based recurring billing. Webhooks update local payment/service states, entitlements, referrals, invoice/tax records, holds, suspension, and reactivation. Never commit credentials.
+Use Stripe Checkout, Billing subscriptions, customer billing portal, secure payment links, and webhooks in **test mode only** until separately approved. Support monthly, three-month, six-month, and one-time charges with anniversary-based recurring billing. Webhooks update local payment/service states, entitlements, referrals, promotion redemptions, invoice/tax records, holds, suspension, and reactivation. Never commit credentials.
 
 ### Address-based tax
 
 Website and CRM signup use one replaceable tax-provider interface, initially compatible with Stripe Tax, against the exact validated service address. Never hardcode rates by city, county, ZIP, or a manually maintained rate table, and never hardwire the CRM to one provider.
 
-Before checkout, in Stripe Checkout, on invoices, in the portal, and in CRM, display tax separately. Each invoice/payment keeps an audit snapshot of validated address, validation state, returned jurisdictions, applied rate, taxable subtotal, tax, total, product classification, provider calculation ID, and calculation timestamp. Recurring invoices use the current validated address and current rules rather than freezing signup tax. Ohio taxability and live collection await owner/accountant/legal approval.
+Before checkout, in Stripe Checkout, on invoices, in the portal, and in CRM, display tax separately. Each invoice/payment keeps an audit snapshot of validated address, validation state, returned jurisdictions, applied rate, taxable subtotal after the one eligible discount, discount lines, tax, total, product classification, provider calculation ID, and calculation timestamp. Recurring invoices use the current validated address and current rules rather than freezing signup tax. Ohio taxability and live collection await owner/accountant/legal approval.
 
 ### Failed payment and seven-day rule
 
@@ -128,7 +157,9 @@ The approved program applies only to eligible Monthly residential subscriptions 
 
 A genuinely new eligible customer gets 50% off the eligible base price of the first regular monthly cleaning. After that cleaning is completed, paid, not refunded/disputed/charged back, and past a seven-calendar-day review hold, the referrer earns a credit equal to 50% of their own next eligible monthly base cleaning.
 
-Each eligible Monthly customer receives a permanent unique code during signup. Limit one code per new account and qualifying address. Two earned credits can cover up to 100% of an eligible base invoice; excess rolls forward and expires 12 months after earning. Credits have no cash value, are nontransferable, cannot make an invoice negative, and exclude tax, gratuity, contamination/debris/restoration/missed-service/return-trip charges, additional non-plan bins, and unrelated ADS services. Failure, refund, dispute, chargeback, self-referral, duplicate account, or fraud can block/reverse rewards.
+Each eligible Monthly customer receives a permanent unique code during signup. Limit one code per new account and qualifying address. Two earned referral credits can cover up to 100% of an eligible base invoice; excess rolls forward and expires 12 months after earning. Credits have no cash value, are nontransferable, cannot make an invoice negative, and exclude tax, gratuity, contamination/debris/restoration/missed-service/return-trip charges, additional non-plan bins, and unrelated ADS services. Failure, refund, dispute, chargeback, self-referral, duplicate account, or fraud can block/reverse rewards.
+
+The internal rule allowing two earned referral credits to cover up to 100% does not allow NEW25 or ONE45 to stack with the new-customer referral discount. A new customer uses exactly one eligible discount source on the first charge.
 
 Portal views include code/link, pending/qualified referrals, available/applied balances, history, and reversals.
 
@@ -139,3 +170,21 @@ Support future transitions among launch and later-active plans. Audit previous/n
 ## 9. Release gate
 
 The public page may be built visually first, but live signup remains disabled until accounts, portal, Stripe test billing, and minimum CRM connectivity work together. Deployment, live Stripe/tax, and release require separate approval.
+
+## 10. Promotion implementation boundary
+
+The current public page and signup preview may display NEW25 and ONE45 and calculate a non-authoritative preview. They do not prove a customer is new, reserve or redeem a discount, accept payment, or authorize service.
+
+Trusted promotion implementation must:
+
+- identify the customer across current and historical account records;
+- check service-address history for duplicate-account abuse;
+- record every attempt, rejection, selection, successful redemption, refund, dispute, reversal, and staff action;
+- enforce one successful ONE45 redemption per customer for all future time;
+- reject established customers even if they use a different email, phone number, or return months later;
+- enforce ONE45's plan, exact-bin-count, no-expiration rule, normal subtotal, discount, tax basis, and non-stacking rules;
+- never reject ONE45 because of time or date;
+- keep later One-Time purchases at the regular catalog price;
+- use idempotency so checkout/webhook retries cannot create duplicate benefits.
+
+Refund, dispute, chargeback, duplicate-account/address, or fraud handling must preserve an auditable promotion state and may reverse or block the benefit according to the trusted promotion lifecycle.

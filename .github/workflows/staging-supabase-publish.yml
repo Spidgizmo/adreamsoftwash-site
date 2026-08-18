@@ -1,0 +1,130 @@
+name: Publish ADS Bin Cleaning staging database
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_fictional_seed:
+        description: "Load the fictional staging seed on this run"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  publish-staging-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ads-bin-cleaning-staging
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ADS_TEST_USER_PASSWORD: ${{ secrets.ADS_STAGING_TEST_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verify protected staging inputs
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_DB_PASSWORD"
+          test -n "$SUPABASE_PROJECT_REF"
+          test -n "$NEXT_PUBLIC_SUPABASE_URL"
+          test -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          test -n "$SUPABASE_SERVICE_ROLE_KEY"
+          test ${#ADS_TEST_USER_PASSWORD} -ge 16
+          case "$NEXT_PUBLIC_SUPABASE_URL" in
+            https://*.supabase.co|https://*.supabase.in) ;;
+            *) echo "Hosted staging Supabase URL is required." >&2; exit 1 ;;
+          esac
+
+      - name: Link hosted staging project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Preview remote migration changes
+        run: supabase db push --dry-run
+
+      - name: Apply migrations without seed
+        if: ${{ !inputs.include_fictional_seed }}
+        run: supabase db push
+
+      - name: Apply migrations and fictional seed
+        if: ${{ inputs.include_fictional_seed }}
+        run: supabase db push --include-seed
+
+      - name: Provision six fictional hosted Auth identities
+        run: npm run test:auth:provision
+
+      - name: Verify hosted Auth and RLS isolation
+        shell: bash
+        run: |
+          node <<'NODE'
+          const users = [
+            ["avery@example.test", 1],
+            ["jordan@example.test", 1],
+            ["admin@example.test", 5],
+            ["dispatcher@example.test", 5],
+            ["technician@example.test", 1],
+            ["unassigned-tech@example.test", 0],
+          ];
+
+          for (const [email, expectedCustomers] of users) {
+            const signIn = await fetch(
+              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`,
+              {
+                method: "POST",
+                headers: {
+                  apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  email,
+                  password: process.env.ADS_TEST_USER_PASSWORD,
+                }),
+              },
+            );
+            if (!signIn.ok) {
+              throw new Error(`Hosted sign-in failed for ${email}: ${await signIn.text()}`);
+            }
+            const { access_token: accessToken } = await signIn.json();
+            const customers = await fetch(
+              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/customers?select=id`,
+              {
+                headers: {
+                  apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              },
+            );
+            if (!customers.ok) {
+              throw new Error(`Hosted RLS request failed for ${email}: ${await customers.text()}`);
+            }
+            const rows = await customers.json();
+            if (rows.length !== expectedCustomers) {
+              throw new Error(
+                `Hosted RLS isolation failed for ${email}: expected ${expectedCustomers}, received ${rows.length}`,
+              );
+            }
+          }
+          console.log("Hosted staging database, six fictional sign-ins, and RLS isolation passed.");
+          NODE

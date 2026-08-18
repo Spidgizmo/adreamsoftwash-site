@@ -4,32 +4,77 @@
 
 Extend the existing Next.js App Router and Tailwind CSS application as one responsive product. Use Supabase Postgres as the shared system of record, Supabase Auth for customer/staff/admin identities, Row Level Security (RLS), server-side role authorization, Stripe Checkout and Billing in test mode, Stripe webhooks, the Stripe customer billing portal, and Stripe Tax behind a replaceable `TaxProvider` boundary.
 
-The public page, self-signup, staff-assisted signup, customer portal, CRM, billing/tax adapters, entitlements, and future routing are modules over the same database—not separately owned applications or synchronized customer copies. Lavo remains isolated and unchanged.
+The public page, self-signup, staff-assisted signup, customer portal, CRM, billing/tax adapters, promotions, entitlements, and future routing are modules over the same database—not separately owned applications or synchronized customer copies. Lavo remains isolated and unchanged.
+
+The authoritative owner-approved launch configuration is `docs/ADS-BIN-CLEANING-LAUNCH-CONFIG.md`; code mirrors it in `src/lib/bin-cleaning-launch-config.ts`. Normal plan pricing remains sourced only from `src/lib/bin-cleaning-catalog.json` and its generated immutable database snapshot. The controlling launch configuration version is `2026-08-04-launch-rules-v3`.
 
 ## Logical layers and flows
 
 1. **Responsive Next.js surfaces:** public pricing/signup, customer portal, staff/admin CRM, and future field views reuse the existing Tailwind design system and work across phone, tablet, laptop, desktop, portrait, and landscape.
-2. **Server application services:** catalog/pricing, identity onboarding, customer/lead, address validation, tax-provider adapter, checkout, billing webhook, referral ledger, entitlement, scheduling, route, notification, and audit services enforce shared rules.
+2. **Server application services:** catalog/pricing, promotion eligibility/redemption, customer-history resolution, discount exclusivity, identity onboarding, customer/lead, address validation, tax-provider adapter, checkout, billing webhook, referral ledger, entitlement, scheduling, route, notification, and audit services enforce shared rules.
 3. **Supabase:** Postgres holds canonical records; Auth supplies identity; RLS restricts customers to their rows while staff/admin access is role-scoped. Privileged actions also check authorization server-side.
-4. **Stripe test integrations:** server-created Checkout/payment links and subscriptions reference catalog-approved Stripe IDs. Signed, idempotent webhooks update local billing/status records and create entitlements. The billing portal handles payment methods without exposing card data.
-5. **Tax provider abstraction:** a narrow interface accepts validated address, product classification, line items, and transaction context and returns jurisdictions/rate/totals/provider ID. Stripe Tax is the initial adapter, but domain/CRM code consumes only the interface.
+4. **Stripe test integrations:** server-created Checkout/payment links and subscriptions reference catalog-approved Stripe IDs and trusted promotion decisions. Signed, idempotent webhooks update local billing/status records and create entitlements. The billing portal handles payment methods without exposing card data.
+5. **Tax provider abstraction:** a narrow interface accepts validated address, product classification, line items, one eligible discount, and transaction context and returns jurisdictions/rate/totals/provider ID. Stripe Tax is the initial adapter, but domain/CRM code consumes only the interface.
 
-Public signup first creates an Auth identity, provisional customer, signup snapshot, unique customer ID, and pending-payment CRM record in the shared store, then requests tax and Stripe Checkout. Staff signup calls the same services and sends a secure payment link. Webhooks, not browser redirects, authoritatively transition payment and service state.
+Public signup first creates or resolves an Auth identity, provisional customer, signup snapshot, unique customer ID, and pending-payment CRM record in the shared store, then requests promotion/referral validation, exclusive-discount resolution, tax, and Stripe Checkout. Staff signup calls the same services and sends a secure payment link. Webhooks, not browser redirects, authoritatively transition payment and service state.
 
 ## Central versioned service-plan catalog
 
-`service_plans` and immutable/effective-dated `service_plan_versions` are the only pricing/eligibility source for public pricing, both signup paths, Checkout/subscriptions, portal, CRM, tax, entitlements, routing, invoices, and reporting. A version stores internal ID, display name/description, active state, charge type, billing unit/quantity, service unit/quantity, first-bin/additional-bin prices, included bins, referral eligibility, tax classification, Stripe product/price references, and effective date.
+`src/lib/bin-cleaning-catalog.json` is the single reviewed catalog definition. It supplies the typed application catalog and generates the immutable/effective-dated `service_plans` and `service_plan_versions` seed snapshot; an automated check rejects divergence. The resulting versioned database records are referenced by signup, subscriptions, portal, CRM, tax, entitlements, routing, invoices, and reporting. A version stores internal ID, display name/description, active state, charge type, billing unit/quantity, service unit/quantity, first-bin/additional-bin prices, included bins, referral eligibility, tax classification, Stripe product/price references, and effective date.
 
 The launch configuration exposes Monthly, Quarterly, Twice a Year, and One-Time Cleaning with their approved catalog pricing. Every 2 Weeks may exist only as future/inactive with no price, Stripe Price, staff/public visibility, or referral eligibility. Activating a future approved version is a catalog/configuration change, not a website, portal, CRM, tax, entitlement, or routing rebuild.
 
-Pricing is calculated server-side from catalog version plus bin count; clients render the returned breakdown. Persist the selected version and base/additional/subtotal/tax/total snapshots on signup, invoice, payment, entitlement, and history records.
+Pricing is calculated server-side from catalog version plus bin count; clients render the returned breakdown. Persist the selected version and base/additional/subtotal/discount/tax/total snapshots on signup, invoice, payment, entitlement, and history records.
+
+## Central promotion policy
+
+NEW25 and ONE45 are represented as reviewed promotion rules rather than duplicated in signup copy, Stripe configuration, CRM, invoices, or reporting. The browser may normalize and preview a code, but it cannot establish eligibility, exclusivity, prior use, customer/address history, or final cents.
+
+### NEW25
+
+The approved rule is: new Monthly subscriber only, 25% off the first paid Monthly cycle, no discount on later cycles, publicly advertised on the website, one successful use per customer, and no stacking with the **Share 50%. Get 50%.** new-customer referral discount or another promotion.
+
+The trusted checkout service must normalize the submitted code, load the active promotion policy, confirm the selected plan/version is Monthly, confirm the customer/account has no disqualifying prior Monthly subscription under the final approved new-subscriber definition, calculate the discount from the trusted first-cycle subtotal, and create Stripe Checkout with the matching test-mode coupon/promotion configuration. It must persist an idempotent redemption/attempt record tied to customer, signup, subscription, plan version, invoice/payment cycle, normalized code, discount basis, discount cents, status, and timestamps.
+
+Marketing links may carry `promo=NEW25`, but the server always revalidates the value. Unknown, inactive, expired, or ineligible codes fail closed.
+
+### ONE45
+
+ONE45 is a publicly advertised new-customer acquisition code. The exact normalized code is `ONE45`, not numeric `145`. The normal One-Time catalog price remains $60 for up to two bins; ONE45 is a promotion and does not alter that catalog record.
+
+The trusted promotion policy must require all of the following before applying ONE45:
+
+- selected plan/version is One-Time Cleaning;
+- exact bin count is two;
+- trusted normal pre-tax subtotal is $60;
+- final promotional pre-tax subtotal is $45, producing a $15 discount;
+- customer is genuinely new to ADS Bin Cleaning;
+- customer has no successful prior ONE45 redemption, regardless of how much time has passed;
+- identity/account history does not show the customer as established under another current or historical login/contact record;
+- service-address history does not indicate duplicate-account abuse;
+- no NEW25, referral discount, or other promotion is selected.
+
+ONE45 has no expiration date. The trusted service must not reject it because of the current date or elapsed time. Input matching is case-insensitive, while stored/displayed code is ONE45. The public page and signup may preview the eligible amount, but the checkout service persists and authoritatively evaluates customer identity/history, service address, campaign source, plan version, bin count, normal subtotal, discount, final subtotal, no-expiration policy, prior redemption, selected/declined conflicts, Stripe references, status, timestamps, and refund/dispute/reversal state.
+
+A previous ONE45 customer must receive the normal catalog price for every later One-Time purchase, including six months or a year later. A browser-created amount or eligibility result is never trusted.
+
+### Exclusive discount resolver
+
+If more than one promotion or an eligible referral discount is present, the discount-combination service returns a conflict. Checkout cannot apply more than one. The customer or authorized staff must proceed with one eligible discount, and selected, declined, rejected, and redeemed states are recorded for audit.
+
+## Customer identity and promotion-history resolution
+
+Promotion eligibility cannot rely only on the email address typed into the current form. The trusted service must resolve possible existing customer history using protected normalized records and approved matching/review rules, including customer ID, linked Auth identities, normalized email/phone history, current and historical service addresses, prior signups/orders/subscriptions, and prior promotion attempts/redemptions.
+
+A possible match that cannot be safely resolved automatically must enter a staff-review state rather than silently receive ONE45 or silently merge unrelated customers. Staff decisions are role-protected and audited. The system must not expose another customer’s information while explaining an eligibility result.
 
 ## Proposed data domains
 
-- **Identity/access:** auth user mapping, customer/staff/admin profile, roles/permissions, login status, recovery/audit events.
-- **Customer/lead:** customer ID, contact/address validation, source, signup status, trash/recycling declarations, return/access instructions, consent and activity.
+- **Identity/access:** auth user mapping, customer/staff/admin profile, roles/permissions, login status, recovery/audit events, protected customer-history resolution.
+- **Customer/lead:** customer ID, normalized contact history, address validation/history, source, signup status, trash/recycling declarations, return/access instructions, consent and activity.
 - **Catalog/history:** plans, versions, Stripe references, tax class, referral eligibility, plan-change requests and audit.
-- **Billing/tax:** Stripe customer/subscription/checkout/invoice/payment references; separate payment/subscription states; calculation snapshots containing validated address/status, jurisdictions, rate, taxable subtotal, tax, total, classification, provider ID, timestamp.
+- **Promotions:** normalized codes, campaign source/visibility, active/effective/optional-expiry state, eligible plan/version and exact-bin scope, new-customer/customer-history/address-history rules, percentage/fixed/fixed-final-subtotal basis, non-stacking policy, per-customer limits, address anti-abuse rules, Stripe test references, attempts, successful applications, reversals, declined-conflict records, and audit history. ONE45 is explicitly configured with no expiration.
+- **Billing/tax:** Stripe customer/subscription/checkout/invoice/payment references; separate payment/subscription states; calculation snapshots containing validated address/status, jurisdictions, rate, pre-discount subtotal, the single applied discount line, taxable subtotal, tax, total, classification, provider ID, timestamp.
 - **Service:** separate service status; pickup source values, holiday dates, calculated cleaning date, verification/review; service history.
 - **Entitlements:** one idempotently created entitlement per successful paid cycle, lifecycle status, source invoice/payment, cycle boundaries, and a uniqueness rule preventing more than one completion.
 - **Routing/field:** zones, multiple zone runs, capacity, stops/order, route status, evidence/photos, return confirmation/exceptions, surcharge review, notifications, staff/equipment logs.
@@ -41,10 +86,11 @@ Keep login, signup, payment, subscription, service, entitlement, and route state
 
 - Default-deny RLS: customers read/update only permitted fields on their own records; staff/admin policies are role-specific. Service-role access stays server-side.
 - Recheck staff/admin roles on every privileged server operation. Log sensitive actions and status changes.
-- Verify Stripe webhook signatures, enforce idempotency, and reject client-authored price/tax/status values.
+- Verify Stripe webhook signatures, enforce idempotency, and reject client-authored price, promotion, discount, stacking, tax, customer-history, or status values.
 - Store Stripe references/tokens only—never full card number, CVC/security code, or raw card data in database, notes, repository, or logs.
-- Validate and normalize addresses while preserving original/customer, official, holiday, and staff-approved values separately.
+- Validate and normalize addresses while preserving original/customer, official, holiday, historical, and staff-approved values separately.
 - Keep secrets out of source control and expose only intentionally public browser configuration.
+- Do not reveal another customer’s existence, contact data, address history, or promotion history to an applicant.
 
 ## Payment, entitlement, and routing behavior
 
@@ -66,10 +112,32 @@ APP_BASE_URL=
 ADDRESS_VALIDATION_PROVIDER_KEY=
 ```
 
-Provider-specific identifiers belong in protected configuration or catalog records, not duplicated client code. No real values are authorized in planning.
+Provider-specific identifiers—including Stripe coupon and promotion-code IDs—belong in protected configuration or reviewed catalog/promotion records, not duplicated client code. No real values are authorized in planning.
 
 ## Delivery constraints
 
-This proposal installs no packages, creates no Supabase project, creates no Stripe products/prices, supplies no credentials, and adds no application code. Stripe remains test-only. Live signup waits for connected account, portal, test billing, and minimum CRM behavior. See the roadmap for staged implementation and the decision log for approval gates.
+This proposal installs no packages, creates no Supabase project, creates no Stripe products/prices/coupons, supplies no credentials, and adds no live integration. Stripe remains test-only. Live signup waits for connected account, portal, test billing, and minimum CRM behavior. See the roadmap for staged implementation and the decision log for approval gates.
 
 The public service description may use the owner-approved standard-service scope recorded in the MVP and decision log. The exterior-cleaning Lavo link remains a clearly labeled global-header option on bin-cleaning routes, but no bin-cleaning signup, account, billing, CRM, or scheduling flow uses Lavo.
+
+## Agent 2 test foundation (2026-08-02)
+
+The committed Supabase CLI configuration, migration, seed, RLS helpers/policies, and database completion trigger implement the test foundation without dashboard dependencies. Responsive test surfaces now exist at `/bin-cleaning/login`, `/bin-cleaning/portal`, `/bin-cleaning/crm`, `/bin-cleaning/crm/customers/[id]`, `/bin-cleaning/crm/visits`, and `/bin-cleaning/field/visits/[id]`. They are session-scoped to fictional records in the disposable Supabase database; they do not activate production signup, billing, messaging, scheduling, storage delivery, or deployment.
+
+Local/test and future production projects must be separate Supabase projects with separately scoped credentials. `.env.local` contains only local/test values; deployment-secret storage will later contain production values after explicit approval. Never copy test service-role keys into browser variables or reuse a production project for tests.
+
+### Agent 2 correction: authenticated runtime
+
+Private routes are guarded by Next.js middleware which validates the HTTP-only Supabase access-token cookie against Auth, resolves the role through session-scoped PostgREST/RLS, and redirects missing/expired/wrong-role sessions. Server components and route handlers use the same access token and anon key; the service-role key is never sent to the browser. Runtime portal, CRM, customer, visit, and field data come from PostgREST rather than fixtures. Customer route-affecting edits create `customer_change_requests`; field mutations and protected-table triggers persist audit history.
+
+### Paid-cycle entitlement foundation
+
+`paid_service_cycles` represents a subscription/plan-version cycle and carries a unique idempotency key. Each cycle can create at most one `cleaning_entitlement`, which has its own unique idempotency key and approved lifecycle status. Visits reference the entitlement, and a partial unique index prevents more than one completed visit per entitlement. Stripe/webhook creation remains deferred, but it must use these keys rather than creating duplicate service rights. Audit events store both a UUID `entity_id` when applicable and a text-safe `entity_key` for catalog IDs such as `monthly`.
+
+### Promotion-preview foundation
+
+The public page and signup preview consume centralized NEW25 and ONE45 policies, accept typed or marketing-link input, calculate eligible preview amounts, and expose a shared combination rule that blocks simultaneous promotion/referral application. ONE45 preview requires the One-Time plan and exactly two bins and states that the offer does not expire. No Stripe coupon, live redemption, trusted customer-history decision, or one-use persistence is activated by preview work.
+
+### Step 1 configuration foundation — 2026-08-04
+
+The owner-approved cross-system rules are locked at `2026-08-04-launch-rules-v3`. `src/lib/bin-cleaning-launch-config.ts` exposes public ONE45, one-successful-use-per-customer, established-customer ineligibility, address-history anti-abuse, no-expiration policy, and the launch operational rules for later trusted signup, CRM, Stripe, portal, reporting, and tests. It does not activate checkout or replace the Step 6 trusted promotion service.
