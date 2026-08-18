@@ -143,7 +143,7 @@ function initialForm(props: SignupFormProps): FormState {
     smsAllowed: false,
     phoneAllowed: false,
     marketingAllowed: false,
-    termsAccepted: true,
+    termsAccepted: false,
   };
 }
 
@@ -225,7 +225,7 @@ function buildPayload(form: FormState) {
     smsAllowed: form.smsAllowed,
     phoneAllowed: form.phoneAllowed,
     marketingAllowed: form.marketingAllowed,
-    termsAccepted: true,
+    termsAccepted: form.termsAccepted,
     sourcePath: window.location.pathname + window.location.search,
   };
 }
@@ -261,6 +261,7 @@ function validateForSubmit(form: FormState): FieldErrors {
   if (!form.emailAllowed) result.emailAllowed = "Email service permission is required for account, scheduling, billing, and service notices.";
   if (!form.smsAllowed) result.smsAllowed = "Text-message service permission is required so ADS can send service notices and before/after completion photos.";
   if (!form.phoneAllowed) result.phoneAllowed = "Phone-call service permission is required for time-sensitive service or access issues.";
+  if (!form.termsAccepted) result.termsAccepted = "Read and accept the ADS Bin Cleaning service and payment terms before continuing.";
   return result;
 }
 
@@ -273,6 +274,7 @@ function serverErrorsToFields(items: readonly string[]): FieldErrors {
     else if (lower.includes("email service permission")) mapped.emailAllowed = item;
     else if (lower.includes("text-message service permission")) mapped.smsAllowed = item;
     else if (lower.includes("phone-call service permission")) mapped.phoneAllowed = item;
+    else if (lower.includes("terms")) mapped.termsAccepted = item;
     else if (lower.includes("recycling pickup date")) mapped.recyclingAnchorCollectionDate = item;
     else if (lower.includes("zip")) mapped.postalCode = item;
     else if (lower.includes("return location")) mapped.preferredReturnLocation = item;
@@ -640,6 +642,13 @@ export function BinCleaningSignupForm(props: SignupFormProps) {
           <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
             <p className="font-black text-zinc-950">Optional marketing offers</p>
             <label className="mt-3 flex items-start gap-3 font-semibold"><input type="checkbox" checked={form.marketingAllowed} onChange={setChecked("marketingAllowed")} className="mt-1 h-5 w-5 accent-blue-700" /><span>Yes, I would like to receive occasional promotions and special offers from <strong>American Dream Softwash (ADS Bin Cleaning)</strong>, including offers for house washing, roof washing, concrete cleaning, bin cleaning, and other exterior-cleaning services.<span className="mt-1 block text-sm font-normal text-zinc-600">Marketing consent is optional and is not required to purchase ADS Bin Cleaning services.</span></span></label>
+          </div>
+
+          <div data-field="termsAccepted" className={`mt-6 rounded-2xl border-2 p-4 ${fieldErrors.termsAccepted ? "border-red-600 bg-red-50 text-red-950" : "border-brand-300 bg-brand-50"}`}>
+            <a href="/bin-cleaning/terms" target="_blank" rel="noreferrer" className="inline-flex rounded-lg border border-brand-700 bg-white px-4 py-2 text-sm font-black text-brand-800 hover:bg-brand-100">Read the full ADS Bin Cleaning Service &amp; Payment Terms →</a>
+            <p className="mt-2 text-xs font-semibold text-zinc-600">The terms open in a new tab so you can read them without losing this signup.</p>
+            <label className="mt-4 flex items-start gap-3 font-semibold"><input type="checkbox" checked={form.termsAccepted} onChange={setChecked("termsAccepted")} className="mt-1 h-5 w-5 accent-blue-700" /><span><strong>I accept the ADS Bin Cleaning service and payment terms.</strong><span className="mt-1 block text-sm font-normal text-zinc-700">I reviewed the service information and linked terms and agree to the service preparation, billing/payment, cancellation, contamination/extra-charge, and applicable promotion/referral terms for this account.</span></span></label>
+            {fieldErrors.termsAccepted ? <p className="mt-2 text-xs font-black text-red-700">{fieldErrors.termsAccepted}</p> : null}
           </div>
         </Section>
 
