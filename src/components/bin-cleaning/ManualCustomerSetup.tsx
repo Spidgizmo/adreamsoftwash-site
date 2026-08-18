@@ -133,7 +133,7 @@ export function ManualCustomerSetup() {
           ? "Your account setup is complete. Continue to secure Stripe TEST checkout."
           : result.setupState === "converted"
             ? "This setup has already been paid and converted to a customer account."
-            : "Review the information ADS entered, finish any required schedule detail, create your portal password, accept the terms, and continue to Stripe TEST checkout.");
+            : "Review the information ADS entered, finish any required schedule detail, create your portal password, read and accept the terms, and continue to Stripe TEST checkout.");
       } catch {
         setStepState("error");
         setMessage("The secure setup service could not be reached. Reopen this link and try again.");
@@ -200,7 +200,7 @@ export function ManualCustomerSetup() {
     }
     if (!termsAccepted) {
       setStepState("error");
-      setMessage("Accept the ADS Bin Cleaning service and payment terms before continuing.");
+      setMessage("Read and accept the ADS Bin Cleaning service and payment terms before continuing.");
       return;
     }
 
@@ -321,7 +321,11 @@ export function ManualCustomerSetup() {
             <label className="flex items-start gap-3"><input type="checkbox" checked={phoneAllowed} onChange={(event) => setPhoneAllowed(event.target.checked)} className="mt-1 h-5 w-5 accent-blue-700"/><span><strong>Phone calls when needed</strong><span className="block text-sm text-zinc-600">Time-sensitive service or access issues.</span></span></label>
           </div>
 
-          <label className="mt-6 flex items-start gap-3 rounded-2xl border-2 border-brand-200 bg-brand-50 p-4"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-5 w-5 accent-blue-700"/><span><strong>I accept the ADS Bin Cleaning service and payment terms.</strong><span className="mt-1 block text-sm text-zinc-700">I reviewed the service information above and agree to the service preparation, billing/payment, cancellation, contamination/extra-charge, and applicable promotion/referral terms for this account.</span></span></label>
+          <div className="mt-6 rounded-2xl border-2 border-brand-200 bg-brand-50 p-4">
+            <a href="/bin-cleaning/terms" target="_blank" rel="noreferrer" className="inline-flex rounded-lg border border-brand-700 bg-white px-4 py-2 text-sm font-black text-brand-800 hover:bg-brand-100">Read the full ADS Bin Cleaning Service &amp; Payment Terms →</a>
+            <p className="mt-2 text-xs font-semibold text-zinc-600">The terms open in a new tab so you can read them without losing this setup page.</p>
+            <label className="mt-4 flex items-start gap-3"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-5 w-5 accent-blue-700"/><span><strong>I accept the ADS Bin Cleaning service and payment terms.</strong><span className="mt-1 block text-sm text-zinc-700">I reviewed the service information above and the linked terms and agree to the service preparation, billing/payment, cancellation, contamination/extra-charge, and applicable promotion/referral terms for this account.</span></span></label>
+          </div>
 
           <button type="button" onClick={() => void completeSetup()} disabled={stepState === "saving" || stepState === "checkout"} className="mt-6 w-full rounded-xl bg-brand-700 px-5 py-4 font-black text-white disabled:bg-zinc-400">{stepState === "saving" ? "Preparing account…" : stepState === "checkout" ? "Opening Stripe TEST checkout…" : "Create portal account & continue to Stripe TEST checkout"}</button>
         </section>
