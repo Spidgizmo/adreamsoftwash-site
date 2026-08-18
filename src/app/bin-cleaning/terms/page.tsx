@@ -39,7 +39,8 @@ export default function BinCleaningTermsPage() {
 
           <div className="mt-8 max-w-4xl space-y-5">
             <TermsSection title="1. Service and what is included">
-              <p>ADS Bin Cleaning is provided by American Dream Softwash. Standard service includes interior and exterior bin cleaning, pre-treatment when needed, hands-on brushing, pressure washing, sanitizing and deodorizing, controlled wastewater handling, before-and-after service photographs, and return of the cleaned bins to the customer&apos;s designated storage location when the stated access path is available and safe.</p>
+              <p>ADS Bin Cleaning is provided by American Dream Softwash. Standard service includes interior and exterior bin cleaning, pre-treatment when needed, hands-on brushing, pressure washing, sanitizing and deodorizing, contained wash-water collection, before-and-after service photographs, and return of the cleaned bins to the customer&apos;s designated storage location when the stated access path is available and safe.</p>
+              <p>Collected wash water is kept contained and disposed of through the designated RV/sewage disposal system rather than being dumped onto the ground or into storm drains.</p>
               <p>Permanent stains, paint, tar, melted plastic, physical damage, or other conditions that are not removable by normal cleaning are not guaranteed to be removed.</p>
             </TermsSection>
 
@@ -59,7 +60,7 @@ export default function BinCleaningTermsPage() {
 
             <TermsSection title="4. Cancellation">
               <p>Recurring plans renew automatically according to the selected billing interval until canceled. A normal customer cancellation is scheduled for the end of the current paid billing period rather than cutting off a period that has already been paid.</p>
-              <p>One-Time Cleaning does not renew. Any refund, dispute, chargeback, or legally required remedy is handled according to the payment record, service record, these terms, and applicable law.</p>
+              <p>One-Time Cleaning does not renew. Any refund, dispute, or chargeback is handled according to the payment record, service record, and these terms.</p>
             </TermsSection>
 
             <TermsSection title="5. Collection day, cleaning day, holidays, and weather">
@@ -93,11 +94,11 @@ export default function BinCleaningTermsPage() {
 
             <TermsSection title="10. Acceptance and changes">
               <p>By checking the acceptance box and continuing to payment, the customer confirms that the service information entered for the account is accurate to the best of their knowledge and accepts the version of these terms shown at signup.</p>
-              <p>ADS may update terms prospectively as the service develops. Material changes that affect an existing recurring customer should be communicated before they govern a future renewal or service where notice is required.</p>
+              <p>ADS may update terms prospectively as the service develops. Material changes that affect an existing recurring customer should be communicated before they govern a future renewal or service.</p>
             </TermsSection>
 
             <div className="rounded-2xl border border-zinc-300 bg-zinc-100 p-5 text-sm leading-relaxed text-zinc-700">
-              This staging document is the working customer-facing terms version for testing. Before public launch, final legal, tax, insurance, wastewater, cancellation, and consumer-law review remains a launch-readiness step.
+              This is the current customer-facing staging terms version being tested with the ADS Bin Cleaning signup and payment flow.
             </div>
           </div>
         </div>
